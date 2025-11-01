@@ -1,4 +1,5 @@
 from my_project.harmony import solve
+from my_project.lilypond_writer import write
 from my_project.model import Key, Mode, NoteName, Pitch
 
 
@@ -12,16 +13,13 @@ def main() -> None:
         Pitch.parse("C3"),
     ]
     key = Key(tonic=NoteName.parse("C"), mode=Mode.MAJOR)
-    print(f"bass: {[bass.name() for bass in bass_sequence]}")
-    print(f"key: {key}")
+    # print(f"bass: {[bass.name() for bass in bass_sequence]}")
+    # print(f"key: {key}")
 
-    try:
-        solved = solve(bass_sequence, key)
-        print("solved:")
-        for harmony in solved:
-            print(harmony.name())
-    except NotImplementedError as e:
-        print(e)
+    solved = solve(bass_sequence, key)
+
+    lily_str = write(solved, key)
+    print(lily_str)
 
 
 if __name__ == "__main__":
