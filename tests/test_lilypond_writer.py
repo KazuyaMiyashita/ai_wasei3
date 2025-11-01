@@ -1,29 +1,29 @@
-from my_project.harmony import Harmony
+from my_project.harmony import Chord
 from my_project.lilypond_writer import write
 from my_project.model import Key, Mode, NoteName, Pitch
 
 
 def test_write() -> None:
     harmonies = [
-        Harmony(
+        Chord(
             Pitch.parse("C3"),
             Pitch.parse("E4"),
             Pitch.parse("G4"),
             Pitch.parse("C5"),
         ),
-        Harmony(
+        Chord(
             Pitch.parse("F3"),
             Pitch.parse("F4"),
             Pitch.parse("A4"),
             Pitch.parse("C5"),
         ),
-        Harmony(
+        Chord(
             Pitch.parse("G3"),
             Pitch.parse("D4"),
             Pitch.parse("G4"),
             Pitch.parse("B4"),
         ),
-        Harmony(
+        Chord(
             Pitch.parse("C3"),
             Pitch.parse("E4"),
             Pitch.parse("G4"),

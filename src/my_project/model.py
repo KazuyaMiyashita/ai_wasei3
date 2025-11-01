@@ -38,6 +38,12 @@ class NoteName:
 
         return NoteName(base_fifth + alter * 7)
 
+    def __add__(self, other: "NoteName") -> "NoteName":
+        return NoteName(self.value + other.value)
+
+    def __sub__(self, other: "NoteName") -> "NoteName":
+        return NoteName(self.value - other.value)
+
     # --- other utility methods below --- #
 
     def get_spelling(self) -> tuple[str, int]:
@@ -76,6 +82,12 @@ class Octave:
     """
 
     value: int
+
+    def __add__(self, other: "Octave") -> "Octave":
+        return Octave(self.value + other.value)
+
+    def __sub__(self, other: "Octave") -> "Octave":
+        return Octave(self.value - other.value)
 
 
 @dataclass(frozen=True)
@@ -124,6 +136,12 @@ class Pitch:
         pitch_octave_value = base_octave + alter * -4 + octave - 4
 
         return cls(Octave(pitch_octave_value), note_name)
+
+    def __add__(self, other: "Pitch") -> "Pitch":
+        return Pitch(self.octave + other.octave, self.note_name + other.note_name)
+
+    def __sub__(self, other: "Pitch") -> "Pitch":
+        return Pitch(self.octave - other.octave, self.note_name - other.note_name)
 
     # --- private map for name/parse ---
     _STEP_TO_BASE_OCTAVE: ClassVar[dict[str, int]] = {
@@ -186,6 +204,12 @@ class Step:
         if not 0 <= self.value <= 6:
             raise ValueError("Step must be between 0 and 6.")
 
+    def __add__(self, other: "Step") -> "Step":
+        return Step((self.value + other.value) % 7)
+
+    def __sub__(self, other: "Step") -> "Step":
+        return Step((self.value - other.value) % 7)
+
     @classmethod
     def of(cls, step: int) -> "Step":
         """
@@ -218,7 +242,7 @@ class Degree:
     alter: Alter
 
     @classmethod
-    def from_pitch_key(cls, note_name: NoteName, key: Key) -> "Degree":
+    def from_note_name_key(cls, note_name: NoteName, key: Key) -> "Degree":
         # 調の主音から見た音高の音程(定位相対音名)を求める
         r = note_name.value - key.tonic.value
 

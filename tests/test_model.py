@@ -22,7 +22,7 @@ def test_degree() -> None:
     ]
     key = Key(tonic=NoteName.parse("D"), mode=Mode.MAJOR)
 
-    degrees = [Degree.from_pitch_key(p.note_name, key) for p in pitches]
+    degrees = [Degree.from_note_name_key(p.note_name, key) for p in pitches]
 
     assert degrees == [
         Degree.of(step=1, alter=0),
@@ -49,7 +49,7 @@ def test_degree() -> None:
     ]
     key = Key(tonic=NoteName.parse("C"), mode=Mode.MINOR)
 
-    degrees = [Degree.from_pitch_key(p.note_name, key) for p in pitches]
+    degrees = [Degree.from_note_name_key(p.note_name, key) for p in pitches]
 
     assert degrees == [
         Degree.of(step=1, alter=0),
