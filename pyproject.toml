@@ -5,3 +5,30 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy"
+]
+
+[tool.ruff]
+src = ["src"]
+line-length = 120
+
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
+exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+mypy_path = "src"
+
+strict = true
+ignore_missing_imports = true
+pretty = true
