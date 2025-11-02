@@ -1,29 +1,46 @@
 import re
 
-from my_project.harmony import Chord
-from my_project.model import Key, Mode, NoteName, Pitch
+from my_project.model import Mode, NoteName, PartId, Pitch, Score
 
 
-def write(harmonies: list[Chord], key: Key) -> str:
+def write(score: Score) -> str:
     """
-    与えられた和音(Harmony)のリストと調をもとに、LilyPond形式の文字列を作成する
+    与えられたScoreオブジェクトをもとに、LilyPond形式の文字列を作成する
     ピアノ譜を用い、バスはへ音記号で音符の棒を下向き、テノールはヘ音記号で棒を上向き、アルトはト音記号で棒を下向き、ソプラノはト音記号で棒を上向きとする。
     音価は全て2分音符とし、拍子は2/2とする。
     """
     # Key signature
-    tonic_name = note_name_to_lilypond(key.tonic)
-    mode_name = "major" if key.mode == Mode.MAJOR else "minor"
+    tonic_name = note_name_to_lilypond(score.key.tonic)
+    mode_name = "major" if score.key.mode == Mode.MAJOR else "minor"
     key_string = f"\\key {tonic_name} \\{mode_name}"
+    time_signature_string = score.time_signature.name()
 
     # Notes for each part
-    soprano_notes = " ".join([f"{pitch_to_lilypond(h.soprano)}2" for h in harmonies])
-    alto_notes = " ".join([f"{pitch_to_lilypond(h.alto)}2" for h in harmonies])
-    tenor_notes = " ".join([f"{pitch_to_lilypond(h.tenor)}2" for h in harmonies])
-    bass_notes = " ".join([f"{pitch_to_lilypond(h.bass)}2" for h in harmonies])
+    soprano_notes = ""
+    alto_notes = ""
+    tenor_notes = ""
+    bass_notes = ""
+
+    for part in score.parts:
+        # パート内の全ての音符を連結する
+        notes_str = " ".join(
+            f"{pitch_to_lilypond(note.pitch)}2"
+            for measure in part.measures
+            for note in measure.notes
+            if note.pitch is not None
+        )
+        if part.part_id == PartId.SOPRANO:
+            soprano_notes = notes_str
+        elif part.part_id == PartId.ALTO:
+            alto_notes = notes_str
+        elif part.part_id == PartId.TENOR:
+            tenor_notes = notes_str
+        elif part.part_id == PartId.BASS:
+            bass_notes = notes_str
 
     return f"""\\version "2.24.4"
 
-keyTime = {{ {key_string} \\time 2/2 }}
+keyTime = {{ {key_string} \\time {time_signature_string} }}
 
 SopMusic   = {{ {soprano_notes} }}
 AltoMusic  = {{ {alto_notes} }}

@@ -46,7 +46,7 @@ def main() -> None:
 
     solved = solve(bass_sequence, key)
 
-    lily_str = write(solved, key)
+    lily_str = write(solved)
     print(lily_str)
 
 

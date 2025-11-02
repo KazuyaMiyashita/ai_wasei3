@@ -1,5 +1,6 @@
-from my_project.harmony import Chord, available_harmonies, compare_pitch, scale_pitches, start_chord, triad_note_names
-from my_project.model import Key, Mode, NoteName, Pitch
+from my_project.harmony import Chord, compare_pitch, scale_pitches, start_chord, triad_note_names
+from my_project.model import Key, Mode, NoteName, PartId, Pitch
+from my_project.util import part_range
 
 
 def test_compare_pitch() -> None:
@@ -12,8 +13,7 @@ def test_compare_pitch() -> None:
 def test_scale_pitches() -> None:
     assert scale_pitches(
         key=Key(tonic=NoteName.parse("D"), mode=Mode.MAJOR),
-        min=Pitch.parse("F2"),
-        max=Pitch.parse("D4"),
+        range=part_range(PartId.BASS),
     ) == [
         Pitch.parse("F#2"),
         Pitch.parse("G2"),
@@ -57,63 +57,45 @@ def test_triad_note_names() -> None:
     )
 
 
-def test_available_harmonies() -> None:
-    assert available_harmonies(
-        bass=Pitch.parse("C4"),
-        key=Key(tonic=NoteName.parse("C"), mode=Mode.MAJOR),
-    ) == set(
-        [
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G4"), Pitch.parse("C5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("C5"), Pitch.parse("G5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("C4"), Pitch.parse("G4"), Pitch.parse("E5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("E4"), Pitch.parse("G4")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G4"), Pitch.parse("G4")),
-            Chord(Pitch.parse("C4"), Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G4"), Pitch.parse("E5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("G4"), Pitch.parse("C5"), Pitch.parse("E5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("E4"), Pitch.parse("G5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G4"), Pitch.parse("G5")),
-            Chord(Pitch.parse("C4"), Pitch.parse("C4"), Pitch.parse("E4"), Pitch.parse("G4")),
-            Chord(Pitch.parse("C4"), Pitch.parse("G4"), Pitch.parse("G4"), Pitch.parse("E5")),
-        ]
-    )
-
-
 def test_start_chord() -> None:
-    assert start_chord(
+    chord = start_chord(
         Pitch.parse("C4"),
         key=Key(tonic=NoteName.parse("C"), mode=Mode.MAJOR),
-    ) == Chord(
+    )
+    assert chord == Chord(
         bass=Pitch.parse("C4"),
         tenor=Pitch.parse("G4"),
         alto=Pitch.parse("C5"),
         soprano=Pitch.parse("E5"),
     )
 
-    assert start_chord(
+    chord = start_chord(
         Pitch.parse("C4"),
         key=Key(tonic=NoteName.parse("C"), mode=Mode.MINOR),
-    ) == Chord(
+    )
+    assert chord == Chord(
         bass=Pitch.parse("C4"),
         tenor=Pitch.parse("G4"),
         alto=Pitch.parse("C5"),
         soprano=Pitch.parse("Eb5"),
     )
 
-    assert start_chord(
+    chord = start_chord(
         Pitch.parse("D3"),
         key=Key(tonic=NoteName.parse("D"), mode=Mode.MAJOR),
-    ) == Chord(
+    )
+    assert chord == Chord(
         bass=Pitch.parse("D3"),
         tenor=Pitch.parse("F#4"),
         alto=Pitch.parse("A4"),
         soprano=Pitch.parse("D5"),
     )
 
-    assert start_chord(
+    chord = start_chord(
         Pitch.parse("G2"),
         key=Key(tonic=NoteName.parse("G"), mode=Mode.MINOR),
-    ) == Chord(
+    )
+    assert chord == Chord(
         bass=Pitch.parse("G2"),
         tenor=Pitch.parse("G3"),
         alto=Pitch.parse("D4"),
