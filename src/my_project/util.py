@@ -3,7 +3,7 @@
 import functools
 import itertools
 
-from my_project.model import Key, Mode, NoteName, Octave, PartId, Pitch
+from my_project.model import Degree, DegreeStep, Interval, IntervalStep, Key, Mode, NoteName, Octave, PartId, Pitch
 
 
 def part_range(part_id: PartId) -> tuple[Pitch, Pitch]:
@@ -34,6 +34,16 @@ def compare_pitch(a: Pitch, b: Pitch) -> int:
         return 0
     else:
         return 1
+
+
+def is_in_range(pitch: Pitch, range: tuple[Pitch, Pitch]) -> bool:
+    min = range[0]
+    max = range[1]
+    return compare_pitch(min, pitch) <= 0 and compare_pitch(pitch, max) <= 0
+
+
+def is_in_part_range(pitch: Pitch, part_id: PartId) -> bool:
+    return is_in_range(pitch, part_range(part_id))
 
 
 def sorted_pitches(list: list[Pitch]) -> list[Pitch]:
@@ -122,3 +132,73 @@ def scale_pitches(
         break
 
     return result
+
+
+def add_interval_step_in_key(key: Key, pitch: Pitch, interval_step: IntervalStep) -> Pitch:
+    """
+    指定されたピッチに対し、キーの文脈で音程分だけ上方に移動したピッチを返します。
+
+    この関数はダイアトニックな音程(キー固有の音階上の音程)を計算します。
+
+    例: ハ長調 (C Major) で D4 に "3度上" (IntervalStep(2)) を適用すると、
+        キーのダイアトニックな3度上である F4 を返します。
+
+    開始音が変化音(D#4など)の場合、その変化(Alter)は保持されます。
+    例: ハ長調で D#4 (Degree(Step(1), Alter(1))) に "3度上" を適用すると、
+        F#4 (Degree(Step(3), Alter(1))) を返します。
+
+    Args:
+        key (Key): 基準となる調。
+        pitch (Pitch): 開始ピッチ。
+        interval_step (IntervalStep): 上方に移動する音程のステップ数(ユニゾン=0, 2度=1, 3度=2)。
+
+    Returns:
+        Pitch: 新しいピッチ。
+    """
+
+    # 1. 開始ピッチの音名と、キーにおける音度(Degree)を取得
+    start_note_name = pitch.note_name
+    start_degree = Degree.from_note_name_key(start_note_name, key)
+
+    # 2. 目標の音度(Degree)を計算
+    #    音度距離(Step)は interval_step 分だけ上方に移動 (mod 7)
+    #    変化度(Alter)は開始音のものをそのまま引き継ぐ
+    target_step_value = (start_degree.step.value + interval_step.value) % 7
+    target_step = DegreeStep(target_step_value)
+    target_alter = start_degree.alter  # 変化を保持
+
+    target_degree = Degree(target_step, target_alter)
+
+    # 3. 目標の音度(Degree)から、目標の音名(NoteName)を逆算
+    target_note_name = target_degree.note_name(key)
+
+    # 4. 開始音名と目標音名の差から、オクターブと五度の移動量(Interval)を計算
+
+    # 五度の移動回数 (note_name の value の差)
+    fifth_diff = target_note_name.value - start_note_name.value
+
+    # 音程のステップ(s)は、五度の移動回数(f)とオクターブの移動回数(o)から
+    # s = 4*f + 7*o という関係にある。
+    # s は interval_step.value と等しいため、o について解く。
+    # 7*o = s - 4*f
+    # o = (s - 4*f) / 7
+
+    s = interval_step.value
+    f = fifth_diff
+
+    numerator = s - 4 * f
+    if numerator % 7 != 0:
+        # このモデルの前提が正しければ、ここは常に7で割り切れるはず
+        raise RuntimeError(
+            f"Internal logic error: (s - 4f) not divisible by 7. "
+            f"s={s}, f={f}, start={start_note_name.name()}, "
+            f"target={target_note_name.name()}"
+        )
+
+    octave_diff = numerator // 7
+
+    # 5. 計算した Interval を元の Pitch に足して、新しい Pitch を得る
+    #    Pitch.__add__ は Interval を受け取るように定義されている
+    interval_to_add = Interval(octave=octave_diff, fifth=fifth_diff)
+
+    return pitch + interval_to_add

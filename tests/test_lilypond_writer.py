@@ -1,6 +1,6 @@
 from fractions import Fraction
 
-from my_project.lilypond_writer import write
+from my_project.lilypond_writer import score_to_lilypond
 from my_project.model import (
     Duration,
     Key,
@@ -69,7 +69,7 @@ def test_write() -> None:
 
     print(score)
 
-    str_result = write(score)
+    str_result = score_to_lilypond(score)
 
     print(str_result)
 

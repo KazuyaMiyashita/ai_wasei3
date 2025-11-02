@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from my_project.model import (
-    Alter,
     Degree,
+    DegreeAlter,
+    DegreeStep,
     Duration,
     Interval,
     IntervalStep,
@@ -16,7 +17,6 @@ from my_project.model import (
     PartId,
     Pitch,
     Score,
-    Step,
     TimeSignature,
 )
 from my_project.util import compare_pitch, part_range, scale_pitches
@@ -83,12 +83,12 @@ def triad_note_names(bass: NoteName, key: Key) -> set[NoteName]:
         return set()
 
     # 第三音は短調のVの和音の場合上方変位する
-    if bass_degree.step == Step.idx_1(5) and key.mode == Mode.MINOR:
+    if bass_degree.step == DegreeStep.idx_1(5) and key.mode == Mode.MINOR:
         third_degree = Degree.idx_1(7, 1)
     else:
-        third_degree = Degree(step=Step((bass_degree.step.value + 2) % 7), alter=Alter(0))
+        third_degree = Degree(step=DegreeStep((bass_degree.step.value + 2) % 7), alter=DegreeAlter(0))
 
-    fifth_degree = Degree(step=Step((bass_degree.step.value + 4) % 7), alter=Alter(0))
+    fifth_degree = Degree(step=DegreeStep((bass_degree.step.value + 4) % 7), alter=DegreeAlter(0))
 
     names = [Degree.note_name(degree, key) for degree in [bass_degree, third_degree, fifth_degree]]
 
@@ -138,12 +138,12 @@ def next_chord(next_bass: Pitch, key: Key, current_chord: Chord) -> Chord:
     # そのために、それぞれの和音の根音を求める。
 
     current_chord_notes: set[NoteName] = triad_note_names(current_chord.bass.note_name, key)
-    current_chord_steps: set[Step] = set([Degree.from_note_name_key(n, key).step for n in current_chord_notes])
+    current_chord_steps: set[DegreeStep] = set([Degree.from_note_name_key(n, key).step for n in current_chord_notes])
 
-    current_chord_root: Step | None = None
+    current_chord_root: DegreeStep | None = None
     for i in range(0, 7):
-        root = Step(i)
-        steps: set[Step] = set([root, root + Step(2), root + Step(4)])
+        root = DegreeStep(i)
+        steps: set[DegreeStep] = set([root, root + DegreeStep(2), root + DegreeStep(4)])
         if steps == current_chord_steps:
             current_chord_root = root
             break
@@ -152,73 +152,73 @@ def next_chord(next_bass: Pitch, key: Key, current_chord: Chord) -> Chord:
 
     # 現在の和音の音度距離と次の和音の音度距離のマッピングを作成 (例: {v -> v, vii -> i, ii -> iii})
     # 根音が何度移動するかによって定める
-    def create_mapping(current_chord_root: Step, next_chord_root: Step) -> dict[Step, Step]:
+    def create_mapping(current_chord_root: DegreeStep, next_chord_root: DegreeStep) -> dict[DegreeStep, DegreeStep]:
         root = current_chord_root
-        third = current_chord_root + Step(2)
-        fifth = current_chord_root + Step(4)
+        third = current_chord_root + DegreeStep(2)
+        fifth = current_chord_root + DegreeStep(4)
         match next_chord_root - current_chord_root:
-            case Step(0):
+            case DegreeStep(0):
                 # ドミソ->ドミソ や、 レファラ->レファラ
                 return {
                     root: root,
                     third: third,
                     fifth: fifth,
                 }
-            case Step(1):
+            case DegreeStep(1):
                 # ドミソ->レファラなど
                 return {
-                    root: root - Step(2),
-                    third: third - Step(1),
-                    fifth: fifth - Step(1),
+                    root: root - DegreeStep(2),
+                    third: third - DegreeStep(1),
+                    fifth: fifth - DegreeStep(1),
                 }
-            case Step(2):
+            case DegreeStep(2):
                 # ドミソ -> シミソ など
                 return {
-                    root: root - Step(1),
+                    root: root - DegreeStep(1),
                     third: third,
                     fifth: fifth,
                 }
-            case Step(3):
+            case DegreeStep(3):
                 # ドミソ -> ドファラ などの4度上行
                 # II -> V の場合のみ下行させる
-                if current_chord_root == Step(1):
+                if current_chord_root == DegreeStep(1):
                     return {
-                        root: root - Step(2),
-                        third: third - Step(2),
-                        fifth: fifth - Step(1),
+                        root: root - DegreeStep(2),
+                        third: third - DegreeStep(2),
+                        fifth: fifth - DegreeStep(1),
                     }
                 else:
                     return {
                         root: root,
-                        third: third + Step(1),
-                        fifth: fifth + Step(1),
+                        third: third + DegreeStep(1),
+                        fifth: fifth + DegreeStep(1),
                     }
-            case Step(4):
+            case DegreeStep(4):
                 # ドミソ -> シレソ など
                 return {
-                    root: root - Step(1),
-                    third: third - Step(1),
+                    root: root - DegreeStep(1),
+                    third: third - DegreeStep(1),
                     fifth: fifth,
                 }
-            case Step(5):
+            case DegreeStep(5):
                 # ドミソ -> ドミラ など
                 return {
                     root: root,
                     third: third,
-                    fifth: fifth + Step(1),
+                    fifth: fifth + DegreeStep(1),
                 }
-            case Step(6):
+            case DegreeStep(6):
                 # ドミソ -> レファシ など
                 return {
-                    root: root + Step(1),
-                    third: third + Step(1),
-                    fifth: fifth + Step(2),
+                    root: root + DegreeStep(1),
+                    third: third + DegreeStep(1),
+                    fifth: fifth + DegreeStep(2),
                 }
             case _:
                 raise Exception()
 
-    next_chord_root: Step = Degree.from_note_name_key(next_bass.note_name, key).step
-    mapping: dict[Step, Step] = create_mapping(current_chord_root, next_chord_root)
+    next_chord_root: DegreeStep = Degree.from_note_name_key(next_bass.note_name, key).step
+    mapping: dict[DegreeStep, DegreeStep] = create_mapping(current_chord_root, next_chord_root)
 
     def is_neighborhood_pitch(a: Pitch, b: Pitch) -> bool:
         """二つのPitchが三度以下であるか"""
@@ -237,7 +237,8 @@ def next_chord(next_bass: Pitch, key: Key, current_chord: Chord) -> Chord:
         ]
         if len(next_pitches) > 2 or len(next_pitches) == 0:
             raise Exception(
-                f"can not find. current_voice_pitch: {current_voice_pitch.name()}, next_step: {next_step}, mapping: {mapping}, next_pitches: {next_pitches}. "
+                f"can not find. current_voice_pitch: {current_voice_pitch.name()}, "
+                f"next_step: {next_step}, mapping: {mapping}, next_pitches: {next_pitches}. "
             )
         return next_pitches[0]
 

@@ -1,7 +1,7 @@
 import argparse
 
 from my_project.harmony import solve
-from my_project.lilypond_writer import write
+from my_project.lilypond_writer import score_to_lilypond
 from my_project.model import Key, Mode, NoteName, Pitch
 
 
@@ -46,7 +46,7 @@ def main() -> None:
 
     solved = solve(bass_sequence, key)
 
-    lily_str = write(solved)
+    lily_str = score_to_lilypond(solved)
     print(lily_str)
 
 

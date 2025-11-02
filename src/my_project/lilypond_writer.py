@@ -1,13 +1,12 @@
-import re
+from fractions import Fraction
 
-from my_project.model import Mode, NoteName, PartId, Pitch, Score
+from my_project.model import Duration, Mode, Note, NoteName, PartId, Pitch, Score
 
 
-def write(score: Score) -> str:
+def score_to_lilypond(score: Score) -> str:
     """
     与えられたScoreオブジェクトをもとに、LilyPond形式の文字列を作成する
     ピアノ譜を用い、バスはへ音記号で音符の棒を下向き、テノールはヘ音記号で棒を上向き、アルトはト音記号で棒を下向き、ソプラノはト音記号で棒を上向きとする。
-    音価は全て2分音符とし、拍子は2/2とする。
     """
     # Key signature
     tonic_name = note_name_to_lilypond(score.key.tonic)
@@ -23,12 +22,7 @@ def write(score: Score) -> str:
 
     for part in score.parts:
         # パート内の全ての音符を連結する
-        notes_str = " ".join(
-            f"{pitch_to_lilypond(note.pitch)}2"
-            for measure in part.measures
-            for note in measure.notes
-            if note.pitch is not None
-        )
+        notes_str = " ".join(note_to_lilypond(note) for measure in part.measures for note in measure.notes)
         if part.part_id == PartId.SOPRANO:
             soprano_notes = notes_str
         elif part.part_id == PartId.ALTO:
@@ -64,16 +58,17 @@ BassMusic  = {{ {bass_notes} }}
 """
 
 
+def note_to_lilypond(note: Note) -> str:
+    pitch_rest_str = pitch_to_lilypond(note.pitch) if note.pitch else "r"
+    duration_str = duration_to_lilypond(note.duration)
+    return f"{pitch_rest_str}{duration_str}"
+
+
 def pitch_to_lilypond(pitch: Pitch) -> str:
     """
     PitchオブジェクトをLilyPondの音符文字列に変換する
     """
-    # pitch.name()からオクターブ番号を取得
-
-    match = re.search(r"(\d+)$", pitch.name())
-    if not match:
-        raise ValueError(f"Could not parse octave from pitch name: {pitch.name()}")
-    octave = int(match.group(1))
+    _, _, octave = pitch.internal_pitch_notation()
 
     lp_note = note_name_to_lilypond(pitch.note_name)
 
@@ -89,7 +84,7 @@ def pitch_to_lilypond(pitch: Pitch) -> str:
 
 
 def note_name_to_lilypond(note_name: NoteName) -> str:
-    step, alter = note_name.get_spelling()
+    step, alter = note_name.internal_pitch_notation()
 
     lp_note = step.lower()
 
@@ -110,3 +105,38 @@ def note_name_to_lilypond(note_name: NoteName) -> str:
                 lp_note += "es" * (-alter)
 
     return lp_note
+
+
+def duration_to_lilypond(duration: Duration) -> str:
+    val = duration.value
+    if val == 0:
+        return ""
+
+    base_duration_map = {
+        Fraction(4, 1): "1",
+        Fraction(2, 1): "2",
+        Fraction(1, 1): "4",
+        Fraction(1, 2): "8",
+        Fraction(1, 4): "16",
+        Fraction(1, 8): "32",
+    }
+
+    # Handle common dotted notes for cleaner output
+    for base_val, ly_dur in base_duration_map.items():
+        if val == base_val:
+            return ly_dur
+        if val == base_val * Fraction(3, 2):
+            return ly_dur + "."
+        if val == base_val * Fraction(7, 4):
+            return ly_dur + ".."
+
+    # Find closest base duration for scaling
+    closest_base = min(base_duration_map.keys(), key=lambda base: abs(val - base))
+
+    ly_base = base_duration_map[closest_base]
+    multiplier = val / closest_base
+
+    if multiplier.denominator == 1:
+        return f"{ly_base}*{multiplier.numerator}"
+    else:
+        return f"{ly_base}*{multiplier.numerator}/{multiplier.denominator}"
