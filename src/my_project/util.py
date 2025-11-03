@@ -2,8 +2,13 @@
 
 import functools
 import itertools
+import random
+from collections.abc import Iterable, Iterator
+from typing import TypeVar
 
 from my_project.model import Degree, DegreeStep, Interval, IntervalStep, Key, Mode, NoteName, Octave, PartId, Pitch
+
+T = TypeVar("T")
 
 
 def part_range(part_id: PartId) -> tuple[Pitch, Pitch]:
@@ -202,3 +207,39 @@ def add_interval_step_in_key(key: Key, pitch: Pitch, interval_step: IntervalStep
     interval_to_add = Interval(octave=octave_diff, fifth=fifth_diff)
 
     return pitch + interval_to_add
+
+
+def shuffled_interleave(iterables: list[Iterable[T]], randomized: bool = True) -> Iterator[T]:
+    """
+    複数のイテラブル(イテレータ)を受け取り、
+    それらが尽きるまでランダムに要素を取り出して返す
+    新しいイテレータを生成します。
+    """
+
+    if randomized:
+        # 1. すべての入力(リストやrangeなども可)をイテレータに変換し、
+        #    「まだ尽きていない」イテレータのリストを作成
+        active_iterators = [iter(it) for it in iterables]
+
+        # 2. 尽きていないイテレータが1つでも残っている間、ループ
+        while active_iterators:
+            # 2-a. リストからランダムにイテレータを1つ選ぶ (これが「シャッフル」)
+            try:
+                chosen_iter = random.choice(active_iterators)
+            except IndexError:
+                # active_iteratorsが空になったらループを抜ける
+                # (whileの条件判定の直後にremoveされた場合に備える)
+                break
+
+            # 2-b, 2-c. 選んだイテレータから要素を1つ取り出して yield
+            try:
+                item = next(chosen_iter)
+                yield item
+
+            # 2-d. もしイテレータが尽きていたら (StopIteration)
+            except StopIteration:
+                # 「尽きていない」リストから除外する
+                active_iterators.remove(chosen_iter)
+    else:
+        for it in iterables:
+            yield from it

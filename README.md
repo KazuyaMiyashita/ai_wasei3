@@ -1,10 +1,10 @@
 # ai_wasei3
 
-バスと調を与えると和声を実施してくれるやつです。
+バスと調を与えると和声とか対位法を実施してくれるやつです。
 
 楽譜の描画には別途lilypondをインストールしてください。
 
-## 実行例
+## 和声の実行例
 
 ### 1
 
@@ -37,6 +37,32 @@ open dist/out.png.cropped.png
 ```
 
 ![](./docs/example3.png)
+
+
+## 対位法の実行例
+
+実行のたびに結果が変わります。連続のチェックとか入ってないです
+
+### 1
+
+```
+uv run python -m my_project.main_counterpoint --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 > dist/out.ly
+lilypond --png -dcrop -dno-print-pages -dresolution=300 -o dist/out.png dist/out.ly
+open dist/out.png.cropped.png
+```
+
+![](./docs/example_counterpoint1.png)
+
+### 2
+
+```
+uv run python -m my_project.main_counterpoint --cf C3 D3 C3 E3 F3 G3 E3 A3 G3 C3 > dist/out.ly
+lilypond --png -dcrop -dno-print-pages -dresolution=300 -o dist/out.png dist/out.ly
+open dist/out.png.cropped.png
+```
+
+![](./docs/example_counterpoint2.png)
+
 
 ## よく使うコマンド
 

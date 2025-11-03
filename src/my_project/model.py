@@ -604,6 +604,17 @@ class Duration:
     def __sub__(self, other: "Duration") -> "Duration":
         return Duration(self.value - other.value)
 
+    @classmethod
+    def of(
+        cls,
+        numerator: int,
+        denominator: int | None = None,
+    ) -> "Duration":
+        if denominator is not None:
+            return cls(Fraction(numerator, denominator))
+        else:
+            return cls(Fraction(numerator))
+
 
 ## ----- 音符の定義
 
