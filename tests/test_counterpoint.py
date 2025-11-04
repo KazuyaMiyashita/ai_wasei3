@@ -1,106 +1,122 @@
-from my_project.counterpoint import (
-    State,
-    on_searching_harmonic_tone,
-    on_searching_neighbor_tone,
-    on_start,
-    state_previous_pitch,
-)
-from my_project.model import Duration, Measure, Note, Pitch
+from my_project.counterpoint import AnnotatedMeasure, AnnotatedNote, EachCheckState, SearchState, State, ToneType
+from my_project.model import Duration, Note, Pitch
 
 
-def test_state_previous_pitch() -> None:
-    state = State(
-        unprocessed_cfs=[Pitch.parse("C4")],
-        previous_measures=[
-            Measure(
-                [
-                    Note(pitch=Pitch.parse("C4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("D4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("E4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("F4"), duration=Duration.of(1)),
-                ]
-            )
-        ],
-        current_measure_notes=[
-            Note(pitch=None, duration=Duration.of(1)),
-            Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
-        ],
-    )
-    assert state_previous_pitch(state) == Pitch.parse("G4")
-
-    state = State(
-        unprocessed_cfs=[Pitch.parse("C4")],
-        previous_measures=[
-            Measure(
-                [
-                    Note(pitch=Pitch.parse("C4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("D4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("E4"), duration=Duration.of(1)),
-                    Note(pitch=Pitch.parse("F4"), duration=Duration.of(1)),
-                ]
-            )
-        ],
-        current_measure_notes=[],
-    )
-    assert state_previous_pitch(state) == Pitch.parse("F4")
+def _print_annotated_note(annotated_notes: list[AnnotatedNote]) -> None:
+    print([an.note.pitch.name() if an.note.pitch else "None" for an in annotated_notes])
 
 
 def test_on_start() -> None:
-    cf = Pitch.parse("C4")
-    state = State.init_state([cf])
-    next_states = list(on_start(state, randomized=False))
+    cfs = [
+        Pitch.parse("C4"),
+        Pitch.parse("A3"),
+    ]
+    state = State.start_state(cfs)
+    assert isinstance(state, SearchState)
 
-    for next_state in next_states:
-        assert next_state.unprocessed_cfs == [Pitch.parse("C4")]
-        assert next_state.previous_measures == []
+    next_states = list(state.on_first_measure_start_of_measure(randomized=False))
 
-    result = [next_state.current_measure_notes for next_state in next_states]
+    expected_pitches = [
+        Pitch.parse("C4"),
+        Pitch.parse("G4"),
+        Pitch.parse("C5"),
+        Pitch.parse("G5"),
+    ]
 
-    assert result[0] == [
-        Note(pitch=None, duration=Duration.of(1)),
-        Note(pitch=Pitch.parse("C4"), duration=Duration.of(1)),
+    assert len(next_states) == 4
+
+    for i, next_state in enumerate(next_states):
+        assert isinstance(next_state, EachCheckState)
+        assert next_state.cf_cursor == 0
+        assert next_state.completed_measures == []
+        assert next_state.note_buffer == []
+
+        expected_pitch = expected_pitches[i]
+
+        # notes_to_add に休符・目的の音が含まれているかチェック
+        expected_notes_to_add = [
+            AnnotatedNote(
+                note=Note(pitch=None, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=expected_pitch, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ]
+        assert next_state.notes_to_add == expected_notes_to_add
+
+
+def test_on_last_measure() -> None:
+    state = SearchState(
+        cantus_firmus=[
+            Pitch.parse("D3"),
+            Pitch.parse("C3"),
+        ],
+        cf_cursor=1,
+        completed_measures=[
+            AnnotatedMeasure(
+                [
+                    AnnotatedNote(note=Note(Pitch.parse("F4"), Duration.of(1)), tone_type=ToneType.HARMONIC_TONE),
+                    AnnotatedNote(note=Note(Pitch.parse("G4"), Duration.of(1)), tone_type=ToneType.HARMONIC_TONE),
+                    AnnotatedNote(note=Note(Pitch.parse("A4"), Duration.of(1)), tone_type=ToneType.HARMONIC_TONE),
+                    AnnotatedNote(note=Note(Pitch.parse("B4"), Duration.of(1)), tone_type=ToneType.HARMONIC_TONE),
+                ]
+            )
+        ],
+        note_buffer=[],
+    )
+
+    next_states = list(state.on_last_measure(randomized=False))
+
+    expected_pitches = [
+        Pitch.parse("C4"),  # 長7度の進行。現在は認められる
+        Pitch.parse("G4"),  # 導音が主音に到達しない。現在は認められる
+        Pitch.parse("C5"),
+        # G5 はCFのC3と2オクターブを超えるので除外される
     ]
-    assert result[1] == [
-        Note(pitch=None, duration=Duration.of(1)),
-        Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
-    ]
-    assert result[2] == [
-        Note(pitch=None, duration=Duration.of(1)),
-        Note(pitch=Pitch.parse("C5"), duration=Duration.of(1)),
-    ]
-    assert result[3] == [
-        Note(pitch=None, duration=Duration.of(1)),
-        Note(pitch=Pitch.parse("G5"), duration=Duration.of(1)),
-    ]
-    assert len(result) == 4
+
+    assert len(next_states) == 3
+
+    for i, next_state in enumerate(next_states):
+        assert isinstance(next_state, EachCheckState)
+
+        assert next_state.cf_cursor == 1
+        assert len(next_state.completed_measures) == 1
+        assert next_state.note_buffer == []
+
+        expected_pitch = expected_pitches[i]
+
+        # notes_to_addに全音符で目的の音が含まれているかチェック
+        expected_notes_to_add = [
+            AnnotatedNote(
+                note=Note(pitch=expected_pitch, duration=Duration.of(4)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ]
+        assert next_state.notes_to_add == expected_notes_to_add
 
 
 def test_on_searching_harmonic_tone() -> None:
-    state = State(
-        unprocessed_cfs=[Pitch.parse("C4")],
-        previous_measures=[],
-        current_measure_notes=[
-            Note(pitch=None, duration=Duration.of(1)),
-            Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+    state = SearchState(
+        cantus_firmus=[Pitch.parse("C4"), Pitch.parse("D4")],
+        cf_cursor=0,
+        completed_measures=[],
+        note_buffer=[
+            AnnotatedNote(
+                note=Note(pitch=None, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
         ],
     )
 
-    next_states = list(on_searching_harmonic_tone(state, randomized=False))
+    next_states = list(state.on_searching_harmonic_tone(randomized=False))
 
-    for next_state in next_states:
-        assert next_state.unprocessed_cfs == [Pitch.parse("C4")]
-        assert next_state.previous_measures == []
-
-    result = [next_state.current_measure_notes for next_state in next_states]
-    for current_measure_notes in result:
-        assert len(current_measure_notes) == 3
-        # [2] の要素が今回追加されたもの
-        assert current_measure_notes[2].pitch
-
-    pitches = [notes[2].pitch for notes in result]
-
-    # CFは C4, 旋律の直前の音は G4
-    assert pitches == [
+    expected_pitches = [
         Pitch.parse("C4"),
         Pitch.parse("E4"),
         Pitch.parse("A4"),
@@ -109,80 +125,174 @@ def test_on_searching_harmonic_tone() -> None:
         Pitch.parse("G5"),
     ]
 
+    assert len(next_states) == len(expected_pitches)
 
-def test_on_searching_neighbor_tone_1() -> None:
-    state = State(
-        unprocessed_cfs=[Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")],
-        previous_measures=[],
-        current_measure_notes=[
-            Note(pitch=None, duration=Duration.of(1)),
-            Note(pitch=Pitch.parse("C5"), duration=Duration.of(1)),
+    for i, next_state in enumerate(next_states):
+        assert isinstance(next_state, EachCheckState)
+        _print_annotated_note(next_state.notes_to_add)
+
+        assert next_state.cantus_firmus == [Pitch.parse("C4"), Pitch.parse("D4")]
+        assert next_state.cf_cursor == 0
+        assert next_state.completed_measures == []
+
+        expected_pitch = expected_pitches[i]
+
+        assert next_state.notes_to_add == [
+            AnnotatedNote(
+                note=Note(pitch=expected_pitch, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ]
+
+
+def test_on_searching_passing_tone() -> None:
+    state = SearchState(
+        cantus_firmus=[Pitch.parse("C4"), Pitch.parse("A3")],
+        cf_cursor=0,
+        completed_measures=[],
+        note_buffer=[
+            AnnotatedNote(
+                note=Note(pitch=None, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
         ],
     )
 
-    next_states = list(on_searching_neighbor_tone(state, randomized=False))
+    next_states = list(state.on_searching_passing_tone(randomized=False))
 
-    assert len(next_states) == 2
-
-    # 1つ目のnext_state
-    next_state = next_states[0]
-    assert next_state.unprocessed_cfs == [Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")]
-    assert len(next_state.previous_measures) == 0
-    assert [notes.pitch for notes in next_state.current_measure_notes] == [
-        None,
-        Pitch.parse("C5"),
-        Pitch.parse("B4"),
-        Pitch.parse("C5"),
+    expected_add_pitches_list = [
+        [Pitch.parse("F4"), Pitch.parse("E4")],
     ]
 
-    # 2つ目のnext_state
-    next_state = next_states[1]
-    assert next_state.unprocessed_cfs == [Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")]
-    assert len(next_state.previous_measures) == 0
-    assert [notes.pitch for notes in next_state.current_measure_notes] == [
-        None,
-        Pitch.parse("C5"),
-        Pitch.parse("D5"),
-        Pitch.parse("C5"),
-    ]
+    assert len(next_states) == len(expected_add_pitches_list)
+
+    for i, next_state in enumerate(next_states):
+        assert isinstance(next_state, EachCheckState)
+        _print_annotated_note(next_state.notes_to_add)
+
+        expected_add_pitches = expected_add_pitches_list[i]
+
+        expected_notes_to_add = [
+            AnnotatedNote(
+                note=Note(pitch=expected_add_pitches[0], duration=Duration.of(1)),
+                tone_type=ToneType.PASSING_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=expected_add_pitches[1], duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ]
+        assert next_state.notes_to_add == expected_notes_to_add
 
 
-def test_on_searching_neighbor_tone_2() -> None:
-    state = State(
-        unprocessed_cfs=[Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")],
-        previous_measures=[],
-        current_measure_notes=[
-            Note(pitch=None, duration=Duration.of(1)),
-            Note(pitch=Pitch.parse("C5"), duration=Duration.of(1)),
-            Note(pitch=Pitch.parse("E5"), duration=Duration.of(1)),
+def test_on_searching_neighbor_tone() -> None:
+    state = SearchState(
+        cantus_firmus=[Pitch.parse("C4"), Pitch.parse("D4")],
+        cf_cursor=0,
+        completed_measures=[],
+        note_buffer=[
+            AnnotatedNote(
+                note=Note(pitch=None, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
         ],
     )
 
-    next_states = list(on_searching_neighbor_tone(state, randomized=False))
+    next_states = list(state.on_searching_neighbor_tone(randomized=False))
 
-    assert len(next_states) == 2
+    expected_notes_to_add_list = [
+        [
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("A4"), duration=Duration.of(1)),
+                tone_type=ToneType.NEIGHBOR_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ],
+        [
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("F4"), duration=Duration.of(1)),
+                tone_type=ToneType.NEIGHBOR_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ],
+    ]
 
-    # 1つ目のnext_state
+    assert len(next_states) == len(expected_notes_to_add_list)
+
+    for i, next_state in enumerate(next_states):
+        assert isinstance(next_state, EachCheckState)
+        _print_annotated_note(next_state.notes_to_add)
+        assert next_state.notes_to_add == expected_notes_to_add_list[i]
+
+
+def test_each_check_state() -> None:
+    state = EachCheckState(
+        cantus_firmus=[Pitch.parse("C3"), Pitch.parse("D3")],
+        cf_cursor=0,
+        completed_measures=[],
+        note_buffer=[
+            AnnotatedNote(
+                note=Note(pitch=None, duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("C5"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ],
+        notes_to_add=[
+            AnnotatedNote(
+                note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                tone_type=ToneType.HARMONIC_TONE,
+            ),
+        ],
+    )
+
+    next_states = list(state.next_states(randomized=False))
+    assert len(next_states) == 1
     next_state = next_states[0]
-    assert next_state.unprocessed_cfs == [Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")]
-    assert len(next_state.previous_measures) == 0
-    print([notes.pitch.name() if notes.pitch else "None" for notes in next_state.current_measure_notes])
-    assert [notes.pitch for notes in next_state.current_measure_notes] == [
-        None,
-        Pitch.parse("C5"),
-        Pitch.parse("E5"),
-        Pitch.parse("D5"),
-        Pitch.parse("E5"),
-    ]
 
-    # 2つ目のnext_state
-    next_state = next_states[1]
-    assert next_state.unprocessed_cfs == [Pitch.parse("C4"), Pitch.parse("A3"), Pitch.parse("G3")]
-    assert len(next_state.previous_measures) == 0
-    assert [notes.pitch for notes in next_state.current_measure_notes] == [
-        None,
-        Pitch.parse("C5"),
-        Pitch.parse("E5"),
-        Pitch.parse("F5"),
-        Pitch.parse("E5"),
+    assert isinstance(next_state, SearchState)
+    assert next_state.cf_cursor == 1
+    _print_annotated_note(next_state.completed_measures[0].annotated_notes)
+    assert next_state.completed_measures == [
+        AnnotatedMeasure(
+            [
+                AnnotatedNote(
+                    note=Note(pitch=None, duration=Duration.of(1)),
+                    tone_type=ToneType.HARMONIC_TONE,
+                ),
+                AnnotatedNote(
+                    note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                    tone_type=ToneType.HARMONIC_TONE,
+                ),
+                AnnotatedNote(
+                    note=Note(pitch=Pitch.parse("C5"), duration=Duration.of(1)),
+                    tone_type=ToneType.HARMONIC_TONE,
+                ),
+                AnnotatedNote(
+                    note=Note(pitch=Pitch.parse("G4"), duration=Duration.of(1)),
+                    tone_type=ToneType.HARMONIC_TONE,
+                ),
+            ]
+        )
     ]
+    assert next_state.note_buffer == []

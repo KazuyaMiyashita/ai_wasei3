@@ -153,6 +153,12 @@ class Pitch:
         pitch_octave_value = base_octave + alter * -4 + octave - 4
         return cls(Octave(pitch_octave_value), note_name)
 
+    def num(self) -> "PitchNumber":
+        """
+        このPitchのPitchNumberを求める
+        """
+        return PitchNumber(self.note_name.value * 7 + self.octave.value * 12)
+
     # --- private map for name/parse ---
     _STEP_TO_BASE_OCTAVE: ClassVar[dict[str, int]] = {"C": 0, "D": -1, "E": -2, "F": 1, "G": 0, "A": -1, "B": -2}
 
@@ -313,6 +319,12 @@ class Interval:
 
     octave: int
     fifth: int
+
+    def __add__(self, other: "Interval") -> "Interval":
+        return Interval(self.octave + other.octave, self.fifth + other.fifth)
+
+    def __sub__(self, other: "Interval") -> "Interval":
+        return Interval(self.octave - other.octave, self.fifth - other.fifth)
 
     @classmethod
     def of(cls, base: Pitch, target: Pitch) -> "Interval":
@@ -500,7 +512,7 @@ class Interval:
         下方の音程の場合、長3度下は長3度上となるように変換される(転回ではないことに注意)
         """
         step = self.step()
-        alter = self.alter()  # 修正後の alter が呼ばれる
+        alter = self.alter()
 
         if step.value == 0:
             pass  # P1
@@ -510,10 +522,14 @@ class Interval:
         else:
             # 下方音程
             step = IntervalStep((-1 * step.value) % 7)
-            # docstring の仕様 (長3度下 -> 長3度上) に従い、alter は反転させない
-            # alter = IntervalAlter(-1 * alter.value) # この行を削除
 
         return Interval.from_step_alter(step, alter)
+
+    def num(self) -> "IntervalNumber":
+        """
+        このIntervalのIntervalNumberを求める
+        """
+        return IntervalNumber(self.fifth * 7 + self.octave * 12)
 
 
 @dataclass(frozen=True, order=True)
@@ -586,6 +602,39 @@ IntervalAlter.MINOR = IntervalAlter(-1)
 IntervalAlter.AUGMENTED = IntervalAlter(2)
 IntervalAlter.DIMINISHED = IntervalAlter(-2)
 
+## ----- 半音単位の音高・音程の概念
+
+
+@dataclass(frozen=True, order=True)
+class PitchNumber:
+    """
+    Pitchを半音階上で数えたもの、中央ハ音を0として、そこから半音上がると+1される。
+    """
+
+    value: int
+
+    def __add__(self, other: "IntervalNumber") -> "PitchNumber":
+        return PitchNumber(self.value + other.value)
+
+    def __sub__(self, other: "PitchNumber") -> "IntervalNumber":
+        return IntervalNumber(self.value - other.value)
+
+
+@dataclass(frozen=True, order=True)
+class IntervalNumber:
+    """
+    Intervalを半音階上で数えたもの、ユニゾンを0として、そこから半音上がると+1される。
+    """
+
+    value: int
+
+    def __add__(self, other: "IntervalNumber") -> "IntervalNumber":
+        return IntervalNumber(self.value + other.value)
+
+    def __sub__(self, other: "IntervalNumber") -> "IntervalNumber":
+        return IntervalNumber(self.value - other.value)
+
+
 ## ----- 音価の定義
 
 
@@ -648,6 +697,28 @@ class Offset:
     def __sub__(self, other: "Offset") -> "Offset":
         return Offset(self.value - other.value)
 
+    @classmethod
+    def of(
+        cls,
+        numerator: int,
+        denominator: int | None = None,
+    ) -> "Offset":
+        if denominator is not None:
+            return cls(Fraction(numerator, denominator))
+        else:
+            return cls(Fraction(numerator))
+
+    @classmethod
+    def idx_1(
+        cls,
+        numerator: int,
+        denominator: int | None = None,
+    ) -> "Offset":
+        if denominator is not None:
+            return cls(Fraction(numerator - 1, denominator))
+        else:
+            return cls(Fraction(numerator - 1))
+
 
 @dataclass(frozen=True)
 class Measure:
@@ -672,6 +743,21 @@ class Measure:
             if current_offset <= offset < note_end_offset:
                 return note.pitch
         raise ValueError(f"offset {offset} not found in this measure: {self.notes}")
+
+
+@dataclass(frozen=True, order=True)
+class MeasureNumber:
+    """
+    楽曲における小節の位置。小節番号。1から始まる。
+    """
+
+    value: int
+
+    def __add__(self, other: "MeasureNumber") -> "MeasureNumber":
+        return MeasureNumber(self.value + other.value)
+
+    def __sub__(self, other: "MeasureNumber") -> "MeasureNumber":
+        return MeasureNumber(self.value - other.value)
 
 
 class PartId(Enum):

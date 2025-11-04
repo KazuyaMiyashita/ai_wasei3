@@ -19,7 +19,7 @@ from my_project.model import (
     Score,
     TimeSignature,
 )
-from my_project.util import compare_pitch, part_range, scale_pitches
+from my_project.util import part_range, scale_pitches
 
 
 @dataclass(frozen=True)
@@ -103,7 +103,7 @@ def start_chord(bass: Pitch, key: Key) -> Chord:
     # 増1度下は減1度上として表現する
     minor_factor = Interval.parse("d1") if key.mode == Mode.MINOR else Interval.parse("P1")
 
-    if compare_pitch(bass, Pitch.parse("F3")) >= 1:
+    if Pitch.parse("F3").num() <= bass.num():
         # ドソドミ
         return Chord(
             bass=bass,
@@ -111,7 +111,7 @@ def start_chord(bass: Pitch, key: Key) -> Chord:
             alto=bass + Interval.parse("P8"),
             soprano=bass + Interval.parse("M10") + minor_factor,
         )
-    elif compare_pitch(bass, Pitch.parse("A2")) >= 1:
+    elif Pitch.parse("A2").num() <= bass.num():
         # ド - ミソド
         return Chord(
             bass=bass,

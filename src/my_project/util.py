@@ -1,6 +1,5 @@
 # harmony.py と counterpoint.py の両方で利用されるものの置き場所
 
-import functools
 import itertools
 import random
 from collections.abc import Iterable, Iterator
@@ -23,39 +22,16 @@ def part_range(part_id: PartId) -> tuple[Pitch, Pitch]:
             return (Pitch.parse("F2"), Pitch.parse("D4"))
 
 
-def compare_pitch(a: Pitch, b: Pitch) -> int:
-    """
-    二つの音高の高低を比較し、結果を整数(-1, 0, 1)で返す。
-    異名同音は無視する。
-    a < b  => -1;
-    a == b => 0;
-    a > b  => 1
-    """
-    a_value = a.note_name.value * 7 + a.octave.value * 12
-    b_value = b.note_name.value * 7 + b.octave.value * 12
-    if a_value < b_value:
-        return -1
-    elif a_value == b_value:
-        return 0
-    else:
-        return 1
-
-
-def is_in_range(pitch: Pitch, range: tuple[Pitch, Pitch]) -> bool:
-    min = range[0]
-    max = range[1]
-    return compare_pitch(min, pitch) <= 0 and compare_pitch(pitch, max) <= 0
-
-
 def is_in_part_range(pitch: Pitch, part_id: PartId) -> bool:
-    return is_in_range(pitch, part_range(part_id))
+    min, max = part_range(part_id)
+    return min.num() <= pitch.num() <= max.num()
 
 
 def sorted_pitches(list: list[Pitch]) -> list[Pitch]:
     """
     異名同音は無視して音高のリストを昇順に並べる
     """
-    return sorted(list, key=functools.cmp_to_key(compare_pitch))
+    return sorted(list, key=lambda p: p.num())
 
 
 def scale_pitches(
@@ -127,9 +103,9 @@ def scale_pitches(
         octave = Octave(o_value)
         shift_scale = [Pitch(octave + p.octave, note_name=p.note_name) for p in scale]
         for p in shift_scale:
-            if compare_pitch(p, min) == -1:
+            if p.num() < min.num():
                 continue
-            if compare_pitch(p, max) == 1:
+            if max.num() < p.num():
                 break
             result.append(p)
         else:

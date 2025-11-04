@@ -1,13 +1,6 @@
-from my_project.harmony import Chord, compare_pitch, scale_pitches, start_chord, triad_note_names
+from my_project.harmony import Chord, start_chord, triad_note_names
 from my_project.model import Key, Mode, NoteName, PartId, Pitch
-from my_project.util import part_range
-
-
-def test_compare_pitch() -> None:
-    assert compare_pitch(Pitch.parse("F#4"), Pitch.parse("G4")) == -1
-    assert compare_pitch(Pitch.parse("F#4"), Pitch.parse("F#4")) == 0
-    assert compare_pitch(Pitch.parse("F#4"), Pitch.parse("Gb4")) == 0
-    assert compare_pitch(Pitch.parse("F#4"), Pitch.parse("F4")) == 1
+from my_project.util import part_range, scale_pitches
 
 
 def test_scale_pitches() -> None:
