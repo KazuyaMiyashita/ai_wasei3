@@ -525,6 +525,22 @@ class Interval:
 
         return Interval.from_step_alter(step, alter)
 
+    def abs(self) -> "Interval":
+        """
+        音程を上向に変換。長3度下は長3度上となる。複音程はそのまま。
+        """
+        step = self.step()
+        alter = self.alter()
+
+        if step.value == 0:
+            pass
+        elif step.value > 0:
+            step = IntervalStep(step.value)
+        else:
+            step = IntervalStep(-1 * step.value)
+
+        return Interval.from_step_alter(step, alter)
+
     def num(self) -> "IntervalNumber":
         """
         このIntervalのIntervalNumberを求める
@@ -542,6 +558,15 @@ class IntervalStep:
     """
 
     value: int
+
+    def __add__(self, other: "IntervalStep") -> "IntervalStep":
+        return IntervalStep(self.value + other.value)
+
+    def __sub__(self, other: "IntervalStep") -> "IntervalStep":
+        return IntervalStep(self.value - other.value)
+
+    def __mul__(self, value: int) -> "IntervalStep":
+        return IntervalStep(self.value * value)
 
     def to_inverval(self, alter: "IntervalAlter") -> Interval:
         """
@@ -696,6 +721,9 @@ class Offset:
 
     def __sub__(self, other: "Offset") -> "Offset":
         return Offset(self.value - other.value)
+
+    def add_duration(self, duration: Duration) -> "Offset":
+        return Offset(self.value + duration.value)
 
     @classmethod
     def of(

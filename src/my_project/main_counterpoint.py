@@ -24,9 +24,12 @@ def main() -> None:
         return
 
     solved = next(generate(cantus_firmus))
-
     lily_str = score_to_lilypond(solved)
     print(lily_str)
+    # for i, solved in enumerate(generate(cantus_firmus)):
+    #     print(f"試行: {i + 1}")
+    #     lily_str = score_to_lilypond(solved)
+    #     print(lily_str)
 
 
 if __name__ == "__main__":

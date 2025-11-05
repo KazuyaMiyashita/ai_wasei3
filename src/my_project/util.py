@@ -2,7 +2,7 @@
 
 import itertools
 import random
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from typing import TypeVar
 
 from my_project.model import Degree, DegreeStep, Interval, IntervalStep, Key, Mode, NoteName, Octave, PartId, Pitch
@@ -185,7 +185,7 @@ def add_interval_step_in_key(key: Key, pitch: Pitch, interval_step: IntervalStep
     return pitch + interval_to_add
 
 
-def shuffled_interleave(iterables: list[Iterable[T]], randomized: bool = True) -> Iterator[T]:
+def shuffled_interleave(iterables: Sequence[Iterable[T]], randomized: bool = True) -> Iterator[T]:
     """
     複数のイテラブル(イテレータ)を受け取り、
     それらが尽きるまでランダムに要素を取り出して返す
