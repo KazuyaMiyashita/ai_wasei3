@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from fractions import Fraction
-from typing import ClassVar
+from typing import ClassVar, TypeVar
 
 from my_project.model import (
     Duration,
@@ -24,6 +24,8 @@ from my_project.model import (
     TimeSignature,
 )
 from my_project.util import add_interval_step_in_key, part_range, scale_pitches, shuffled_interleave
+
+T = TypeVar("T")
 
 KEY = Key(tonic=NoteName.parse("C"), mode=Mode.MAJOR)
 TIME_SIGNATURE = TimeSignature(4, Fraction(1))
@@ -996,6 +998,13 @@ class ValidatingInMeasureState(State):
                 )
 
     def validate(self) -> bool:
+        return self.validate_interval() and self.validate_melody()
+
+    def validate_interval(self) -> bool:
+        """
+        連続・並達に関するバリデーション
+        """
+
         # 冒頭小節には直前の小節が存在しないため、連続は起こり得ない。
         previous_measure_number = self.previous_measure_number()
         if previous_measure_number is None:
@@ -1164,6 +1173,59 @@ class ValidatingInMeasureState(State):
             return True
         else:
             return False
+
+    # --
+
+    def validate_melody(self) -> bool:
+        """
+        旋律に関するバリデーション
+
+        DONE:
+        - 分散和音をしない
+
+        優先して実装したい:
+        - 3音符で形成される7度・9度は順次進行を含める
+        - 旋律の対称系や繰り返し(特に同一音への3度続く回帰)
+        - 完全8度の跳躍はできるだけその前後に反対方向の進行を伴う
+
+        後回し?:
+        - できるだけ非順次進行を避ける(どの程度?)
+        - 小節線をはさんだ非順次進行を避ける(どの程度?)
+        - 3,4個の音符で形成される増4度は同方向の順次進行で先行または後続させる
+        """
+        return self.validate_melody_arpeggiio() and True  # TODO
+
+    def validate_melody_arpeggiio(self) -> bool:
+        """
+        分散和音のバリデーション。旋律が分散和音の形になっているときFalseを返す
+        反転の分散和音はOKとしている
+        """
+        # 前の小節がもしあれば最後の2音を取得し、現在の小節と繋げた音列を作成
+        pitches: list[Pitch] = []
+        previous_measure_number = self.previous_measure_number()
+        if previous_measure_number is not None:
+            previous_measure = self.get_cm_at(previous_measure_number)
+            pitches.extend([an.note.pitch for an in previous_measure.annotated_notes[-2:] if an.note.pitch is not None])
+        pitches.extend([an.note.pitch for an in self.note_buffer if an.note.pitch is not None])
+
+        # 音列から隣り合わせの3つの音を作成
+        def sliding(input_list: list[T], window_size: int) -> list[list[T]]:
+            n = len(input_list)
+            return [input_list[i : i + window_size] for i in range(n - window_size + 1)]
+
+        arpeggiio_steps_list = [
+            [IntervalStep.idx_1(3), IntervalStep.idx_1(5)],
+            [IntervalStep.idx_1(3), IntervalStep.idx_1(6)],
+        ]
+
+        for ps in sliding(pitches, window_size=3):
+            base, p1, p2 = ps
+            intervals = [p1 - base, p2 - base]
+            steps = sorted([i.normalize().step() for i in intervals])
+            if steps in arpeggiio_steps_list:
+                return False
+
+        return True
 
 
 # ------------ ValidatingAllMeasureState --------------
