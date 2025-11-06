@@ -1045,7 +1045,7 @@ class ValidatingInMeasureState(State):
                 continue
             for realize_previous_offset, realize_previous_a_note in realize_measure.offset_notes().items():
                 # Duration.of(4) 未満の隔たりがある
-                if not (Offset.of(0) < realize_current_offset - realize_previous_offset < Offset.of(4)):
+                if not (Offset.of(0) < realize_current_offset - realize_previous_offset <= Offset.of(4)):
                     continue
 
                 cf_current_pitch = cf_measure.pitch_at(realize_current_offset)
