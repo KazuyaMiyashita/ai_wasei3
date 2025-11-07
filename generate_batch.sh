@@ -34,7 +34,7 @@ do
 
     # 1. LilyPond ファイルを一時ファイルとして生成
     # (dist/out.ly は毎回上書きされる)
-    uv run python -m my_project.main_counterpoint --cf $CF_NOTES --rythmn $RYTHMN > "$OUTPUT_DIR/out.ly"
+    uv run python -m my_project.counterpoint.main --cf $CF_NOTES --rythmn $RYTHMN > "$OUTPUT_DIR/out.ly"
 
     # 2. LilyPond を PNG にコンパイル
     # (dist/out.png と dist/out.png.cropped.png が生成・上書きされる)

@@ -1,6 +1,7 @@
 import argparse
 
-from my_project.counterpoint import RythmnType, generate
+from my_project.counterpoint.model import RythmnType
+from my_project.counterpoint.state import generate
 from my_project.lilypond_writer import score_to_lilypond
 from my_project.model import PartId, Pitch
 
@@ -22,7 +23,8 @@ def main() -> None:
 
     parser.add_argument(
         "--debug",
-        default=False,
+        action="store_true",
+        help="Enable debug mode (sets 'debug' to True)",
     )
 
     args = parser.parse_args()

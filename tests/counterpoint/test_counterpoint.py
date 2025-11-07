@@ -1,4 +1,4 @@
-from my_project.counterpoint import SearchingPassingNoteInMeasureState
+from my_project.counterpoint.counterpoint import SearchingPassingNoteInMeasureState
 from my_project.model import (
     IntervalStep,
     Key,

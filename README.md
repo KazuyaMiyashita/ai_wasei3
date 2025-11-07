@@ -46,7 +46,7 @@ open dist/out.png.cropped.png
 ### 1
 
 ```
-uv run python -m my_project.main_counterpoint --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 > dist/out.ly
+uv run python -m my_project.counterpoint.main --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 > dist/out.ly
 lilypond --png -dcrop -dno-print-pages -dresolution=300 -o dist/out.png dist/out.ly
 open dist/out.png.cropped.png
 ```
@@ -58,7 +58,7 @@ open dist/out.png.cropped.png
 `--rythmn` には `half`, `quater` が利用できます
 
 ```
-uv run python -m my_project.main_counterpoint --cf C3 E3 D3 G3 A3 G3 E3 F3 D3 C3 --rythmn half > dist/out.ly
+uv run python -m my_project.counterpoint.main --cf C3 E3 D3 G3 A3 G3 E3 F3 D3 C3 --rythmn half > dist/out.ly
 lilypond --png -dcrop -dno-print-pages -dresolution=300 -o dist/out.png dist/out.ly
 open dist/out.png.cropped.png
 ```
