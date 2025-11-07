@@ -1,7 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from fractions import Fraction
 from typing import ClassVar, TypeVar
@@ -12,7 +12,6 @@ from my_project.model import (
     IntervalStep,
     Key,
     Measure,
-    MeasureNumber,
     Mode,
     Note,
     NoteName,
@@ -137,40 +136,12 @@ class AnnotatedMeasure:
         return offset_note[1].note.pitch
 
 
-# ---
-
-# ステートの継承関係と遷移先は次のようになっている。
-#
-# - State -> SearchingInMeasureState
-#
-#   - SearchingInMeasureState -> ValidatingInMeasureState
-#     - ChooseSearchState -> ValidatingInMeasureState
-#                            | SearchingStartNoteState
-#                            | SearchingEndNoteState
-#                            | SearchingHarmonicNoteInMeasureState
-#                            | SearchingPassingNoteInMeasureState
-#                            | SearchingNeighborNoteInMeasureState
-#     - SearchingStartNoteState -> ChooseSearchState
-#     - SearchingEndNoteState -> ChooseSearchState
-#     - SearchingHarmonicNoteInMeasureState -> ChooseSearchState
-#     - SearchingPassingNoteInMeasureState -> ChooseSearchState
-#     - SearchingNeighborNoteInMeasureState -> ChooseSearchState
-#
-#   - ValidatingInMeasureState -> SearchingInMeasureState
-#                                 | ValidatingAllMeasureState
-#
-#   - ValidatingAllMeasureState -> EndState
-#                                  | PrunedState
-#
-#   - EndState
-#
-#   - PrunedState
-
-
-class State(ABC):
+@dataclass(frozen=True)
+class GlobalContext:
     cantus_firmus: list[Pitch]
     rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
+    next_measure_mark: Pitch | None
 
     def __post_init__(self) -> None:
         # CFは空ではない。(通常は2つ以上。最小で1つだがそれは最終小節として扱われ全音符が実施されるだけになる。)
@@ -178,152 +149,76 @@ class State(ABC):
         # 完了した小節の長さはCFの長さと同じかそれよりも少ない
         assert len(self.completed_measures) <= len(self.cantus_firmus)
 
-    # ---
+    def is_first_measure(self) -> bool:
+        return len(self.completed_measures) == 0
 
-    @classmethod
-    def start_state(cls, cfs: list[Pitch], rythmn_type: RythmnType) -> "State":
-        return SearchingInMeasureState.start_searching_measure_state(
-            cantus_firmus=cfs,
-            rythmn_type=rythmn_type,
-            completed_measures=[],
-            next_measure_mark=None,
-        )
+    def is_measures_fulfilled(self) -> bool:
+        return len(self.completed_measures) == len(self.cantus_firmus)
 
-    @abstractmethod
-    def next_states(self, randomized: bool = True) -> Iterator["State"]:
-        pass
+    def is_last_measure(self) -> bool:
+        return len(self.completed_measures) == len(self.cantus_firmus) - 1
 
-    def _final_states(self, randomized: bool = True) -> Iterator["EndState | PrunedState"]:
-        if isinstance(self, EndState) or isinstance(self, PrunedState):
-            yield self
-            return
+    def is_next_last_measure(self) -> bool:
+        return len(self.completed_measures) == len(self.cantus_firmus) - 2
 
-        child_states = self.next_states(randomized)
-        child_iterators = [child._final_states(randomized) for child in child_states]
-        yield from shuffled_interleave(child_iterators, randomized)
-
-    def final_states(self, randomized: bool = True) -> Iterator["EndState"]:
-        return (s for s in self._final_states(randomized) if isinstance(s, EndState))
-
-    # ---
-
-    def previous_measure_number(self) -> MeasureNumber | None:
-        """
-        現在の探索中・バリデーション中の一つ前の小節番号。
-        現在が最初の小節にいる場合は None を返す
-
-        最終確認状態では最終小節番号と一致する。
-        """
-        current_measure_number = MeasureNumber(len(self.completed_measures) + 1)
-        if current_measure_number == MeasureNumber(1):
+    def previous_measure(self) -> AnnotatedMeasure | None:
+        if self.is_first_measure():
             return None
         else:
-            return current_measure_number - MeasureNumber(1)
+            return self.completed_measures[len(self.completed_measures) - 1]
 
-    def current_measure_number(self) -> MeasureNumber:
-        """
-        現在の探索中・バリデーション中の小節番号
-
-        最終確認状態では呼び出すと例外となる。
-        それは値を返すと最終小節番号の一つ次の値となり、実施する範囲外の小節番号を示すことになるためであり、
-        その対処のために None を返すのは探索中・バリデーション中では不便だから。
-        """
-        current_measure_number = MeasureNumber(len(self.completed_measures) + 1)
-        if current_measure_number > self.last_measure_number():
-            raise ValueError(f"measure number out of range: {current_measure_number}")
-        else:
-            return current_measure_number
-
-    def next_measure_number(self) -> MeasureNumber | None:
-        """
-        現在の探索中・バリデーション中の一つ後の小節番号。
-        現在が最後の小節にいる場合は None を返す
-        """
-        current_measure_number = self.current_measure_number()
-        if current_measure_number >= self.last_measure_number():
+    def previous_cf(self) -> Pitch | None:
+        if self.is_first_measure():
             return None
         else:
-            return current_measure_number + MeasureNumber(1)
+            return self.cantus_firmus[len(self.completed_measures) - 1]
 
-    def last_measure_number(self) -> MeasureNumber:
-        """
-        最終小節の小節番号
-        """
-        return MeasureNumber(len(self.cantus_firmus))
+    def current_cf(self) -> Pitch:
+        return self.cantus_firmus[len(self.completed_measures)]
 
-    def get_current_cf(self) -> Pitch:
-        """
-        現在の探索中・バリデーション中の小節番号
-
-        最終確認状態では呼び出すと例外となる。
-        """
-        return self.get_cf_at(self.current_measure_number())
-
-    def get_cf_at(self, measure_number: MeasureNumber) -> Pitch:
-        """
-        指定された小節番号のCFを取得する。
-        指定された小節番号が範囲外の場合は例外となる。
-        """
-        if MeasureNumber(1) <= measure_number <= self.last_measure_number():
-            return self.cantus_firmus[measure_number.value - 1]
+    def next_measure_cf(self) -> Pitch | None:
+        if self.is_last_measure():
+            return None
         else:
-            raise ValueError(f"invalid measure_number: {measure_number}")
-
-    def get_cm_at(self, measure_number: MeasureNumber) -> AnnotatedMeasure:
-        """
-        指定された小節番号の実施した小節(completed_measure)を取得する。
-        指定された小節番号が範囲外の場合は例外となる。
-        """
-        if MeasureNumber(1) <= measure_number <= self.current_measure_number():
-            return self.completed_measures[measure_number.value - 1]
-        else:
-            raise ValueError(f"invalid measure_number: {measure_number}")
+            return self.cantus_firmus[len(self.completed_measures) + 1]
 
 
-# ------------ SearchingInMeasureState --------------
+@dataclass(frozen=True)
+class LocalMeasureContext:
+    previous_measure: AnnotatedMeasure | None
+    previous_cf: Pitch | None
 
-
-class SearchingInMeasureState(State):
-    """
-    小節内の探索中。
-    """
-
-    cantus_firmus: list[Pitch]
+    current_cf: Pitch
+    next_measure_cf: Pitch | None
+    # TODO: GlobalContext に類を持たせ、 rythmn_type はManageGlobalContextStateあたりで決める責務がある?
     rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
+
+    is_first_measure: bool
+    is_last_measure: bool
+    is_next_last_measure: bool  # 次の小節は最終小節か。経過音の探索で利用する
 
     # 現在構築中の音符バッファ。最大で一小節に相当する音価の音が入る。最大の要素数は rythmn_type に依存する。
     note_buffer: list[AnnotatedNote]
-    # 小節の探索の結果、次の小節の冒頭のピッチを決める必要がある場合、ピッチのみマーキングする
-    next_measure_mark: Pitch | None
     # 和音の設定。基本形は True, 第一転回形の場合は False, 未設定の場合は None
     is_root_chord: bool | None
 
-    @classmethod
-    def start_searching_measure_state(
-        cls,
-        cantus_firmus: list[Pitch],
-        rythmn_type: RythmnType,
-        completed_measures: list[AnnotatedMeasure],
-        next_measure_mark: Pitch | None,
-    ) -> "SearchingInMeasureState":
-        """
-        SearchingInMeasureStateの子クラス以外から SearchingInMeasureState のステートを作成する場合はここを経由すること
-        """
-        return ChooseSearchState(
-            cantus_firmus=cantus_firmus,
-            rythmn_type=rythmn_type,
-            completed_measures=completed_measures,
-            note_buffer=[],
-            next_measure_mark=next_measure_mark,
-            is_root_chord=None,
-        )
+    # 小節の探索の結果、次の小節の冒頭のピッチを決める必要がある場合、ピッチのみマーキングする
+    next_measure_mark: Pitch | None
 
-    @abstractmethod
-    def next_states(self, randomized: bool = True) -> Iterator["State"]:
-        pass
-
-    # ---
+    def __post_init__(self) -> None:
+        if not self.is_first_measure:
+            assert self.previous_measure is not None
+            assert self.previous_cf is not None
+        if not self.is_last_measure:
+            assert self.next_measure_cf is not None
+        if self.is_next_last_measure:
+            assert self.next_measure_cf is not None, (
+                "次の小節が最終小節ならば、次の小節のCFが取得できる"
+                f"{self.is_next_last_measure=}, {self.next_measure_cf=}",
+            )
+        assert ((self.previous_measure is None) and (self.previous_cf is None)) or (
+            (self.previous_measure is not None) and (self.previous_cf is not None)
+        ), (f"前の小節が無い時は前のCFも無く、逆もしかり{self.previous_measure=}, {self.previous_cf=}",)
 
     def total_note_buffer_duration(self) -> Duration:
         """
@@ -351,22 +246,21 @@ class SearchingInMeasureState(State):
         if len(self.note_buffer) > 0:
             if self.note_buffer[-1].note.pitch:
                 return self.note_buffer[-1].note.pitch
-        elif len(self.completed_measures) > 0:
-            if self.completed_measures[-1].annotated_notes[-1].note.pitch:
-                return self.completed_measures[-1].annotated_notes[-1].note.pitch
+        # 冒頭以外で休符を利用することはないという前提
+        elif self.previous_measure is not None and self.previous_measure.annotated_notes[-1].note.pitch:
+            return self.previous_measure.annotated_notes[-1].note.pitch
         raise ValueError("previous_latest_added_pitch not found.")
 
-    AVAILABLE_PITCHES_LIST: ClassVar[list[Pitch]] = scale_pitches(KEY, part_range(REALIZE_PART_ID))
-    AVAILABLE_PITCHES_SET: ClassVar[set[Pitch]] = set(AVAILABLE_PITCHES_LIST)
+    def is_buffer_fulfilled(self) -> bool:
+        total_note_buffer_duration = self.total_note_buffer_duration()
+        if total_note_buffer_duration == MEASURE_TOTAL_DURATION:
+            return True
+        elif total_note_buffer_duration < MEASURE_TOTAL_DURATION:
+            return False
+        else:
+            raise ValueError(f"total_note_buffer_duration: {total_note_buffer_duration}")
 
-    @classmethod
-    def filter_available_pitches(cls, pitches: list[Pitch]) -> list[Pitch]:
-        return [pitch for pitch in pitches if pitch in SearchingInMeasureState.AVAILABLE_PITCHES_SET]
-
-    @classmethod
-    def make_annotated_note(cls, pitch: Pitch | None, tone_type: ToneType, duration: Duration) -> AnnotatedNote:
-        """Pitch, ToneType, Duration から AnnotatedNote を作成するヘルパー"""
-        return AnnotatedNote(Note(pitch, duration), tone_type)
+    # --
 
     def available_harmonic_pitches_with_chord(self) -> list[tuple[Pitch, bool | None]]:
         """
@@ -375,7 +269,7 @@ class SearchingInMeasureState(State):
         和音が未設定の場合はCFの上方の1,3,5,6度とその複音程で、2オクターブの範囲、声域内。
         """
 
-        cf = self.get_current_cf()
+        cf = self.current_cf
 
         step_and_next_chord_dict: dict[IntervalStep, bool | None] = {}
         if self.is_root_chord is None:
@@ -400,7 +294,7 @@ class SearchingInMeasureState(State):
 
         all_available_pitches = [
             pitch
-            for pitch in SearchingInMeasureState.AVAILABLE_PITCHES_LIST  # 声域内の調の音
+            for pitch in LocalMeasureContext.AVAILABLE_PITCHES_LIST  # 声域内の調の音
             if cf.num() <= pitch.num() and Interval.of(cf, pitch).step() <= IntervalStep.idx_1(15)  # 2オクターブ未満
         ]
 
@@ -410,6 +304,18 @@ class SearchingInMeasureState(State):
             if step in step_and_next_chord_dict.keys():
                 result.append((pitch, step_and_next_chord_dict[step]))
         return result
+
+    AVAILABLE_PITCHES_LIST: ClassVar[list[Pitch]] = scale_pitches(KEY, part_range(REALIZE_PART_ID))
+    AVAILABLE_PITCHES_SET: ClassVar[set[Pitch]] = set(AVAILABLE_PITCHES_LIST)
+
+    @classmethod
+    def filter_available_pitches(cls, pitches: list[Pitch]) -> list[Pitch]:
+        return [pitch for pitch in pitches if pitch in LocalMeasureContext.AVAILABLE_PITCHES_SET]
+
+    @classmethod
+    def make_annotated_note(cls, pitch: Pitch | None, tone_type: ToneType, duration: Duration) -> AnnotatedNote:
+        """Pitch, ToneType, Duration から AnnotatedNote を作成するヘルパー"""
+        return AnnotatedNote(Note(pitch, duration), tone_type)
 
     @classmethod
     def start_available_pitches(cls, cf: Pitch) -> list[Pitch]:
@@ -428,7 +334,7 @@ class SearchingInMeasureState(State):
         return [
             pitch
             for pitch in [cf + interval for interval in intervals]
-            if pitch in SearchingInMeasureState.AVAILABLE_PITCHES_SET
+            if pitch in LocalMeasureContext.AVAILABLE_PITCHES_SET
         ]
 
     @classmethod
@@ -446,7 +352,7 @@ class SearchingInMeasureState(State):
         return [
             pitch
             for pitch in [cf + interval for interval in intervals]
-            if pitch in SearchingInMeasureState.AVAILABLE_PITCHES_SET
+            if pitch in LocalMeasureContext.AVAILABLE_PITCHES_SET
         ]
 
     @classmethod
@@ -457,7 +363,7 @@ class SearchingInMeasureState(State):
         """
         return [
             pitch
-            for pitch in SearchingInMeasureState.AVAILABLE_PITCHES_LIST  # 声域内の調の音
+            for pitch in LocalMeasureContext.AVAILABLE_PITCHES_LIST  # 声域内の調の音
             if cf.num() <= pitch.num()
             and Interval.of(cf, pitch).step() <= IntervalStep.idx_1(15)  # 2オクターブ未満
             and (
@@ -491,131 +397,157 @@ class SearchingInMeasureState(State):
         ある音程が旋律的音程として認められるかどうかを返す。
         同音の連続を行わないようにするため、ユニゾンはFalseとしている。
         """
-        return interval.abs() in SearchingInMeasureState.VALID_MELODIC_INTERVAL_SET
-
-
-# ---
+        return interval.abs() in LocalMeasureContext.VALID_MELODIC_INTERVAL_SET
 
 
 @dataclass(frozen=True)
-class ChooseSearchState(SearchingInMeasureState):
+class State(ABC):
+    """
+    全ての状態の基底クラス。
+    現在の「グローバルコンテキスト」と「ローカル(作業中)コンテキスト」を保持する。
+    """
+
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext | None  # 最終検証中などはNoneになる
+
+    @classmethod
+    def start_state(cls, cantus_firmus: list[Pitch], rythmn_type: RythmnType) -> "State":
+        # 最初のGlobalContextを準備
+        g_ctx = GlobalContext(
+            cantus_firmus=cantus_firmus,
+            rythmn_type=rythmn_type,
+            completed_measures=[],
+            next_measure_mark=None,
+        )
+
+        # 最初の小節(Measure 1)のためのLocalMeasureContextを準備
+        l_ctx = LocalMeasureContext(
+            previous_measure=None,
+            previous_cf=None,
+            current_cf=g_ctx.current_cf(),
+            next_measure_cf=g_ctx.next_measure_cf(),
+            rythmn_type=g_ctx.rythmn_type,
+            is_first_measure=True,
+            is_last_measure=g_ctx.is_last_measure(),
+            is_next_last_measure=g_ctx.is_next_last_measure(),
+            note_buffer=[],
+            is_root_chord=None,
+            next_measure_mark=None,
+        )
+
+        # 探索開始の起点となる ChooseSearchState を返す
+        return ChooseSearchState(g_ctx, l_ctx)
+
+    @abstractmethod
+    def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        pass
+
+    def final_states(self, randomized: bool = True) -> Iterator["EndState"]:
+        def _find_terminal_states(state: State) -> Iterator["EndState | PrunedState"]:
+            """
+            再帰的に探索し、EndState(成功) または PrunedState(グローバルな失敗) を見つける。
+            MeasurePrunedStateは内部で破棄(バックトラック)する。
+            """
+            # グローバルな成功(EndState) または グローバルな失敗(PrunedState)
+            # これらは最上位まで伝播させ、小節全体を再試行させる。
+            if isinstance(state, EndState) or isinstance(state, PrunedState):
+                yield state
+                return
+            # ローカルな失敗(MeasurePrunedState)
+            #  この分岐はここで破棄し、直前の音を再試行させる。
+            if isinstance(state, MeasurePrunedState):
+                yield from []
+                return
+
+            # 試行結果がランダムになるように
+            child_states = state.next_states(randomized)
+            child_iterators = [_find_terminal_states(child) for child in child_states]
+            iterator_wrapper = shuffled_interleave(child_iterators, randomized)
+
+            for result_state in iterator_wrapper:
+                if isinstance(result_state, PrunedState):
+                    yield result_state
+                    return
+
+                else:
+                    assert isinstance(result_state, EndState)
+                    yield result_state
+
+        while True:
+            search_iterator = _find_terminal_states(self)
+            found_global_failure = False
+            for terminal_state in search_iterator:
+                if isinstance(terminal_state, EndState):
+                    yield terminal_state
+                else:
+                    assert isinstance(terminal_state, PrunedState)
+                    found_global_failure = True
+                    break
+
+            if found_global_failure:
+                continue
+            else:
+                break
+
+
+@dataclass(frozen=True)
+class ChooseSearchState(State):
     """
     小節の探索方法を選ぶか、バリデーションの状態に移動する
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext  # 必ずLocalContextを持つ
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
-        if self.is_buffer_fulfilled():
-            yield ValidatingInMeasureState(
-                self.cantus_firmus,
-                self.rythmn_type,
-                self.completed_measures,
-                self.note_buffer,
-                self.next_measure_mark,
-            )
-        elif self.current_measure_number() == self.last_measure_number():
-            yield SearchingEndNoteState(
-                self.cantus_firmus,
-                self.rythmn_type,
-                self.completed_measures,
-                self.note_buffer,
-                self.next_measure_mark,
-                is_root_chord=True,
-            )
-        elif self.current_measure_number() == MeasureNumber(1) and self.current_offset() == Offset.of(0):
-            yield SearchingStartNoteState(
-                self.cantus_firmus,
-                self.rythmn_type,
-                self.completed_measures,
-                self.note_buffer,
-                self.next_measure_mark,
-                is_root_chord=True,
-            )
+        # local_ctx を使って分岐を決定する
+        if self.local_ctx.is_buffer_fulfilled():
+            yield ValidatingInMeasureState(self.global_ctx, self.local_ctx)
+        elif self.local_ctx.is_last_measure:
+            yield SearchingEndNoteState(self.global_ctx, self.local_ctx)
+        elif self.local_ctx.is_first_measure and self.local_ctx.current_offset() == Offset.of(0):
+            yield SearchingStartNoteState(self.global_ctx, self.local_ctx)
         else:
             next_states: list[State] = [
-                SearchingHarmonicNoteInMeasureState(
-                    self.cantus_firmus,
-                    self.rythmn_type,
-                    self.completed_measures,
-                    self.note_buffer,
-                    self.next_measure_mark,
-                    self.is_root_chord,
-                ),
-                SearchingPassingNoteInMeasureState(
-                    self.cantus_firmus,
-                    self.rythmn_type,
-                    self.completed_measures,
-                    self.note_buffer,
-                    self.next_measure_mark,
-                    self.is_root_chord,
-                ),
-                SearchingNeighborNoteInMeasureState(
-                    self.cantus_firmus,
-                    self.rythmn_type,
-                    self.completed_measures,
-                    self.note_buffer,
-                    self.next_measure_mark,
-                    self.is_root_chord,
-                ),
+                SearchingHarmonicNoteInMeasureState(self.global_ctx, self.local_ctx),
+                SearchingPassingNoteInMeasureState(self.global_ctx, self.local_ctx),
+                SearchingNeighborNoteInMeasureState(self.global_ctx, self.local_ctx),
             ]
             if randomized:
                 random.shuffle(next_states)
             yield from next_states
 
-    def is_buffer_fulfilled(self) -> bool:
-        total_note_buffer_duration = self.total_note_buffer_duration()
-        if total_note_buffer_duration == MEASURE_TOTAL_DURATION:
-            return True
-        elif total_note_buffer_duration < MEASURE_TOTAL_DURATION:
-            return False
-        else:
-            raise ValueError(f"total_note_buffer_duration: {total_note_buffer_duration}")
-
 
 @dataclass(frozen=True)
-class SearchingStartNoteState(SearchingInMeasureState):
+class SearchingStartNoteState(State):
     """
     課題冒頭の音を選択する
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
-        assert self.total_note_buffer_duration() == Duration.of(0)
-        assert self.next_measure_mark is None
-        assert self.is_root_chord
+        assert self.local_ctx.total_note_buffer_duration() == Duration.of(0)
+        assert self.local_ctx.next_measure_mark is None
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
-        cf = self.get_current_cf()
-        possible_pitches: list[Pitch] = SearchingInMeasureState.start_available_pitches(cf)
+        cf = self.local_ctx.current_cf
+        possible_pitches: list[Pitch] = LocalMeasureContext.start_available_pitches(cf)
 
         next_states: list[State] = []
         for pitch in possible_pitches:
-            duration = self.rythmn_type.note_duration()
-            next_states.append(
-                ChooseSearchState(
-                    cantus_firmus=self.cantus_firmus,
-                    rythmn_type=self.rythmn_type,
-                    completed_measures=self.completed_measures,
-                    note_buffer=[
-                        SearchingInMeasureState.make_annotated_note(None, ToneType.HARMONIC_TONE, duration),
-                        SearchingInMeasureState.make_annotated_note(pitch, ToneType.HARMONIC_TONE, duration),
-                    ],
-                    next_measure_mark=None,
-                    is_root_chord=True,
-                )
+            duration = self.local_ctx.rythmn_type.note_duration()
+            new_local_ctx = replace(
+                self.local_ctx,
+                note_buffer=[
+                    LocalMeasureContext.make_annotated_note(None, ToneType.HARMONIC_TONE, duration),
+                    LocalMeasureContext.make_annotated_note(pitch, ToneType.HARMONIC_TONE, duration),
+                ],
+                next_measure_mark=None,
+                is_root_chord=True,
             )
+            next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
 
         if randomized:
             random.shuffle(next_states)
@@ -623,49 +555,41 @@ class SearchingStartNoteState(SearchingInMeasureState):
 
 
 @dataclass(frozen=True)
-class SearchingEndNoteState(SearchingInMeasureState):
+class SearchingEndNoteState(State):
     """
     課題の最後の小節の和声音を選択する
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
-        assert self.total_note_buffer_duration() == Duration.of(0)
-        assert self.is_root_chord
+        assert self.local_ctx.total_note_buffer_duration() == Duration.of(0)
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         next_pitches: list[Pitch]
-        if self.next_measure_mark is not None:
-            next_pitches = [self.next_measure_mark]
+        if self.local_ctx.next_measure_mark is not None:
+            next_pitches = [self.local_ctx.next_measure_mark]
         else:
-            cf = self.get_current_cf()
-            next_pitches = SearchingInMeasureState.end_available_pitches(cf)
+            cf = self.local_ctx.current_cf
+            next_pitches = LocalMeasureContext.end_available_pitches(cf)
             # 前の音との音程の確認
-            previous_pitch = self.previous_latest_added_pitch()
+            previous_pitch = self.local_ctx.previous_latest_added_pitch()
             next_pitches = [
-                p for p in next_pitches if SearchingInMeasureState.is_valid_melodic_interval(p - previous_pitch)
+                p for p in next_pitches if LocalMeasureContext.is_valid_melodic_interval(p - previous_pitch)
             ]
         next_states: list[State] = []
         for next_pitch in next_pitches:
-            next_states.append(
-                ChooseSearchState(
-                    cantus_firmus=self.cantus_firmus,
-                    rythmn_type=self.rythmn_type,
-                    completed_measures=self.completed_measures,
-                    note_buffer=[
-                        # NOTE: RythmnType によらずこの音価は一定で全音符
-                        SearchingInMeasureState.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, Duration.of(4))
-                    ],
-                    next_measure_mark=None,
-                    is_root_chord=True,
-                )
+            new_local_ctx = replace(
+                self.local_ctx,
+                note_buffer=[
+                    # NOTE: RythmnType によらずこの音価は一定で全音符
+                    LocalMeasureContext.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, Duration.of(4))
+                ],
+                next_measure_mark=None,
+                is_root_chord=True,
             )
+            next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
 
         if randomized:
             random.shuffle(next_states)
@@ -673,26 +597,22 @@ class SearchingEndNoteState(SearchingInMeasureState):
 
 
 @dataclass(frozen=True)
-class SearchingHarmonicNoteInMeasureState(SearchingInMeasureState):
+class SearchingHarmonicNoteInMeasureState(State):
     """
     小節内の探索中。和声音を1音追加する
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
-        assert self.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
+        assert self.local_ctx.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         next_pitch_and_chord_list: list[tuple[Pitch, bool | None]] = []
 
-        if self.next_measure_mark is not None:
-            cf_mark_step = (self.get_current_cf() - self.next_measure_mark).normalize().step()
+        if self.local_ctx.next_measure_mark is not None:
+            cf_mark_step = (self.local_ctx.current_cf - self.local_ctx.next_measure_mark).normalize().step()
             if cf_mark_step == IntervalStep.idx_1(5):
                 is_root_chord = True
             elif cf_mark_step == IntervalStep.idx_1(6):
@@ -702,33 +622,30 @@ class SearchingHarmonicNoteInMeasureState(SearchingInMeasureState):
             else:
                 raise ValueError(
                     "invalid next_measure_mark. "
-                    f"current_cf: {self.get_current_cf()}, next_measure_mark: {self.next_measure_mark}"
+                    f"current_cf: {self.local_ctx.current_cf}, next_measure_mark: {self.local_ctx.next_measure_mark}"
                 )
-            next_pitch_and_chord_list = [(self.next_measure_mark, is_root_chord)]
+            next_pitch_and_chord_list = [(self.local_ctx.next_measure_mark, is_root_chord)]
         else:
             # 和音上利用できる音の中で、前の音との旋律的音程が許されるもの
-            previous_pitch = self.previous_latest_added_pitch()
-            all_candidates: list[tuple[Pitch, bool | None]] = self.available_harmonic_pitches_with_chord()
+            previous_pitch = self.local_ctx.previous_latest_added_pitch()
+            all_candidates: list[tuple[Pitch, bool | None]] = self.local_ctx.available_harmonic_pitches_with_chord()
             for next_pitch, next_is_root_chord in all_candidates:
-                if SearchingInMeasureState.is_valid_melodic_interval(next_pitch - previous_pitch):
+                if LocalMeasureContext.is_valid_melodic_interval(next_pitch - previous_pitch):
                     next_pitch_and_chord_list.append((next_pitch, next_is_root_chord))
 
         next_states: list[State] = []
         for next_pitch, next_is_root_chord in next_pitch_and_chord_list:
-            duration = self.rythmn_type.note_duration()
-            next_states.append(
-                ChooseSearchState(
-                    cantus_firmus=self.cantus_firmus,
-                    rythmn_type=self.rythmn_type,
-                    completed_measures=self.completed_measures,
-                    note_buffer=[
-                        *self.note_buffer,
-                        SearchingInMeasureState.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, duration),
-                    ],
-                    next_measure_mark=None,  # 和声音の探索では次のマークは行わない。
-                    is_root_chord=next_is_root_chord,
-                )
+            duration = self.local_ctx.rythmn_type.note_duration()
+            new_local_ctx = replace(
+                self.local_ctx,
+                note_buffer=[
+                    *self.local_ctx.note_buffer,
+                    LocalMeasureContext.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, duration),
+                ],
+                next_measure_mark=None,
+                is_root_chord=next_is_root_chord,
             )
+            next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
 
         if randomized:
             random.shuffle(next_states)
@@ -736,20 +653,16 @@ class SearchingHarmonicNoteInMeasureState(SearchingInMeasureState):
 
 
 @dataclass(frozen=True)
-class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
+class SearchingPassingNoteInMeasureState(State):
     """
     小節内の探索中。経過音を追加する。note_bufferに2つ以上の音が追加され、next_measure_markが付くこともある。
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
-        assert self.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
+        assert self.local_ctx.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         """
@@ -758,28 +671,25 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
         必要に応じて next_measure_mark に値が設定される。
         """
         # 最終小節や、小節の1拍目(課題の冒頭を含む)では利用できない。
-        if self.current_measure_number() == self.last_measure_number() or self.current_offset() == Offset.of(0):
+        if self.local_ctx.is_last_measure or self.local_ctx.current_offset() == Offset.of(0):
             yield from []
             return
         # マークがある場合は非和声音を利用できない
-        if self.next_measure_mark is not None:
+        if self.local_ctx.next_measure_mark is not None:
             yield from []
             return
-
-        next_measure_num = self.next_measure_number()
-        # 最終小節ではないため、次の小節番号は必ず取得できる。
-        if not next_measure_num:
-            raise RuntimeError
+        # 最終小節ではないので次の小節のCFは必ず取得できる
+        assert self.local_ctx.next_measure_cf is not None
 
         # 直前の音から目標音までの音程(上向きのみ), 到達音が現在の小節に含まれるかどうか(小節を跨がないか)の一覧を求める
         patterns: list[tuple[IntervalStep, bool]] = SearchingPassingNoteInMeasureState.progression_pattern(
-            current_offset=self.current_offset(), rythmn_type=self.rythmn_type
+            current_offset=self.local_ctx.current_offset(), rythmn_type=self.local_ctx.rythmn_type
         )
 
         next_states: list[State] = []
         for step, is_target_note_in_current_number in patterns:
             # 到達する音高を求める
-            target_pitch = add_interval_step_in_key(KEY, self.previous_latest_added_pitch(), step)
+            target_pitch = add_interval_step_in_key(KEY, self.local_ctx.previous_latest_added_pitch(), step)
 
             # 小節を跨ぐ場合と跨がない場合で大きく分岐して考える
             if is_target_note_in_current_number:
@@ -787,70 +697,61 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
 
                 # 小節を跨がない場合、到達した音は課題の冒頭の音または最終小節以外の音である。
                 # それらの利用できる音を求める
-                available_pitches_and_next_chord = self.available_harmonic_pitches_with_chord()
+                available_pitches_and_next_chord = self.local_ctx.available_harmonic_pitches_with_chord()
 
                 for available_pitch, is_next_root_chord in available_pitches_and_next_chord:
                     if target_pitch != available_pitch:
                         continue
 
-                    duration = self.rythmn_type.note_duration()
+                    duration = self.local_ctx.rythmn_type.note_duration()
                     pitches = SearchingPassingNoteInMeasureState.conjunct_pitches(
-                        KEY, self.previous_latest_added_pitch(), step
+                        KEY, self.local_ctx.previous_latest_added_pitch(), step
                     )
                     init_notes = [
-                        SearchingInMeasureState.make_annotated_note(p, ToneType.PASSING_TONE, duration)
+                        LocalMeasureContext.make_annotated_note(p, ToneType.PASSING_TONE, duration)
                         for p in pitches[:-1]
                     ]
-                    last_note = SearchingInMeasureState.make_annotated_note(
-                        pitches[-1], ToneType.HARMONIC_TONE, duration
+                    last_note = LocalMeasureContext.make_annotated_note(pitches[-1], ToneType.HARMONIC_TONE, duration)
+                    new_local_ctx = replace(
+                        self.local_ctx,
+                        note_buffer=[*self.local_ctx.note_buffer, *init_notes, last_note],
+                        next_measure_mark=None,
+                        is_root_chord=is_next_root_chord,
                     )
-
-                    next_states.append(
-                        ChooseSearchState(
-                            cantus_firmus=self.cantus_firmus,
-                            rythmn_type=self.rythmn_type,
-                            completed_measures=self.completed_measures,
-                            note_buffer=[*self.note_buffer, *init_notes, last_note],
-                            next_measure_mark=None,
-                            is_root_chord=is_next_root_chord,
-                        )
-                    )
+                    next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
                 pass
             else:
                 # 小節を跨ぐ場合
 
                 # この小節の和音の音かどうかは気にしなくて良い。
                 # 次の小節が最終小節かどうかに応じて利用できる音高が異なる。
-                if next_measure_num == self.last_measure_number():
-                    available_pitches = SearchingInMeasureState.end_available_pitches(self.get_cf_at(next_measure_num))
+                assert self.local_ctx.next_measure_cf is not None
+                if self.local_ctx.is_next_last_measure:
+                    available_pitches = LocalMeasureContext.end_available_pitches(self.local_ctx.next_measure_cf)
                 else:
-                    available_pitches = SearchingInMeasureState.available_pitches(self.get_cf_at(next_measure_num))
+                    available_pitches = LocalMeasureContext.available_pitches(self.local_ctx.next_measure_cf)
 
                 for available_pitch in available_pitches:
                     if target_pitch != available_pitch:
                         continue
 
                     pitches = SearchingPassingNoteInMeasureState.conjunct_pitches(
-                        KEY, self.previous_latest_added_pitch(), step
+                        KEY, self.local_ctx.previous_latest_added_pitch(), step
                     )
                     notes_to_add_buffer = [
-                        SearchingInMeasureState.make_annotated_note(
-                            p, ToneType.PASSING_TONE, self.rythmn_type.note_duration()
+                        LocalMeasureContext.make_annotated_note(
+                            p, ToneType.PASSING_TONE, self.local_ctx.rythmn_type.note_duration()
                         )
                         for p in pitches[:-1]
                     ]
                     next_measure_mark = pitches[-1]
 
-                    next_states.append(
-                        ChooseSearchState(
-                            cantus_firmus=self.cantus_firmus,
-                            rythmn_type=self.rythmn_type,
-                            completed_measures=self.completed_measures,
-                            note_buffer=[*self.note_buffer, *notes_to_add_buffer],
-                            next_measure_mark=next_measure_mark,
-                            is_root_chord=self.is_root_chord,
-                        )
+                    new_local_ctx = replace(
+                        self.local_ctx,
+                        note_buffer=[*self.local_ctx.note_buffer, *notes_to_add_buffer],
+                        next_measure_mark=next_measure_mark,
                     )
+                    next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
 
         if randomized:
             random.shuffle(next_states)
@@ -925,20 +826,16 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
 
 
 @dataclass(frozen=True)
-class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
+class SearchingNeighborNoteInMeasureState(State):
     """
     小節内の探索中。刺繍音を追加する。note_bufferに2つの音が追加され、next_measure_markが付くこともある。
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
-    is_root_chord: bool | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
-        assert self.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
+        assert self.local_ctx.total_note_buffer_duration() < MEASURE_TOTAL_DURATION
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         """
@@ -947,18 +844,15 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
         必要に応じて next_measure_mark に値が設定される。
         """
         # 最終小節や、小節の1拍目(課題の冒頭を含む)では利用できない。
-        if self.current_measure_number() == self.last_measure_number() or self.current_offset() == Offset.of(0):
+        if self.local_ctx.is_last_measure or self.local_ctx.current_offset() == Offset.of(0):
             yield from []
             return
         # マークがある場合は非和声音を利用できない
-        if self.next_measure_mark is not None:
+        if self.local_ctx.next_measure_mark is not None:
             yield from []
             return
-
-        next_measure_num = self.next_measure_number()
-        # 最終小節ではないため、次の小節番号は必ず取得できる。
-        if not next_measure_num:
-            raise RuntimeError
+        # 最終小節ではないので次の小節のCFは必ず取得できる
+        assert self.local_ctx.next_measure_cf is not None
 
         next_states: list[State] = []
 
@@ -966,51 +860,41 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
         if self.is_target_note_in_current_measure():
             # 小節を跨がない場合は、直前に追加した音が和声音であるため、音域内であれば利用可能
             for neighbor_note_pitch in self.available_neighbor_note_pitches():
-                previous_pitch = self.previous_latest_added_pitch()
-                duration = self.rythmn_type.note_duration()
-                next_states.append(
-                    ChooseSearchState(
-                        cantus_firmus=self.cantus_firmus,
-                        rythmn_type=self.rythmn_type,
-                        completed_measures=self.completed_measures,
-                        note_buffer=[
-                            *self.note_buffer,
-                            SearchingInMeasureState.make_annotated_note(
-                                neighbor_note_pitch, ToneType.NEIGHBOR_TONE, duration
-                            ),
-                            SearchingInMeasureState.make_annotated_note(
-                                previous_pitch, ToneType.HARMONIC_TONE, duration
-                            ),
-                        ],
-                        next_measure_mark=None,
-                        is_root_chord=self.is_root_chord,
-                    )
+                previous_pitch = self.local_ctx.previous_latest_added_pitch()
+                duration = self.local_ctx.rythmn_type.note_duration()
+                new_local_ctx = replace(
+                    self.local_ctx,
+                    note_buffer=[
+                        *self.local_ctx.note_buffer,
+                        LocalMeasureContext.make_annotated_note(neighbor_note_pitch, ToneType.NEIGHBOR_TONE, duration),
+                        LocalMeasureContext.make_annotated_note(previous_pitch, ToneType.HARMONIC_TONE, duration),
+                    ],
+                    next_measure_mark=None,
                 )
+                next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
         else:
             # 小節を跨ぐ場合、最終小節かどうかに応じて利用できる音高を求め、その中に直前の音が含まれるかを確認する
-            if next_measure_num == self.last_measure_number():
-                available_pitches = set(SearchingInMeasureState.end_available_pitches(self.get_cf_at(next_measure_num)))
+            if self.local_ctx.is_next_last_measure:
+                available_pitches = set(LocalMeasureContext.end_available_pitches(self.local_ctx.next_measure_cf))
             else:
-                available_pitches = set(SearchingInMeasureState.available_pitches(self.get_cf_at(next_measure_num)))
+                available_pitches = set(LocalMeasureContext.available_pitches(self.local_ctx.next_measure_cf))
 
-            previous_pitch = self.previous_latest_added_pitch()
+            previous_pitch = self.local_ctx.previous_latest_added_pitch()
             if previous_pitch in available_pitches:
                 for neighbor_note_pitch in self.available_neighbor_note_pitches():
-                    next_states.append(
-                        ChooseSearchState(
-                            cantus_firmus=self.cantus_firmus,
-                            rythmn_type=self.rythmn_type,
-                            completed_measures=self.completed_measures,
-                            note_buffer=[
-                                *self.note_buffer,
-                                SearchingInMeasureState.make_annotated_note(
-                                    neighbor_note_pitch, ToneType.NEIGHBOR_TONE, self.rythmn_type.note_duration()
-                                ),
-                            ],
-                            next_measure_mark=previous_pitch,
-                            is_root_chord=self.is_root_chord,
-                        )
+                    new_local_ctx = replace(
+                        self.local_ctx,
+                        note_buffer=[
+                            *self.local_ctx.note_buffer,
+                            LocalMeasureContext.make_annotated_note(
+                                neighbor_note_pitch,
+                                ToneType.NEIGHBOR_TONE,
+                                self.local_ctx.rythmn_type.note_duration(),
+                            ),
+                        ],
+                        next_measure_mark=previous_pitch,
                     )
+                    next_states.append(ChooseSearchState(self.global_ctx, new_local_ctx))
 
         if randomized:
             random.shuffle(next_states)
@@ -1021,12 +905,12 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
         直前の音をもとに、音域内で利用できる刺繍音の一覧を返す。
         2度上・2度下
         """
-        previous_latest_added_pitch = self.previous_latest_added_pitch()
+        previous_latest_added_pitch = self.local_ctx.previous_latest_added_pitch()
         neighbor_steps = [IntervalStep.idx_1(2), IntervalStep.idx_1(-2)]
         result: list[Pitch] = []
         for step in neighbor_steps:
             neighbor_pitch = add_interval_step_in_key(KEY, previous_latest_added_pitch, step)
-            if neighbor_pitch in SearchingInMeasureState.AVAILABLE_PITCHES_SET:  # 声域内か
+            if neighbor_pitch in LocalMeasureContext.AVAILABLE_PITCHES_SET:  # 声域内か
                 result.append(neighbor_pitch)
         return result
 
@@ -1036,8 +920,8 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
         1拍目からは刺繍音は利用できないため、 current_offset に Offset.of(0) を渡すと例外となる。
         その他リズムパターンに含まれないオフセットを渡すと例外となる。
         """
-        current_offset = self.current_offset()
-        match self.rythmn_type:
+        current_offset = self.local_ctx.current_offset()
+        match self.local_ctx.rythmn_type:
             case RythmnType.QUATER_NOTE:
                 if current_offset in [Offset.idx_1(2), Offset.idx_1(3)]:
                     # 2拍目の探索中は現在の小節の3拍目に到達する
@@ -1067,39 +951,65 @@ class ValidatingInMeasureState(State):
     (next_measure_mark に関しては次の小節が埋まった時のバリデーションで確認される)
     """
 
-    cantus_firmus: list[Pitch]
-    rythmn_type: RythmnType
-    completed_measures: list[AnnotatedMeasure]
-    note_buffer: list[AnnotatedNote]
-    next_measure_mark: Pitch | None
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
 
     def __post_init__(self) -> None:
         assert self.total_note_buffer_duration() == MEASURE_TOTAL_DURATION
 
-    # SearchingInMeasureState と定義が重複している。
+    # LocalMeasureContext と定義が重複している。
     def total_note_buffer_duration(self) -> Duration:
         """
         バッファにある音価の合計。4未満の場合は探索中、4であれば探索完了を表す。
         """
-        return sum([an.note.duration for an in self.note_buffer], Duration.of(0))
+        return sum([an.note.duration for an in self.local_ctx.note_buffer], Duration.of(0))
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        # validate() は self.global_ctx と self.local_ctx を
+        # 使って(古いコードと同様に)検証する
         if not self.validate():
-            yield from []
+            # 1. ★ 検証失敗
+            #    「小節内の失敗」状態を yield する。
+            #    final_states はこれを検知し、この分岐を破棄する (バックトラック)
+            yield MeasurePrunedState(self.global_ctx, self.local_ctx)
             return
         else:
-            if self.current_measure_number() == self.last_measure_number():
-                yield ValidatingAllMeasureState(
-                    cantus_firmus=self.cantus_firmus,
-                    completed_measures=[*self.completed_measures, AnnotatedMeasure(self.note_buffer)],
-                )
+            # 2. ★ 検証成功！
+            #    「ローカル」の作業結果(note_buffer)を
+            #    「グローバル」の完了リストに追加する。
+            new_global_ctx = replace(
+                self.global_ctx,
+                completed_measures=[
+                    *self.global_ctx.completed_measures,
+                    AnnotatedMeasure(self.local_ctx.note_buffer),
+                ],
+                next_measure_mark=self.local_ctx.next_measure_mark,
+            )
+
+            # 3. 曲全体が完成したか？
+            if new_global_ctx.is_measures_fulfilled():
+                # 曲が完成 -> 全体バリデーションへ
+                yield ValidatingAllMeasureState(new_global_ctx, None)
             else:
-                yield SearchingInMeasureState.start_searching_measure_state(
-                    cantus_firmus=self.cantus_firmus,
-                    rythmn_type=self.rythmn_type,
-                    completed_measures=[*self.completed_measures, AnnotatedMeasure(self.note_buffer)],
-                    next_measure_mark=self.next_measure_mark,
+                # 4. 次の小節の探索へ
+                #    「更新されたグローバル」を使い、
+                #    「次の小節用のローカル」を新規作成する
+
+                next_l_ctx = LocalMeasureContext(
+                    previous_measure=AnnotatedMeasure(self.local_ctx.note_buffer),
+                    previous_cf=self.local_ctx.current_cf,
+                    current_cf=new_global_ctx.current_cf(),
+                    next_measure_cf=new_global_ctx.next_measure_cf(),
+                    rythmn_type=new_global_ctx.rythmn_type,
+                    is_first_measure=False,
+                    is_last_measure=new_global_ctx.is_last_measure(),
+                    is_next_last_measure=new_global_ctx.is_next_last_measure(),
+                    note_buffer=[],
+                    is_root_chord=None,
+                    next_measure_mark=new_global_ctx.next_measure_mark,
                 )
+
+                yield ChooseSearchState(new_global_ctx, next_l_ctx)
 
     def validate(self) -> bool:
         return self.validate_interval() and self.validate_melody()
@@ -1110,15 +1020,16 @@ class ValidatingInMeasureState(State):
         """
 
         # 冒頭小節には直前の小節が存在しないため、連続は起こり得ない。
-        previous_measure_number = self.previous_measure_number()
-        if previous_measure_number is None:
+        if self.local_ctx.is_first_measure:
             return True
+        assert self.local_ctx.previous_measure is not None
+        assert self.local_ctx.previous_cf is not None
 
-        previous_cf = self.get_cf_at(previous_measure_number)
-        current_cf = self.get_current_cf()
+        previous_cf = self.local_ctx.previous_cf
+        current_cf = self.local_ctx.current_cf
 
-        previous_measure = self.get_cm_at(previous_measure_number)
-        current_measure = AnnotatedMeasure(self.note_buffer)
+        previous_measure = self.local_ctx.previous_measure
+        current_measure = AnnotatedMeasure(self.local_ctx.note_buffer)
 
         # 2つの声部が同時に動いている場合の確認。CFが全音符なので小節を跨いだタイミングのみ。
         previous_measure_last_pitch = previous_measure.annotated_notes[-1].note.pitch
@@ -1411,12 +1322,38 @@ class ValidatingInMeasureState(State):
         前の小節の末尾から num 音取得し、 note_buffer と繋げたリストを返す
         """
         annotated_notes: list[AnnotatedNote] = []
-        previous_measure_number = self.previous_measure_number()
-        if previous_measure_number is not None:
-            previous_measure = self.get_cm_at(previous_measure_number)
-            annotated_notes.extend([an for an in previous_measure.annotated_notes[-2:]])
-        annotated_notes.extend([an for an in self.note_buffer])
+        if self.local_ctx.previous_measure is not None:
+            annotated_notes.extend([an for an in self.local_ctx.previous_measure.annotated_notes[-2:]])
+        annotated_notes.extend([an for an in self.local_ctx.note_buffer])
         return annotated_notes
+
+
+@dataclass(frozen=True)
+class MeasureEndState(State):
+    """
+    旋律の生成・バリデーションが完了した状態。
+    """
+
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
+
+    def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        raise RuntimeError("not called")
+
+
+@dataclass(frozen=True)
+class MeasurePrunedState(State):
+    """
+    旋律のバリデーションに失敗した。
+    途中からではなく最初からやり直すために、擬似的な完了状態にしてフィルタさせる。<- これやらないほうがいいわ。
+    一つ前に追加した音からやり直した方が高速。
+    """
+
+    global_ctx: GlobalContext
+    local_ctx: LocalMeasureContext
+
+    def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        raise RuntimeError("not called")
 
 
 # ------------ ValidatingAllMeasureState --------------
@@ -1428,23 +1365,15 @@ class ValidatingAllMeasureState(State):
     全体のバリデーション中
     """
 
-    cantus_firmus: list[Pitch]
-    completed_measures: list[AnnotatedMeasure]
-
-    def __post_init__(self) -> None:
-        assert self.previous_measure_number() == self.last_measure_number()
+    global_ctx: GlobalContext
+    local_ctx: None
 
     def next_states(self, randomized: bool = True) -> Iterator[State]:
         if not self.validate():
-            yield PrunedState(
-                cantus_firmus=self.cantus_firmus,
-                completed_measures=self.completed_measures,
-            )
+            yield PrunedState(self.global_ctx, None)
+
         else:
-            yield EndState(
-                cantus_firmus=self.cantus_firmus,
-                completed_measures=self.completed_measures,
-            )
+            yield EndState(self.global_ctx, None)
 
     def validate(self) -> bool:
         return self.validate_part_total_range() and True  # TODO
@@ -1456,7 +1385,10 @@ class ValidatingAllMeasureState(State):
         順次進行が長く続く場合には例外として12度が認められるが、ここでは禁止としている。
         """
         all_pitches = [
-            an.note.pitch for m in self.completed_measures for an in m.annotated_notes if an.note.pitch is not None
+            an.note.pitch
+            for m in self.global_ctx.completed_measures
+            for an in m.annotated_notes
+            if an.note.pitch is not None
         ]
         p_min = min(all_pitches, key=lambda p: p.num())
         p_max = max(all_pitches, key=lambda p: p.num())
@@ -1470,20 +1402,20 @@ class ValidatingAllMeasureState(State):
 @dataclass(frozen=True)
 class EndState(State):
     """
-    バリデーションが終わり、生成が完了した状態。
+    課題全体のバリデーションが終わり、生成が完了した状態。
     """
 
-    cantus_firmus: list[Pitch]
-    completed_measures: list[AnnotatedMeasure]
+    global_ctx: GlobalContext
+    local_ctx: None
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         raise RuntimeError("not called")
 
     def to_score(self) -> Score:
-        cf_notes = [Note(pitch, Duration.of(4)) for pitch in self.cantus_firmus]
+        cf_notes = [Note(pitch, Duration.of(4)) for pitch in self.global_ctx.cantus_firmus]
         cf_measures = [Measure([note]) for note in cf_notes]
 
-        realized_measures = [am.to_measure() for am in self.completed_measures]
+        realized_measures = [am.to_measure() for am in self.global_ctx.completed_measures]
 
         return Score(
             key=KEY,
@@ -1501,11 +1433,11 @@ class EndState(State):
 @dataclass(frozen=True)
 class PrunedState(State):
     """
-    バリデーションに失敗した。途中からではなく最初からやり直すために、擬似的な完了状態にしてフィルタさせる。
+    課題全体のバリデーションに失敗した。途中からではなく最初からやり直すために、擬似的な完了状態にしてフィルタさせる。
     """
 
-    cantus_firmus: list[Pitch]
-    completed_measures: list[AnnotatedMeasure]
+    global_ctx: GlobalContext
+    local_ctx: None
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         raise RuntimeError("not called")

@@ -2,7 +2,7 @@ import argparse
 
 from my_project.counterpoint import RythmnType, generate
 from my_project.lilypond_writer import score_to_lilypond
-from my_project.model import Pitch
+from my_project.model import PartId, Pitch
 
 
 def main() -> None:
@@ -18,6 +18,11 @@ def main() -> None:
         default="quater",
         choices=["quater", "half"],
         help="Rythmn type for counterpoint generation (e.g., quater, half). Defaults to quater.",
+    )
+
+    parser.add_argument(
+        "--debug",
+        default=False,
     )
 
     args = parser.parse_args()
@@ -37,13 +42,17 @@ def main() -> None:
         # This case should ideally not be reached due to 'choices' in argparse
         rythmn_type = RythmnType.QUATER_NOTE
 
-    solved = next(generate(cantus_firmus, rythmn_type=rythmn_type))
-    lily_str = score_to_lilypond(solved)
-    print(lily_str)
-    # for i, solved in enumerate(generate(cantus_firmus)):
-    #     print(f"試行: {i + 1}")
-    #     lily_str = score_to_lilypond(solved)
-    #     print(lily_str)
+    if args.debug:
+        for i, solved in enumerate(generate(cantus_firmus, rythmn_type=rythmn_type)):
+            mesaures = next(part.measures for part in solved.parts if part.part_id == PartId.SOPRANO)
+            pitches = [note.pitch.name() if note.pitch else "None" for measure in mesaures for note in measure.notes]
+            print(f"試行 {i=}, {pitches}")
+            # lily_str = score_to_lilypond(solved)
+            # print(lily_str)
+    else:
+        solved = next(generate(cantus_firmus, rythmn_type=rythmn_type))
+        lily_str = score_to_lilypond(solved)
+        print(lily_str)
 
 
 if __name__ == "__main__":
