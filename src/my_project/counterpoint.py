@@ -141,9 +141,12 @@ class AnnotatedMeasure:
 #   - ValidatingInMeasureState -> SearchingInMeasureState
 #                                 | ValidatingAllMeasureState
 #
-#   - ValidatingAllMeasureState -> ValidatingAllMeasureState
+#   - ValidatingAllMeasureState -> EndState
+#                                  | PrunedState
 #
 #   - EndState
+#
+#   - PrunedState
 
 
 class State(ABC):
@@ -170,14 +173,17 @@ class State(ABC):
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
         pass
 
-    def final_states(self, randomized: bool = True) -> Iterator["EndState"]:
-        if isinstance(self, EndState):
+    def _final_states(self, randomized: bool = True) -> Iterator["EndState | PrunedState"]:
+        if isinstance(self, EndState) or isinstance(self, PrunedState):
             yield self
             return
 
         child_states = self.next_states(randomized)
-        child_iterators = [child.final_states(randomized) for child in child_states]
+        child_iterators = [child._final_states(randomized) for child in child_states]
         yield from shuffled_interleave(child_iterators, randomized)
+
+    def final_states(self, randomized: bool = True) -> Iterator["EndState"]:
+        return (s for s in self._final_states(randomized) if isinstance(s, EndState))
 
     # ---
 
@@ -598,11 +604,12 @@ class SearchingEndNoteState(SearchingInMeasureState):
         assert self.is_root_chord
 
     def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        next_pitches: list[Pitch]
         if self.next_measure_mark is not None:
-            next_pitches: list[Pitch] = [self.next_measure_mark]
+            next_pitches = [self.next_measure_mark]
         else:
             cf = self.get_current_cf()
-            next_pitches: list[Pitch] = SearchingInMeasureState.end_available_pitches(cf)
+            next_pitches = SearchingInMeasureState.end_available_pitches(cf)
             # 前の音との音程の確認
             previous_pitch = self.previous_latest_added_pitch()
             next_pitches = [
@@ -1213,11 +1220,11 @@ class ValidatingInMeasureState(State):
 
         DONE:
         - 分散和音をしない
+        - 3音符で形成される7度・9度は順次進行を含める
 
         優先して実装したい:
-        - 3音符で形成される7度・9度は順次進行を含める
-        - 旋律の対称系や繰り返し(特に同一音への3度続く回帰)
         - 完全8度の跳躍はできるだけその前後に反対方向の進行を伴う
+        - 旋律の対称系や繰り返し(特に同一音への3度続く回帰)
 
         後回し?:
         - できるだけ非順次進行を避ける(どの程度?)
@@ -1347,8 +1354,10 @@ class ValidatingAllMeasureState(State):
 
     def next_states(self, randomized: bool = True) -> Iterator[State]:
         if not self.validate():
-            yield from []
-            return
+            yield PrunedState(
+                cantus_firmus=self.cantus_firmus,
+                completed_measures=self.completed_measures,
+            )
         else:
             yield EndState(
                 cantus_firmus=self.cantus_firmus,
@@ -1356,7 +1365,21 @@ class ValidatingAllMeasureState(State):
             )
 
     def validate(self) -> bool:
-        return True  # TODO
+        return self.validate_part_total_range() and True  # TODO
+
+    def validate_part_total_range(self) -> bool:
+        """
+        各声部の音域は同一課題中において11度を越えてはならない。越えた場合 False
+
+        順次進行が長く続く場合には例外として12度が認められるが、ここでは禁止としている。
+        """
+        all_pitches = [
+            an.note.pitch for m in self.completed_measures for an in m.annotated_notes if an.note.pitch is not None
+        ]
+        p_min = min(all_pitches, key=lambda p: p.num())
+        p_max = max(all_pitches, key=lambda p: p.num())
+
+        return (p_max - p_min).step() <= IntervalStep.idx_1(11)
 
 
 # ------------ EndState --------------
@@ -1388,3 +1411,19 @@ class EndState(State):
                 Part(part_id=REALIZE_PART_ID, measures=realized_measures),
             ],
         )
+
+
+# ------------ PrunedState --------------
+
+
+@dataclass(frozen=True)
+class PrunedState(State):
+    """
+    バリデーションに失敗した。途中からではなく最初からやり直すために、擬似的な完了状態にしてフィルタさせる。
+    """
+
+    cantus_firmus: list[Pitch]
+    completed_measures: list[AnnotatedMeasure]
+
+    def next_states(self, randomized: bool = True) -> Iterator["State"]:
+        raise RuntimeError("not called")

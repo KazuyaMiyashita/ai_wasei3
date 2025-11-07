@@ -3,11 +3,12 @@
 # --- 設定 ---
 
 # 1. 生成する画像の枚数
-NUM_IMAGES=100s
+NUM_IMAGES=100
 
 # 2. 定旋律 (Cantus Firmus) の音符
 # (main_counterpoint.py で指定されている --cf の引数)
 CF_NOTES="C4 A3 G3 E3 F3 A3 G3 E3 D3 C3"
+# CF_NOTES="C3 D3 C3 E3 F3 G3 E3 A3 G3 C3"
 
 # 3. 出力ディレクトリ
 OUTPUT_DIR="dist"

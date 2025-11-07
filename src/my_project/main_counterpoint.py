@@ -2,9 +2,7 @@ import argparse
 
 from my_project.counterpoint import generate
 from my_project.lilypond_writer import score_to_lilypond
-from my_project.model import (
-    Pitch,
-)
+from my_project.model import Pitch
 
 
 def main() -> None:
