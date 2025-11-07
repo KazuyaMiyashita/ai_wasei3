@@ -219,3 +219,9 @@ def shuffled_interleave(iterables: Sequence[Iterable[T]], randomized: bool = Tru
     else:
         for it in iterables:
             yield from it
+
+
+# 音列から隣り合わせの3つの音を作成
+def sliding(input_list: list[T], window_size: int) -> list[list[T]]:
+    n = len(input_list)
+    return [input_list[i : i + window_size] for i in range(n - window_size + 1)]

@@ -23,7 +23,7 @@ from my_project.model import (
     Score,
     TimeSignature,
 )
-from my_project.util import add_interval_step_in_key, part_range, scale_pitches, shuffled_interleave
+from my_project.util import add_interval_step_in_key, part_range, scale_pitches, shuffled_interleave, sliding
 
 T = TypeVar("T")
 
@@ -84,10 +84,10 @@ class AnnotatedMeasure:
 
         return result
 
-    def pitch_at(self, offset: Offset) -> Pitch | None:
+    def offset_note_at(self, offset: Offset) -> tuple[Offset, AnnotatedNote] | None:
         """
-        この小節のOffsetの時刻に鳴っているPitchを返す。
-        そのOffsetの時に休符であればNone, 小節の範囲外のOffsetを指定した場合は例外
+        この小節の Offset の時刻に鳴っている音の、開始した Offset と AnnotatedNote を返す。
+        その Offset の時に休符であれば None, 小節の範囲外の Offset を指定した場合は例外
         """
         current_offset = Offset.of(0)
 
@@ -95,13 +95,28 @@ class AnnotatedMeasure:
             note_duration = annotated_note.note.duration
             note_end_offset = current_offset.add_duration(note_duration)
             if current_offset <= offset < note_end_offset:
-                return annotated_note.note.pitch  # (休符の場合は None が返る)
+                if annotated_note.note.pitch is None:
+                    return None
+                else:
+                    return (current_offset, annotated_note)
 
             current_offset = note_end_offset
 
         raise ValueError(
             f"Offset {offset.value} is out of bounds for this measure. Total duration is {current_offset.value}."
         )
+
+    def pitch_at(self, offset: Offset) -> Pitch | None:
+        """
+        この小節のOffsetの時刻に鳴っているPitchを返す。
+        そのOffsetの時に休符であればNone, 小節の範囲外のOffsetを指定した場合は例外
+
+        offset_note_at
+        """
+        offset_note = self.offset_note_at(offset)
+        if offset_note is None:
+            return None
+        return offset_note[1].note.pitch
 
 
 # ---
@@ -1002,7 +1017,7 @@ class ValidatingInMeasureState(State):
 
     def validate_interval(self) -> bool:
         """
-        連続・並達に関するバリデーション
+        連続・並達に関するバリデーション。禁則があれば False を返す
         """
 
         # 冒頭小節には直前の小節が存在しないため、連続は起こり得ない。
@@ -1037,11 +1052,16 @@ class ValidatingInMeasureState(State):
         # 間接の連続の確認
         # 便宜上前の小節と現在の小節を繋げた1小節を考え、Offset.of(4)以降のものに対して確認をする
         #
-        # 以下のいずれも満たしているものが間接の連続として禁じられる
-        # - Duration.of(4) 未満の隔たりがある
-        # - 2声が並行している
-        # - 和声音である
-        # - 直接の連続の規則として連続である
+        # 間接の連続は、全音符1個に相当する長さが隔てられていれば許される。またもっと近くにあっても
+        # 同時に打音されいるのではなく、かつ、反行している場合かいずれかの音が非和声音である場合は許される。
+        #
+        # すなわち、以下を満たした場合、禁則となる。
+        # ある声部の Offset の差が Duration.of(4) 以下の異なる2音のうち、
+        # ある他の声部の、それらの音に同時になっている2音を選び、
+        # それら2声部の音が直接の連続の規則として禁則であり、
+        # かつ、not (後続の5度・8度をなす音が同時に打音されていない and (反行している または いずれかの音が非和声音))
+
+        # 簡単のため、小節と現在の小節を繋げた1小節を考え、Offset.of(4)以降のものに対して確認をする
         cf_measure = AnnotatedMeasure(
             [
                 AnnotatedNote(Note(previous_cf, Duration.of(4)), ToneType.HARMONIC_TONE),
@@ -1053,45 +1073,56 @@ class ValidatingInMeasureState(State):
             if realize_current_offset < Offset.of(4):
                 continue
             for realize_previous_offset, realize_previous_a_note in realize_measure.offset_notes().items():
-                # Duration.of(4) 未満の隔たりがある
+                # Offset の差が Duration.of(4) 以下の異なる2音を選ぶ。
                 if not (Offset.of(0) < realize_current_offset - realize_previous_offset <= Offset.of(4)):
                     continue
-
-                cf_current_pitch = cf_measure.pitch_at(realize_current_offset)
-                cf_previous_pitch = cf_measure.pitch_at(realize_previous_offset)
-                assert cf_current_pitch is not None
-                assert cf_previous_pitch is not None
-
                 realize_current_pitch = realize_current_a_note.note.pitch
                 realize_previous_pitch = realize_previous_a_note.note.pitch
-
                 # (休符の場合は連続ではない)
                 if realize_current_pitch is None:
                     continue
                 if realize_previous_pitch is None:
                     continue
 
-                # 2声が並行している
-                if not ValidatingInMeasureState.is_parallel_motion(
-                    sequence_1=(cf_previous_pitch, cf_current_pitch),
-                    sequence_2=(realize_previous_pitch, realize_current_pitch),
-                ):
-                    continue
-
-                # 和声音である
-                if not realize_current_a_note.tone_type == ToneType.HARMONIC_TONE:
-                    continue
-                if not realize_previous_a_note.tone_type == ToneType.HARMONIC_TONE:
-                    continue
+                # ある他の声部の、それらの音に同時になっている2音を選ぶ。
+                # (現在は定旋律に対して確認しているので必ず音高が取得できる)
+                cf_current_offset_note = cf_measure.offset_note_at(realize_current_offset)
+                cf_previous_offset_note = cf_measure.offset_note_at(realize_previous_offset)
+                assert cf_current_offset_note is not None
+                assert cf_previous_offset_note is not None
+                cf_current_offset, cf_current_annotated_note = cf_current_offset_note
+                _cf_previous_offset, cf_previous_annotated_note = cf_previous_offset_note
+                assert cf_current_annotated_note.note.pitch is not None
+                assert cf_previous_annotated_note.note.pitch is not None
+                cf_current_pitch = cf_current_annotated_note.note.pitch
+                cf_previous_pitch = cf_previous_annotated_note.note.pitch
 
                 # 直接の連続の規則として連続である
-                if not ValidatingInMeasureState.is_parallel_violation(
+                is_parallel_violation = ValidatingInMeasureState.is_parallel_violation(
                     sequence_1=(cf_previous_pitch, cf_current_pitch),
                     sequence_2=(realize_previous_pitch, realize_current_pitch),
-                ):
-                    continue
+                )
 
-                return False
+                # 後続の5度・8度をなす音が同時に打音されている
+                has_following_notes_same_offset = cf_current_offset == realize_current_offset
+
+                # 2声が反行している
+                is_parallel_motion = ValidatingInMeasureState.is_contrary_motion(
+                    sequence_1=(cf_previous_pitch, cf_current_pitch),
+                    sequence_2=(realize_previous_pitch, realize_current_pitch),
+                )
+
+                # いずれかの音が非和声音
+                # (現在は定旋律に対して確認しているので実施声部のみを確認する)
+                non_harmonic_tone_exists = (
+                    realize_current_a_note.tone_type != ToneType.HARMONIC_TONE
+                    or realize_previous_a_note.tone_type != ToneType.HARMONIC_TONE
+                )
+
+                if is_parallel_violation and not (
+                    not has_following_notes_same_offset and (is_parallel_motion or non_harmonic_tone_exists)
+                ):
+                    return False
 
         return True
 
@@ -1193,39 +1224,110 @@ class ValidatingInMeasureState(State):
         - 小節線をはさんだ非順次進行を避ける(どの程度?)
         - 3,4個の音符で形成される増4度は同方向の順次進行で先行または後続させる
         """
-        return self.validate_melody_arpeggiio() and True  # TODO
+        return (
+            self.validate_melody_arpeggiio()
+            and self.validate_melody_arpeggiio_extra()
+            and self.validate_melody_interval_7_9()
+            and True
+        )  # TODO
 
     def validate_melody_arpeggiio(self) -> bool:
         """
         分散和音のバリデーション。旋律が分散和音の形になっているときFalseを返す
-        反転の分散和音はOKとしている
+
+        TODO: 反転の分散和音はOKとしている
         """
         # 前の小節がもしあれば最後の2音を取得し、現在の小節と繋げた音列を作成
-        pitches: list[Pitch] = []
-        previous_measure_number = self.previous_measure_number()
-        if previous_measure_number is not None:
-            previous_measure = self.get_cm_at(previous_measure_number)
-            pitches.extend([an.note.pitch for an in previous_measure.annotated_notes[-2:] if an.note.pitch is not None])
-        pitches.extend([an.note.pitch for an in self.note_buffer if an.note.pitch is not None])
-
-        # 音列から隣り合わせの3つの音を作成
-        def sliding(input_list: list[T], window_size: int) -> list[list[T]]:
-            n = len(input_list)
-            return [input_list[i : i + window_size] for i in range(n - window_size + 1)]
+        pitches: list[Pitch] = [an.note.pitch for an in self.extended_note_buffer(2) if an.note.pitch is not None]
 
         arpeggiio_steps_list = [
-            [IntervalStep.idx_1(3), IntervalStep.idx_1(5)],
-            [IntervalStep.idx_1(3), IntervalStep.idx_1(6)],
+            [IntervalStep.idx_1(3), IntervalStep.idx_1(5)],  # ドミソ
+            [IntervalStep.idx_1(-3), IntervalStep.idx_1(-5)],
+            [IntervalStep.idx_1(3), IntervalStep.idx_1(6)],  # ミソド
+            [IntervalStep.idx_1(-3), IntervalStep.idx_1(-6)],
+            [IntervalStep.idx_1(4), IntervalStep.idx_1(6)],  # ソドミ
+            [IntervalStep.idx_1(-4), IntervalStep.idx_1(-6)],  # ソドミ
         ]
 
         for ps in sliding(pitches, window_size=3):
             base, p1, p2 = ps
             intervals = [p1 - base, p2 - base]
-            steps = sorted([i.normalize().step() for i in intervals])
+            # NOTE: interval を normalize すると [C4 A3 A4] が C4に対して3度・6度と判定されてしまう。
+            # NOTE: 複音程は旋律の規則としてそもそも選ばれないので無視してよい。例えば [C4 *E4 *G5] の10度は選ばれない。
+            # NOTE: 以下の steps を sort すると、反転の分散和音が判定に含まれる(その場合 arpeggiio_steps_list は上方だけでよい)
+            steps = [i.step() for i in intervals]
             if steps in arpeggiio_steps_list:
                 return False
 
         return True
+
+    def validate_melody_arpeggiio_extra(self) -> bool:
+        """
+        特殊な形態のいくつかの分散和音を禁止する。
+
+        - (A-1): [C4 G4 C5], [G4 C5 G5], [G4, C4, C5] といった第3音を伴わない分散和音(反転なし)
+
+        ---
+        以下も考えられるが、現在は認めている
+
+        - (A-2): [G4, C4, C5] といった第3音を伴わない分散和音(反転あり)
+          - (しかしこれは [G4 A4 *G4 *C4 | *C5 B4 A4 G4] といった認めたくなるケースがある
+        - (B)] [C4 C5 C4] といったオクターブの移動
+          - (しかしこれは困難な場合には例外として許される)
+          - (できるだけ非順次進行を避けるといった規則で対応されるかもしれない)
+        - (C): [C4 G4 C4 C4] や [C5 G4 C5 G4] といった4度・5度の反復
+          - (できるだけ非順次進行を避けるといった規則で対応されるかもしれない)
+        """
+        pitches: list[Pitch] = [an.note.pitch for an in self.extended_note_buffer(2) if an.note.pitch is not None]
+
+        arpeggiio_steps_list = [
+            [IntervalStep.idx_1(5), IntervalStep.idx_1(8)],  # [C4 G4 C5]
+            [IntervalStep.idx_1(-5), IntervalStep.idx_1(-8)],
+            [IntervalStep.idx_1(4), IntervalStep.idx_1(8)],  # [G4 C5 G5]
+            [IntervalStep.idx_1(-4), IntervalStep.idx_1(-8)],
+        ]
+
+        for ps in sliding(pitches, window_size=3):
+            base, p1, p2 = ps
+            intervals = [p1 - base, p2 - base]
+            steps = [i.step() for i in intervals]
+            if steps in arpeggiio_steps_list:
+                return False
+
+        return True
+
+    def validate_melody_interval_7_9(self) -> bool:
+        """
+        3音符で形成される7度・9度は順次進行を含める必要がある。そうなっていなければFalseを返す
+        (9度より大きい音程になることは別の規則で禁止されそうだが、この規則で扱う)
+        """
+
+        # 前の小節がもしあれば最後の2音を取得し、現在の小節と繋げた音列を作成
+        pitches: list[Pitch] = [an.note.pitch for an in self.extended_note_buffer(2) if an.note.pitch is not None]
+        for ps in sliding(pitches, window_size=3):
+            p1, p2, p3 = ps
+            step_1_3 = (p1 - p3).abs().step()
+            if step_1_3 == IntervalStep.idx_1(7) or step_1_3 > IntervalStep.idx_1(9):
+                step_1_2 = (p1 - p2).abs().step()
+                step_2_3 = (p2 - p3).abs().step()
+                if step_1_2 == IntervalStep.idx_1(2) or step_2_3 == IntervalStep.idx_1(2):
+                    continue
+                else:
+                    return False
+
+        return True
+
+    def extended_note_buffer(self, num: int) -> list[AnnotatedNote]:
+        """
+        前の小節の末尾から num 音取得し、 note_buffer と繋げたリストを返す
+        """
+        annotated_notes: list[AnnotatedNote] = []
+        previous_measure_number = self.previous_measure_number()
+        if previous_measure_number is not None:
+            previous_measure = self.get_cm_at(previous_measure_number)
+            annotated_notes.extend([an for an in previous_measure.annotated_notes[-2:]])
+        annotated_notes.extend([an for an in self.note_buffer])
+        return annotated_notes
 
 
 # ------------ ValidatingAllMeasureState --------------

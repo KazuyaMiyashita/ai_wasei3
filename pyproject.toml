@@ -22,6 +22,12 @@ exclude = [".venv"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "RUF"]
+task-tags = ["TODO", "FIXME", "XXX", "NOTE"]
+
+[tool.ruff.lint.pycodestyle]
+# cf. https://docs.astral.sh/ruff/rules/line-too-long/
+# cf. https://docs.astral.sh/ruff/settings/#lint_pycodestyle_ignore-overlong-task-comments
+ignore-overlong-task-comments = true
 
 [tool.ruff.format]
 quote-style = "double"
