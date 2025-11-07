@@ -7,8 +7,12 @@ NUM_IMAGES=100
 
 # 2. 定旋律 (Cantus Firmus) の音符
 # (main_counterpoint.py で指定されている --cf の引数)
-CF_NOTES="C4 A3 G3 E3 F3 A3 G3 E3 D3 C3"
+# CF_NOTES="C4 A3 G3 E3 F3 A3 G3 E3 D3 C3"
 # CF_NOTES="C3 D3 C3 E3 F3 G3 E3 A3 G3 C3"
+CF_NOTES="C3 E3 D3 G3 A3 G3 E3 F3 D3 C3"
+
+# RYTHMN="quater"
+RYTHMN="half"
 
 # 3. 出力ディレクトリ
 OUTPUT_DIR="dist"
@@ -30,7 +34,7 @@ do
 
     # 1. LilyPond ファイルを一時ファイルとして生成
     # (dist/out.ly は毎回上書きされる)
-    uv run python -m my_project.main_counterpoint --cf $CF_NOTES > "$OUTPUT_DIR/out.ly"
+    uv run python -m my_project.main_counterpoint --cf $CF_NOTES --rythmn half > "$OUTPUT_DIR/out.ly"
 
     # 2. LilyPond を PNG にコンパイル
     # (dist/out.png と dist/out.png.cropped.png が生成・上書きされる)

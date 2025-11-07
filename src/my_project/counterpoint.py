@@ -35,11 +35,29 @@ CF_PART_ID = PartId.BASS
 REALIZE_PART_ID = PartId.SOPRANO
 
 
-def generate(cantus_firmus: list[Pitch]) -> Iterator[Score]:
-    return map(lambda state: state.to_score(), State.start_state(cantus_firmus).final_states())
+def generate(cantus_firmus: list[Pitch], rythmn_type: "RythmnType") -> Iterator[Score]:
+    return map(lambda state: state.to_score(), State.start_state(cantus_firmus, rythmn_type).final_states())
 
 
 # ---
+
+
+class RythmnType(Enum):
+    """
+    課題の実施で利用されるリズム
+    """
+
+    # 四部音符
+    QUATER_NOTE = 1
+    # 二部音符
+    HALF_NOTE = 2
+
+    def note_duration(self) -> Duration:
+        match self:
+            case RythmnType.QUATER_NOTE:
+                return Duration.of(1)
+            case RythmnType.HALF_NOTE:
+                return Duration.of(2)
 
 
 class ToneType(Enum):
@@ -151,6 +169,7 @@ class AnnotatedMeasure:
 
 class State(ABC):
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
 
     def __post_init__(self) -> None:
@@ -162,9 +181,10 @@ class State(ABC):
     # ---
 
     @classmethod
-    def start_state(cls, cfs: list[Pitch]) -> "State":
+    def start_state(cls, cfs: list[Pitch], rythmn_type: RythmnType) -> "State":
         return SearchingInMeasureState.start_searching_measure_state(
             cantus_firmus=cfs,
+            rythmn_type=rythmn_type,
             completed_measures=[],
             next_measure_mark=None,
         )
@@ -269,9 +289,10 @@ class SearchingInMeasureState(State):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
 
-    # 現在構築中の音符バッファ。最大4つの音が入る。
+    # 現在構築中の音符バッファ。最大で一小節に相当する音価の音が入る。最大の要素数は rythmn_type に依存する。
     note_buffer: list[AnnotatedNote]
     # 小節の探索の結果、次の小節の冒頭のピッチを決める必要がある場合、ピッチのみマーキングする
     next_measure_mark: Pitch | None
@@ -280,13 +301,18 @@ class SearchingInMeasureState(State):
 
     @classmethod
     def start_searching_measure_state(
-        cls, cantus_firmus: list[Pitch], completed_measures: list[AnnotatedMeasure], next_measure_mark: Pitch | None
+        cls,
+        cantus_firmus: list[Pitch],
+        rythmn_type: RythmnType,
+        completed_measures: list[AnnotatedMeasure],
+        next_measure_mark: Pitch | None,
     ) -> "SearchingInMeasureState":
         """
         SearchingInMeasureStateの子クラス以外から SearchingInMeasureState のステートを作成する場合はここを経由すること
         """
         return ChooseSearchState(
             cantus_firmus=cantus_firmus,
+            rythmn_type=rythmn_type,
             completed_measures=completed_measures,
             note_buffer=[],
             next_measure_mark=next_measure_mark,
@@ -307,7 +333,8 @@ class SearchingInMeasureState(State):
 
     def current_offset(self) -> Offset:
         """
-        現在の探索中の小節の位置。探索中の場合値を 0, 1, 2, 3 のいずれかから返し、探索完了の場合に呼び出すと例外を出す。
+        現在の探索中の小節の位置。探索中の場合値を 0 から 3 のいずれかから返し(rythmn_typeに依存する)、
+        探索完了の場合に呼び出すと例外を出す。
         (total_note_buffer_durationよりも厳しい)
         """
         offset = Offset(self.total_note_buffer_duration().value)
@@ -337,9 +364,7 @@ class SearchingInMeasureState(State):
         return [pitch for pitch in pitches if pitch in SearchingInMeasureState.AVAILABLE_PITCHES_SET]
 
     @classmethod
-    def make_annotated_note(
-        cls, pitch: Pitch | None, tone_type: ToneType, duration: Duration = Duration.of(1)
-    ) -> AnnotatedNote:
+    def make_annotated_note(cls, pitch: Pitch | None, tone_type: ToneType, duration: Duration) -> AnnotatedNote:
         """Pitch, ToneType, Duration から AnnotatedNote を作成するヘルパー"""
         return AnnotatedNote(Note(pitch, duration), tone_type)
 
@@ -479,6 +504,7 @@ class ChooseSearchState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -488,6 +514,7 @@ class ChooseSearchState(SearchingInMeasureState):
         if self.is_buffer_fulfilled():
             yield ValidatingInMeasureState(
                 self.cantus_firmus,
+                self.rythmn_type,
                 self.completed_measures,
                 self.note_buffer,
                 self.next_measure_mark,
@@ -495,6 +522,7 @@ class ChooseSearchState(SearchingInMeasureState):
         elif self.current_measure_number() == self.last_measure_number():
             yield SearchingEndNoteState(
                 self.cantus_firmus,
+                self.rythmn_type,
                 self.completed_measures,
                 self.note_buffer,
                 self.next_measure_mark,
@@ -503,6 +531,7 @@ class ChooseSearchState(SearchingInMeasureState):
         elif self.current_measure_number() == MeasureNumber(1) and self.current_offset() == Offset.of(0):
             yield SearchingStartNoteState(
                 self.cantus_firmus,
+                self.rythmn_type,
                 self.completed_measures,
                 self.note_buffer,
                 self.next_measure_mark,
@@ -512,6 +541,7 @@ class ChooseSearchState(SearchingInMeasureState):
             next_states: list[State] = [
                 SearchingHarmonicNoteInMeasureState(
                     self.cantus_firmus,
+                    self.rythmn_type,
                     self.completed_measures,
                     self.note_buffer,
                     self.next_measure_mark,
@@ -519,6 +549,7 @@ class ChooseSearchState(SearchingInMeasureState):
                 ),
                 SearchingPassingNoteInMeasureState(
                     self.cantus_firmus,
+                    self.rythmn_type,
                     self.completed_measures,
                     self.note_buffer,
                     self.next_measure_mark,
@@ -526,6 +557,7 @@ class ChooseSearchState(SearchingInMeasureState):
                 ),
                 SearchingNeighborNoteInMeasureState(
                     self.cantus_firmus,
+                    self.rythmn_type,
                     self.completed_measures,
                     self.note_buffer,
                     self.next_measure_mark,
@@ -553,6 +585,7 @@ class SearchingStartNoteState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -569,13 +602,15 @@ class SearchingStartNoteState(SearchingInMeasureState):
 
         next_states: list[State] = []
         for pitch in possible_pitches:
+            duration = self.rythmn_type.note_duration()
             next_states.append(
                 ChooseSearchState(
                     cantus_firmus=self.cantus_firmus,
+                    rythmn_type=self.rythmn_type,
                     completed_measures=self.completed_measures,
                     note_buffer=[
-                        SearchingInMeasureState.make_annotated_note(None, ToneType.HARMONIC_TONE),
-                        SearchingInMeasureState.make_annotated_note(pitch, ToneType.HARMONIC_TONE),
+                        SearchingInMeasureState.make_annotated_note(None, ToneType.HARMONIC_TONE, duration),
+                        SearchingInMeasureState.make_annotated_note(pitch, ToneType.HARMONIC_TONE, duration),
                     ],
                     next_measure_mark=None,
                     is_root_chord=True,
@@ -594,6 +629,7 @@ class SearchingEndNoteState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -620,8 +656,10 @@ class SearchingEndNoteState(SearchingInMeasureState):
             next_states.append(
                 ChooseSearchState(
                     cantus_firmus=self.cantus_firmus,
+                    rythmn_type=self.rythmn_type,
                     completed_measures=self.completed_measures,
                     note_buffer=[
+                        # NOTE: RythmnType によらずこの音価は一定で全音符
                         SearchingInMeasureState.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, Duration.of(4))
                     ],
                     next_measure_mark=None,
@@ -641,6 +679,7 @@ class SearchingHarmonicNoteInMeasureState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -676,13 +715,15 @@ class SearchingHarmonicNoteInMeasureState(SearchingInMeasureState):
 
         next_states: list[State] = []
         for next_pitch, next_is_root_chord in next_pitch_and_chord_list:
+            duration = self.rythmn_type.note_duration()
             next_states.append(
                 ChooseSearchState(
                     cantus_firmus=self.cantus_firmus,
+                    rythmn_type=self.rythmn_type,
                     completed_measures=self.completed_measures,
                     note_buffer=[
                         *self.note_buffer,
-                        SearchingInMeasureState.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE),
+                        SearchingInMeasureState.make_annotated_note(next_pitch, ToneType.HARMONIC_TONE, duration),
                     ],
                     next_measure_mark=None,  # 和声音の探索では次のマークは行わない。
                     is_root_chord=next_is_root_chord,
@@ -701,6 +742,7 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -731,7 +773,7 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
 
         # 直前の音から目標音までの音程(上向きのみ), 到達音が現在の小節に含まれるかどうか(小節を跨がないか)の一覧を求める
         patterns: list[tuple[IntervalStep, bool]] = SearchingPassingNoteInMeasureState.progression_pattern(
-            current_offset=self.current_offset()
+            current_offset=self.current_offset(), rythmn_type=self.rythmn_type
         )
 
         next_states: list[State] = []
@@ -751,17 +793,22 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
                     if target_pitch != available_pitch:
                         continue
 
+                    duration = self.rythmn_type.note_duration()
                     pitches = SearchingPassingNoteInMeasureState.conjunct_pitches(
                         KEY, self.previous_latest_added_pitch(), step
                     )
                     init_notes = [
-                        SearchingInMeasureState.make_annotated_note(p, ToneType.PASSING_TONE) for p in pitches[:-1]
+                        SearchingInMeasureState.make_annotated_note(p, ToneType.PASSING_TONE, duration)
+                        for p in pitches[:-1]
                     ]
-                    last_note = SearchingInMeasureState.make_annotated_note(pitches[-1], ToneType.HARMONIC_TONE)
+                    last_note = SearchingInMeasureState.make_annotated_note(
+                        pitches[-1], ToneType.HARMONIC_TONE, duration
+                    )
 
                     next_states.append(
                         ChooseSearchState(
                             cantus_firmus=self.cantus_firmus,
+                            rythmn_type=self.rythmn_type,
                             completed_measures=self.completed_measures,
                             note_buffer=[*self.note_buffer, *init_notes, last_note],
                             next_measure_mark=None,
@@ -787,13 +834,17 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
                         KEY, self.previous_latest_added_pitch(), step
                     )
                     notes_to_add_buffer = [
-                        SearchingInMeasureState.make_annotated_note(p, ToneType.PASSING_TONE) for p in pitches[:-1]
+                        SearchingInMeasureState.make_annotated_note(
+                            p, ToneType.PASSING_TONE, self.rythmn_type.note_duration()
+                        )
+                        for p in pitches[:-1]
                     ]
                     next_measure_mark = pitches[-1]
 
                     next_states.append(
                         ChooseSearchState(
                             cantus_firmus=self.cantus_firmus,
+                            rythmn_type=self.rythmn_type,
                             completed_measures=self.completed_measures,
                             note_buffer=[*self.note_buffer, *notes_to_add_buffer],
                             next_measure_mark=next_measure_mark,
@@ -828,33 +879,46 @@ class SearchingPassingNoteInMeasureState(SearchingInMeasureState):
         return [add_interval_step_in_key(key, pitch, step) for step in steps]
 
     @classmethod
-    def progression_pattern(cls, current_offset: Offset) -> list[tuple[IntervalStep, bool]]:
+    def progression_pattern(cls, current_offset: Offset, rythmn_type: RythmnType) -> list[tuple[IntervalStep, bool]]:
         """
         現在のオフセットに応じて、
         直前の音から目標音までのIntervalStepと、到達した音が現在の小節に含まれるか(小節を跨いでいないか)どうかの一覧を返す
         1拍目からは経過音は利用できないため、 current_offset に Offset.of(0) を渡すと例外となる
+        その他リズムパターンに含まれないオフセットを渡すと例外となる。
         """
         patterns: list[tuple[IntervalStep, bool]] = []
-        if current_offset == Offset.idx_1(2):
-            # 2拍目の探索中は、3拍目・4拍目・次の小節の1拍目に向けて経過音が利用できる。
-            patterns = [
-                (IntervalStep.idx_1(3), True),
-                (IntervalStep.idx_1(4), True),
-                (IntervalStep.idx_1(5), False),
-            ]
-        elif current_offset == Offset.idx_1(3):
-            # 3拍目の探索中は、4拍目・次の小節の1拍目に向けて経過音が利用できる。
-            patterns = [
-                (IntervalStep.idx_1(3), True),
-                (IntervalStep.idx_1(4), False),
-            ]
-        elif current_offset == Offset.idx_1(4):
-            # 4拍目の探索中は、次の小節の1拍目に向けて経過音が利用できる。
-            patterns = [
-                (IntervalStep.idx_1(3), False),
-            ]
-        else:
-            raise RuntimeError(f"invalid current_offset: {current_offset}")
+
+        match rythmn_type:
+            case RythmnType.QUATER_NOTE:
+                if current_offset == Offset.idx_1(2):
+                    # 2拍目の探索中は、3拍目・4拍目・次の小節の1拍目に向けて経過音が利用できる。
+                    patterns = [
+                        (IntervalStep.idx_1(3), True),
+                        (IntervalStep.idx_1(4), True),
+                        (IntervalStep.idx_1(5), False),
+                    ]
+                elif current_offset == Offset.idx_1(3):
+                    # 3拍目の探索中は、4拍目・次の小節の1拍目に向けて経過音が利用できる。
+                    patterns = [
+                        (IntervalStep.idx_1(3), True),
+                        (IntervalStep.idx_1(4), False),
+                    ]
+                elif current_offset == Offset.idx_1(4):
+                    # 4拍目の探索中は、次の小節の1拍目に向けて経過音が利用できる。
+                    patterns = [
+                        (IntervalStep.idx_1(3), False),
+                    ]
+                else:
+                    raise RuntimeError(f"invalid current_offset: {current_offset}")
+            case RythmnType.HALF_NOTE:
+                if current_offset == Offset.idx_1(3):
+                    # 3拍目の探索中は、次の小節の1拍目に向けて経過音が利用できる。
+                    patterns = [
+                        (IntervalStep.idx_1(3), False),
+                    ]
+                else:
+                    raise RuntimeError(f"invalid current_offset: {current_offset}")
+
         # パターンに下向きの音程を追加
         patterns = [*patterns, *[(p[0] * -1, p[1]) for p in patterns]]
         return patterns
@@ -867,6 +931,7 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -902,14 +967,20 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
             # 小節を跨がない場合は、直前に追加した音が和声音であるため、音域内であれば利用可能
             for neighbor_note_pitch in self.available_neighbor_note_pitches():
                 previous_pitch = self.previous_latest_added_pitch()
+                duration = self.rythmn_type.note_duration()
                 next_states.append(
                     ChooseSearchState(
                         cantus_firmus=self.cantus_firmus,
+                        rythmn_type=self.rythmn_type,
                         completed_measures=self.completed_measures,
                         note_buffer=[
                             *self.note_buffer,
-                            SearchingInMeasureState.make_annotated_note(neighbor_note_pitch, ToneType.NEIGHBOR_TONE),
-                            SearchingInMeasureState.make_annotated_note(previous_pitch, ToneType.HARMONIC_TONE),
+                            SearchingInMeasureState.make_annotated_note(
+                                neighbor_note_pitch, ToneType.NEIGHBOR_TONE, duration
+                            ),
+                            SearchingInMeasureState.make_annotated_note(
+                                previous_pitch, ToneType.HARMONIC_TONE, duration
+                            ),
                         ],
                         next_measure_mark=None,
                         is_root_chord=self.is_root_chord,
@@ -928,11 +999,12 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
                     next_states.append(
                         ChooseSearchState(
                             cantus_firmus=self.cantus_firmus,
+                            rythmn_type=self.rythmn_type,
                             completed_measures=self.completed_measures,
                             note_buffer=[
                                 *self.note_buffer,
                                 SearchingInMeasureState.make_annotated_note(
-                                    neighbor_note_pitch, ToneType.NEIGHBOR_TONE
+                                    neighbor_note_pitch, ToneType.NEIGHBOR_TONE, self.rythmn_type.note_duration()
                                 ),
                             ],
                             next_measure_mark=previous_pitch,
@@ -961,18 +1033,26 @@ class SearchingNeighborNoteInMeasureState(SearchingInMeasureState):
     def is_target_note_in_current_measure(self) -> bool:
         """
         現在のオフセットに応じて、刺繍音を利用した時の最後の音が現在の小節に含まれるか(小節を跨いでいないか)どうかを返す
-        1拍目からは刺繍音は利用できないため、 current_offset に Offset.of(0) を渡すと例外となる
+        1拍目からは刺繍音は利用できないため、 current_offset に Offset.of(0) を渡すと例外となる。
+        その他リズムパターンに含まれないオフセットを渡すと例外となる。
         """
         current_offset = self.current_offset()
-        if current_offset in [Offset.idx_1(2), Offset.idx_1(3)]:
-            # 2拍目の探索中は現在の小節の3拍目に到達する
-            # 3拍目の探索中は現在の小節の4拍目に到達する
-            return True
-        elif current_offset == Offset.idx_1(4):
-            # 4拍目の探索中は次の小節の1拍目に到達する
-            return False
-        else:
-            raise RuntimeError(f"invalid current_offset: {current_offset}")
+        match self.rythmn_type:
+            case RythmnType.QUATER_NOTE:
+                if current_offset in [Offset.idx_1(2), Offset.idx_1(3)]:
+                    # 2拍目の探索中は現在の小節の3拍目に到達する
+                    # 3拍目の探索中は現在の小節の4拍目に到達する
+                    return True
+                elif current_offset == Offset.idx_1(4):
+                    # 4拍目の探索中は次の小節の1拍目に到達する
+                    return False
+                else:
+                    raise RuntimeError(f"invalid current_offset: {current_offset}")
+            case RythmnType.HALF_NOTE:
+                if current_offset == Offset.idx_1(3):
+                    return False
+                else:
+                    raise RuntimeError(f"invalid current_offset: {current_offset}")
 
 
 # ------------ ValidatingInMeasureState --------------
@@ -988,6 +1068,7 @@ class ValidatingInMeasureState(State):
     """
 
     cantus_firmus: list[Pitch]
+    rythmn_type: RythmnType
     completed_measures: list[AnnotatedMeasure]
     note_buffer: list[AnnotatedNote]
     next_measure_mark: Pitch | None
@@ -1015,6 +1096,7 @@ class ValidatingInMeasureState(State):
             else:
                 yield SearchingInMeasureState.start_searching_measure_state(
                     cantus_firmus=self.cantus_firmus,
+                    rythmn_type=self.rythmn_type,
                     completed_measures=[*self.completed_measures, AnnotatedMeasure(self.note_buffer)],
                     next_measure_mark=self.next_measure_mark,
                 )
