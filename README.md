@@ -70,7 +70,16 @@ open dist/out.png.cropped.png
 
 ```
 uv run python -m my_project.main
+
+uv pip install -e ".[dev]"
+
 uv run pytest
 uv run ruff format .
 uv run mypy src
+
+uv run python -m cProfile -m my_project.counterpoint.main --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3
+
+uv run python -m cProfile -o profile.stats -m my_project.counterpoint.main --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3
+uv run snakeviz profile.stats
 ```
+
