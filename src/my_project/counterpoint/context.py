@@ -36,28 +36,15 @@ class LocalMeasureContext:
     next_measure_mark: Pitch | None
 
     def __post_init__(self) -> None:
-        if not self.is_first_measure:
-            assert self.previous_measure is not None
-            assert self.previous_cf is not None
-        if not self.is_last_measure:
-            assert self.next_measure_cf is not None
+        assert self.is_first_measure == (self.previous_cf is None)
+        assert (self.previous_cf is None) == (self.previous_measure is None)
+        assert self.is_last_measure == (self.next_measure_cf is None)
         if self.is_next_last_measure:
-            assert self.next_measure_cf is not None, (
-                "次の小節が最終小節ならば、次の小節のCFが取得できる"
-                f"{self.is_next_last_measure=}, {self.next_measure_cf=}",
-            )
-        assert ((self.previous_measure is None) and (self.previous_cf is None)) or (
-            (self.previous_measure is not None) and (self.previous_cf is not None)
-        ), (f"前の小節が無い時は前のCFも無く、逆もしかり{self.previous_measure=}, {self.previous_cf=}",)
+            assert self.next_measure_cf is not None
+        assert self.total_note_buffer_duration() <= MEASURE_TOTAL_DURATION
 
     def is_buffer_fulfilled(self) -> bool:
-        total_note_buffer_duration = self.total_note_buffer_duration()
-        if total_note_buffer_duration == MEASURE_TOTAL_DURATION:
-            return True
-        elif total_note_buffer_duration < MEASURE_TOTAL_DURATION:
-            return False
-        else:
-            raise ValueError(f"total_note_buffer_duration: {total_note_buffer_duration}")
+        return self.total_note_buffer_duration() == MEASURE_TOTAL_DURATION
 
     # ---
 
