@@ -1,7 +1,7 @@
 import argparse
 
+from my_project.counterpoint.global_state import generate
 from my_project.counterpoint.model import RythmnType
-from my_project.counterpoint.state import generate
 from my_project.lilypond_writer import score_to_lilypond
 from my_project.model import PartId, Pitch
 

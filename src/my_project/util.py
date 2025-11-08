@@ -2,7 +2,7 @@
 
 import itertools
 import random
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator
 from typing import TypeVar
 
 from my_project.model import Degree, DegreeStep, Interval, IntervalStep, Key, Mode, NoteName, Octave, PartId, Pitch
@@ -185,40 +185,61 @@ def add_interval_step_in_key(key: Key, pitch: Pitch, interval_step: IntervalStep
     return pitch + interval_to_add
 
 
-def shuffled_interleave(iterables: Sequence[Iterable[T]], randomized: bool = True) -> Iterator[T]:
+def shuffled_interleave(iterables: Iterable[Iterable[T]], randomized: bool = True) -> Iterator[T]:
     """
     複数のイテラブル(イテレータ)を受け取り、
     それらが尽きるまでランダムに要素を取り出して返す
     新しいイテレータを生成します。
+
+    iterables 自体がジェネレータであっても遅延的に扱います。
     """
 
-    if randomized:
-        # 1. すべての入力(リストやrangeなども可)をイテレータに変換し、
-        #    「まだ尽きていない」イテレータのリストを作成
-        active_iterators = [iter(it) for it in iterables]
-
-        # 2. 尽きていないイテレータが1つでも残っている間、ループ
-        while active_iterators:
-            # 2-a. リストからランダムにイテレータを1つ選ぶ (これが「シャッフル」)
-            try:
-                chosen_iter = random.choice(active_iterators)
-            except IndexError:
-                # active_iteratorsが空になったらループを抜ける
-                # (whileの条件判定の直後にremoveされた場合に備える)
-                break
-
-            # 2-b, 2-c. 選んだイテレータから要素を1つ取り出して yield
-            try:
-                item = next(chosen_iter)
-                yield item
-
-            # 2-d. もしイテレータが尽きていたら (StopIteration)
-            except StopIteration:
-                # 「尽きていない」リストから除外する
-                active_iterators.remove(chosen_iter)
-    else:
+    if not randomized:
+        # randomized=False の場合は、単純にすべてを yield from する
         for it in iterables:
             yield from it
+        return
+
+    # iterables がジェネレータの場合に備え、それ自体をイテレータにする
+    iterables_iter = iter(iterables)
+
+    # 「まだ尽きていない」イテレータのリスト
+    active_iterators: list[Iterator[T]] = []
+
+    is_iterables_exhausted = False  # iterables が尽きたかどうかのフラグ
+
+    while True:
+        # 1. (もし iterables が尽きていなければ)
+        #    iterables から新しいイテレータ(探索ブランチ)を1つ補充する
+        if not is_iterables_exhausted:
+            try:
+                # iterables から1つ取り出してみる
+                new_iter = next(iterables_iter)
+                active_iterators.append(iter(new_iter))
+            except StopIteration:
+                # iterables が尽きたら、フラグを立てる
+                is_iterables_exhausted = True
+
+        # 2. アクティブなイテレータが1つもなければ終了
+        if not active_iterators:
+            # 補充するイテレータもなく、アクティブなイテレータも尽きたら終了
+            break
+
+        # 3. アクティブなイテレータからランダムに1つ選ぶ
+        try:
+            chosen_iter = random.choice(active_iterators)
+        except IndexError:
+            # (is_iterables_exhausted が True になった直後など、
+            # active_iterators が空になるケースがありうる)
+            continue  # while True の先頭に戻る
+
+        # 4. 選んだイテレータから要素を1つ取り出して yield
+        try:
+            item = next(chosen_iter)
+            yield item
+        except StopIteration:
+            # 5. もしイテレータが尽きていたらリストから除外
+            active_iterators.remove(chosen_iter)
 
 
 # 音列から隣り合わせの3つの音を作成
