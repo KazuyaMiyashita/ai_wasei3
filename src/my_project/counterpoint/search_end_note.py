@@ -1,6 +1,6 @@
 from dataclasses import replace
 
-from my_project.counterpoint.context import LocalMeasureContext
+from my_project.counterpoint.local_measure_context import LocalMeasureContext
 from my_project.counterpoint.model import ToneType
 from my_project.counterpoint.search_common import end_available_pitches, is_valid_melodic_interval
 from my_project.counterpoint.util import make_annotated_note

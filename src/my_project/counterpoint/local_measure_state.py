@@ -9,7 +9,7 @@ import my_project.counterpoint.search_neighbor_tone as search_neighbor_tone
 import my_project.counterpoint.search_passing_tone as search_passing_tone
 import my_project.counterpoint.search_start_note as search_start_note
 import my_project.counterpoint.validator as validator
-from my_project.counterpoint.context import LocalMeasureContext
+from my_project.counterpoint.local_measure_context import LocalMeasureContext
 from my_project.counterpoint.model import (
     MEASURE_TOTAL_DURATION,
 )

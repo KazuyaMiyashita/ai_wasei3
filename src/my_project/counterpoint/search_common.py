@@ -1,4 +1,4 @@
-from my_project.counterpoint.context import LocalMeasureContext
+from my_project.counterpoint.local_measure_context import LocalMeasureContext
 from my_project.counterpoint.model import (
     KEY,
     REALIZE_PART_ID,

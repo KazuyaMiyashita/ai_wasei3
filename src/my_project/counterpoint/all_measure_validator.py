@@ -1,4 +1,4 @@
-from my_project.counterpoint.context import GlobalContext
+from my_project.counterpoint.global_context import GlobalContext
 from my_project.model import IntervalStep
 
 

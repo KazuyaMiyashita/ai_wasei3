@@ -4,7 +4,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 import my_project.counterpoint.all_measure_validator as all_measure_validator
-from my_project.counterpoint.context import GlobalContext, LocalMeasureContext
+from my_project.counterpoint.global_context import GlobalContext
+from my_project.counterpoint.local_measure_context import LocalMeasureContext
 from my_project.counterpoint.local_measure_state import ChooseSearchState, MeasureEndState
 from my_project.counterpoint.model import (
     CF_PART_ID,

@@ -1,6 +1,6 @@
 from dataclasses import replace
 
-from my_project.counterpoint.context import LocalMeasureContext
+from my_project.counterpoint.local_measure_context import LocalMeasureContext
 from my_project.counterpoint.model import ToneType
 from my_project.counterpoint.search_common import (
     available_harmonic_pitches_with_chord,
