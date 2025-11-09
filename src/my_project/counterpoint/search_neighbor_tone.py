@@ -114,3 +114,6 @@ def _is_target_note_in_current_measure(local_ctx: LocalMeasureContext) -> bool:
                 return False
             else:
                 raise RuntimeError(f"invalid current_offset: {current_offset}")
+        case RythmnType.WHOLE_NOTE:
+            # 全音符では刺繍音は利用できない。 def next_ctxs で弾かれてこのメソッドは呼ばれない
+            raise RuntimeError(f"invalid current_offset: {current_offset}")

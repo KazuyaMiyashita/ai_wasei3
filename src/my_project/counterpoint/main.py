@@ -17,8 +17,8 @@ def main() -> None:
         "--rythmn",
         type=str,
         default="quater",
-        choices=["quater", "half"],
-        help="Rythmn type for counterpoint generation (e.g., quater, half). Defaults to quater.",
+        choices=["quater", "half", "whole"],
+        help="Rythmn type for counterpoint generation (e.g., quater, half, whole). Defaults to quater.",
     )
 
     parser.add_argument(
@@ -40,6 +40,8 @@ def main() -> None:
         rythmn_type = RythmnType.QUATER_NOTE
     elif args.rythmn == "half":
         rythmn_type = RythmnType.HALF_NOTE
+    elif args.rythmn == "whole":
+        rythmn_type = RythmnType.WHOLE_NOTE
     else:
         # This case should ideally not be reached due to 'choices' in argparse
         rythmn_type = RythmnType.QUATER_NOTE

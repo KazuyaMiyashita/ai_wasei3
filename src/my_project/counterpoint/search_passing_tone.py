@@ -164,6 +164,9 @@ def progression_pattern(current_offset: Offset, rythmn_type: RythmnType) -> list
                 ]
             else:
                 raise RuntimeError(f"invalid current_offset: {current_offset}")
+        case RythmnType.WHOLE_NOTE:
+            # 全音符では経過音は利用できない。 def next_ctxs で弾かれてこのメソッドは呼ばれない
+            raise RuntimeError(f"invalid current_offset: {current_offset}")
 
     # パターンに下向きの音程を追加
     patterns = [*patterns, *[(p[0] * -1, p[1]) for p in patterns]]

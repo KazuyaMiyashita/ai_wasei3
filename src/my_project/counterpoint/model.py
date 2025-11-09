@@ -32,6 +32,8 @@ class RythmnType(Enum):
     QUATER_NOTE = 1
     # 二部音符
     HALF_NOTE = 2
+    # 全音符
+    WHOLE_NOTE = 3
 
     def note_duration(self) -> Duration:
         match self:
@@ -39,6 +41,8 @@ class RythmnType(Enum):
                 return Duration.of(1)
             case RythmnType.HALF_NOTE:
                 return Duration.of(2)
+            case RythmnType.WHOLE_NOTE:
+                return Duration.of(4)
 
 
 class ToneType(Enum):

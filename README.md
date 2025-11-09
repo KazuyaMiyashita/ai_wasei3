@@ -55,7 +55,7 @@ open dist/out.png.cropped.png
 
 ### 2
 
-`--rythmn` には `half`, `quater` が利用できます
+`--rythmn` には `half`, `quater`, `whole` が利用できます
 
 ```
 uv run python -m my_project.counterpoint.main --cf C3 E3 D3 G3 A3 G3 E3 F3 D3 C3 --rythmn half > dist/out.ly

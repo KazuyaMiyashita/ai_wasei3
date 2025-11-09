@@ -13,6 +13,7 @@ CF_NOTES="C3 D3 C3 E3 F3 G3 E3 A3 G3 C3"
 
 RYTHMN="quater"
 # RYTHMN="half"
+# RYTHMN="whole"
 
 # 3. 出力ディレクトリ
 OUTPUT_DIR="dist"
