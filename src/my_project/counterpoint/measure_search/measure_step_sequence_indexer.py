@@ -186,7 +186,10 @@ class MeasureStepSequenceIndexer:
 
         elif isinstance(condition, CompositeCondition):
             if condition.op == Operator.AND:
-                return set.intersection(*(self._evaluate_condition(c) for c in condition.conditions))
+                # 要素数が少ない順にソートしてから intersection を取る
+                sets = [self._evaluate_condition(c) for c in condition.conditions]
+                sets.sort(key=len)
+                return set.intersection(*sets) if sets else set()
             elif condition.op == Operator.OR:
                 return set.union(*(self._evaluate_condition(c) for c in condition.conditions))
             else:
