@@ -1,48 +1,34 @@
+import re
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from fractions import Fraction
 
 from my_project.model import (
     Duration,
-    Key,
     Measure,
-    Mode,
-    Note,
-    NoteName,
-    Offset,
-    PartId,
     Pitch,
-    TimeSignature,
 )
 
-KEY = Key(tonic=NoteName.parse("C"), mode=Mode.MAJOR)
-TIME_SIGNATURE = TimeSignature(4, Fraction(1))
-NOTES_IN_MEASURE = 4
-MEASURE_TOTAL_DURATION = Duration.of(NOTES_IN_MEASURE)
-CF_PART_ID = PartId.BASS
-REALIZE_PART_ID = PartId.SOPRANO
 
-
-class RythmnType(Enum):
+class Species(Enum):
     """
-    課題の実施で利用されるリズム
+    課題の類を表す
     """
 
-    # 四部音符
-    QUATER_NOTE = 1
-    # 二部音符
-    HALF_NOTE = 2
-    # 全音符
-    WHOLE_NOTE = 3
+    FIRST_SPECIES = 1
+    """第一類、一音符対一音符"""
 
-    def note_duration(self) -> Duration:
-        match self:
-            case RythmnType.QUATER_NOTE:
-                return Duration.of(1)
-            case RythmnType.HALF_NOTE:
-                return Duration.of(2)
-            case RythmnType.WHOLE_NOTE:
-                return Duration.of(4)
+    SECOND_SPECIES = 2
+    """第二類、二音符対一音符"""
+
+    THIRD_SPECIES = 3
+    """第三類、四音符対一音符"""
+
+    FOURTH_SPECIES = 4
+    """第四類、移勢"""
+
+    FIFTH_SPECIES = 5
+    """第五類、華麗"""
 
 
 class ToneType(Enum):
@@ -51,72 +37,119 @@ class ToneType(Enum):
     """
 
     # 和声音。冒頭の休符も便宜上和声音として扱う。
-    HARMONIC_TONE = 1
+    HARMONIC_TONE = auto()
     # 経過音
-    PASSING_TONE = 2
+    PASSING_TONE = auto()
     # 刺繍音
-    NEIGHBOR_TONE = 3
+    NEIGHBOR_TONE = auto()
+    # 掛留音
+    SUSPENDED_TONE = auto()
+    # 掛留音が解決する前に進行する和声構成音や、掛留の先取解決で用いる音
+    SUSPENDED_RESOLVING_HARMONIC_TONE = auto()
 
 
 @dataclass(frozen=True)
-class AnnotatedNote:
-    note: Note
+class NoteAnnotation:
+    is_tied_start: bool
     tone_type: ToneType
 
 
+AnnotatedMeasure = Measure[Pitch | None, NoteAnnotation]
+
+
 @dataclass(frozen=True)
-class AnnotatedMeasure:
-    """ToneType で注釈付けされた音符のリストを持つ小節"""
+class MeasureRythmn:
+    """
+    一小節のリズムを表す。これらの情報で表されるもののうち実際に利用できるものは MeasureRythmnPattern で定義される。
+    """
 
-    annotated_notes: list[AnnotatedNote]
+    is_previous_tied: bool
+    is_next_tied: bool
+    durations: list[Duration]
+    init_rest_duration: Duration
 
-    def to_measure(self) -> Measure:
-        """Score 生成のために model.Measure に変換する"""
-        return Measure([an.note for an in self.annotated_notes])
+    def __post_init__(self) -> None:
+        assert sum(self.durations, Duration.of(0)) + self.init_rest_duration == Duration.of(4), (
+            f"durations: {self.durations}, init_rest_duration: {self.init_rest_duration}"
+        )
+        assert 1 <= len(self.durations) <= 4
 
-    def offset_notes(self) -> dict[Offset, AnnotatedNote]:
-        """
-        この小節のannotated_notesのオフセットとAnnotatedNoteの組みに変換してdictで返す
-        """
-        result: dict[Offset, AnnotatedNote] = {}
-        current_offset = Offset.of(0)
+    def num_durations(self) -> int:
+        return len(self.durations)
 
-        for annotated_note in self.annotated_notes:
-            result[current_offset] = annotated_note
-            current_offset = current_offset.add_duration(annotated_note.note.duration)
 
-        return result
+class MeasureRythmnPattern(Enum):
+    """
+    利用できるリズムの一覧
+    """
 
-    def offset_note_at(self, offset: Offset) -> tuple[Offset, AnnotatedNote] | None:
-        """
-        この小節の Offset の時刻に鳴っている音の、開始した Offset と AnnotatedNote を返す。
-        その Offset の時に休符であれば None, 小節の範囲外の Offset を指定した場合は例外
-        """
-        current_offset = Offset.of(0)
+    R_1 = "1"
+    R_22 = "22"
+    R_t22 = "t22"
+    R_22t = "22t"
+    R_t22t = "t22t"
+    R_4444 = "4444"
+    R_244 = "244"
+    R_442 = "442"
+    R_t4444 = "t4444"
+    R_t244 = "t244"
+    R_t442 = "t442"
+    R_4444t = "4444t"
+    R_244t = "244t"
+    R_2488 = "2488"
+    R_4882 = "4882"
+    R_t2488 = "t2488"
+    R_t4882 = "t4882"
+    R_4882t = "4882t"
+    R_2d4 = "2d4"
+    R_2d88 = "2d88"
+    R_rr2 = "rr2"
+    R_rr2t = "rr2t"
+    R_r444 = "r444"
+    R_r42 = "r42"
 
-        for annotated_note in self.annotated_notes:
-            note_duration = annotated_note.note.duration
-            note_end_offset = current_offset.add_duration(note_duration)
-            if current_offset <= offset < note_end_offset:
-                if annotated_note.note.pitch is None:
-                    return None
-                else:
-                    return (current_offset, annotated_note)
+    def measure_rythmn(self) -> MeasureRythmn:
+        pattern = r"^(r*|t)?(\d+(?:d\d*)*)(t)?$"
+        match = re.fullmatch(pattern, self.value)
+        if not match:
+            raise ValueError(f"cannot parse pattern: {self.value}")
+        init, middle, last = match.groups()
+        init_rest_duration = Duration.of(1) * init.count("r")
+        is_previous_tied = init == "t"
+        is_next_tied = last == "t"
 
-            current_offset = note_end_offset
-
-        raise ValueError(
-            f"Offset {offset.value} is out of bounds for this measure. Total duration is {current_offset.value}."
+        note_patterns = re.findall(r"\dd?", middle)
+        durations: list[Duration] = []
+        for note_pattern in note_patterns:
+            note_match = re.fullmatch(r"(\d)(d)?", note_pattern)
+            if not note_match:
+                raise ValueError(f"cannot parse note pattern: {note_pattern}")
+            duration_str, dotted_str = note_match.groups()
+            duration = Duration.of(4, int(duration_str))
+            if dotted_str:
+                duration *= Fraction(3, 2)
+            durations.append(duration)
+        return MeasureRythmn(
+            is_previous_tied=is_previous_tied,
+            is_next_tied=is_next_tied,
+            durations=durations,
+            init_rest_duration=init_rest_duration,
         )
 
-    def pitch_at(self, offset: Offset) -> Pitch | None:
-        """
-        この小節のOffsetの時刻に鳴っているPitchを返す。
-        そのOffsetの時に休符であればNone, 小節の範囲外のOffsetを指定した場合は例外
 
-        offset_note_at
-        """
-        offset_note = self.offset_note_at(offset)
-        if offset_note is None:
-            return None
-        return offset_note[1].note.pitch
+class MeasurePosition(Enum):
+    """
+    課題全体の小節の位置を表す
+    """
+
+    FIRST = auto()
+    "冒頭小節"
+
+    MIDDLE = auto()
+    "途中の小節"
+
+    PENULTIMATE = auto()
+    "最終小節の1小節前"
+
+    LAST = auto()
+    "最終小節"

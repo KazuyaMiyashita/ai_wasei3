@@ -17,6 +17,7 @@ from my_project.model import (
     PartId,
     Pitch,
     Score,
+    ScoreAttrs,
     TimeSignature,
 )
 from my_project.util import part_range, scale_pitches
@@ -36,7 +37,7 @@ class Chord:
         return [self.bass, self.tenor, self.alto, self.soprano]
 
 
-def solve(bass_sequence: list[Pitch], key: Key) -> Score:
+def solve(bass_sequence: list[Pitch], key: Key) -> Score[ScoreAttrs]:
     prev_chord: Chord | None = None
     result: list[Chord] = []
     for bass in bass_sequence:
@@ -50,22 +51,24 @@ def solve(bass_sequence: list[Pitch], key: Key) -> Score:
     return _chords_to_score(result, key)
 
 
-def _chords_to_score(chords: list[Chord], key: Key) -> Score:
+def _chords_to_score(chords: list[Chord], key: Key) -> Score[ScoreAttrs]:
     duration = Duration(Fraction(2))
 
-    sop_notes = [Note(c.soprano, duration) for c in chords]
-    alto_notes = [Note(c.alto, duration) for c in chords]
-    tenor_notes = [Note(c.tenor, duration) for c in chords]
-    bass_notes = [Note(c.bass, duration) for c in chords]
+    no_tied = ScoreAttrs(is_tied_start=False)
+
+    sop_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.soprano, duration, no_tied) for c in chords]
+    alto_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.alto, duration, no_tied) for c in chords]
+    tenor_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.tenor, duration, no_tied) for c in chords]
+    bass_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.bass, duration, no_tied) for c in chords]
 
     score = Score(
         key=key,
-        time_signature=TimeSignature(2, Fraction(2)),
+        time_signature=TimeSignature(2, Duration.of(2)),
         parts=[
-            Part(part_id=PartId.SOPRANO, measures=[Measure(notes=sop_notes)]),
-            Part(part_id=PartId.ALTO, measures=[Measure(notes=alto_notes)]),
-            Part(part_id=PartId.TENOR, measures=[Measure(notes=tenor_notes)]),
-            Part(part_id=PartId.BASS, measures=[Measure(notes=bass_notes)]),
+            Part(part_id=PartId.SOPRANO, measures=[Measure.of(*sop_notes)]),
+            Part(part_id=PartId.ALTO, measures=[Measure.of(*alto_notes)]),
+            Part(part_id=PartId.TENOR, measures=[Measure.of(*tenor_notes)]),
+            Part(part_id=PartId.BASS, measures=[Measure.of(*bass_notes)]),
         ],
     )
     return score

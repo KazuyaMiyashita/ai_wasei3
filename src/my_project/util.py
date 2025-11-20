@@ -1,12 +1,16 @@
 # harmony.py と counterpoint.py の両方で利用されるものの置き場所
-
 import itertools
 import random
-from collections.abc import Iterable, Iterator
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Iterator
 from typing import TypeVar
+
+import more_itertools
 
 from my_project.model import Degree, DegreeStep, Interval, IntervalStep, Key, Mode, NoteName, Octave, PartId, Pitch
 
+A = TypeVar("A")
+B = TypeVar("B")
 T = TypeVar("T")
 
 
@@ -25,6 +29,32 @@ def part_range(part_id: PartId) -> tuple[Pitch, Pitch]:
 def is_in_part_range(pitch: Pitch, part_id: PartId) -> bool:
     min, max = part_range(part_id)
     return min.num() <= pitch.num() <= max.num()
+
+
+def compare_part_ranges(part1_id: PartId, part2_id: PartId) -> int:
+    """
+    2つのPartの音域による順序関係を比較関数によって定義します。
+
+    Args:
+        part1_id (PartId): 比較する最初のパートID。
+        part2_id (PartId): 比較する2番目のパートID。
+
+    Returns:
+        int: part1_id の音域が part2_id より高い場合は 1、低い場合は -1、同じ場合は 0 を返します。
+    """
+    order = [PartId.BASS, PartId.TENOR, PartId.ALTO, PartId.SOPRANO]
+    try:
+        index1 = order.index(part1_id)
+        index2 = order.index(part2_id)
+    except ValueError:
+        raise ValueError("Invalid PartId provided for comparison.")
+
+    if index1 > index2:
+        return 1
+    elif index1 < index2:
+        return -1
+    else:
+        return 0
 
 
 def sorted_pitches(list: list[Pitch]) -> list[Pitch]:
@@ -185,7 +215,9 @@ def add_interval_step_in_key(key: Key, pitch: Pitch, interval_step: IntervalStep
     return pitch + interval_to_add
 
 
-def shuffled_interleave(iterables: Iterable[Iterable[T]], randomized: bool = True) -> Iterator[T]:
+def shuffled_interleave[T](
+    iterables: Iterable[Iterable[T]], rand: random.Random, randomized: bool = True
+) -> Iterator[T]:
     """
     複数のイテラブル(イテレータ)を受け取り、
     それらが尽きるまでランダムに要素を取り出して返す
@@ -227,7 +259,7 @@ def shuffled_interleave(iterables: Iterable[Iterable[T]], randomized: bool = Tru
 
         # 3. アクティブなイテレータからランダムに1つ選ぶ
         try:
-            chosen_iter = random.choice(active_iterators)
+            chosen_iter = rand.choice(active_iterators)
         except IndexError:
             # (is_iterables_exhausted が True になった直後など、
             # active_iterators が空になるケースがありうる)
@@ -242,7 +274,29 @@ def shuffled_interleave(iterables: Iterable[Iterable[T]], randomized: bool = Tru
             active_iterators.remove(chosen_iter)
 
 
-# 音列から隣り合わせの3つの音を作成
-def sliding(input_list: list[T], window_size: int) -> list[list[T]]:
+# 音列から隣り合わせの数音を作成
+def sliding[T](input_list: list[T], window_size: int) -> list[list[T]]:
     n = len(input_list)
     return [input_list[i : i + window_size] for i in range(n - window_size + 1)]
+
+
+# 音列から隣り合わせの3つの音を作成する(列の両端に対しては片側をNoneにして、指定の要素と同じ長さの列を得る)
+def sliding_neighbors[T](items: list[T]) -> list[tuple[T | None, T, T | None]]:
+    iter = itertools.chain([None], items, [None])
+    a = list(map(lambda ls: (ls[0], ls[1], ls[2]), more_itertools.sliding_window(iter, 3)))
+    return a  # type: ignore # 真ん中の T | None を T にするため
+
+
+def group_by(items: list[A], key_func: Callable[[A], B]) -> dict[B, list[A]]:
+    """
+    list[A] を dict[B, list[A]] にグループ化する。
+    """
+
+    # B をキーとし、list[A] を値とする defaultdict を作成
+    result: dict[B, list[A]] = defaultdict(list)
+
+    for item in items:
+        key = key_func(item)
+        result[key].append(item)
+
+    return dict(result)  # 通常のdictとして返す

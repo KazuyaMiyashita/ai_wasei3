@@ -1,8 +1,17 @@
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from fractions import Fraction
-from typing import ClassVar
+from functools import cached_property
+from typing import ClassVar, Protocol, TypeVar
+
+_REPR_HUMAN_READABLE = True
+"""
+各クラスの__repr__が人間が読みやすい形式(例: Pitch.parse("C4"))で表示されるかどうかを制御する。
+Falseの場合、デフォルトのdataclassのreprと同等のものが表示される。
+"""
+
 
 ## ----- 音名に対する定義
 
@@ -14,6 +23,11 @@ class NoteName:
     def __post_init__(self) -> None:
         if not -15 <= self.value <= 19:
             raise ValueError("NoteName must be between -15 and 19.")
+
+    def __repr__(self) -> str:
+        if _REPR_HUMAN_READABLE:
+            return f'NoteName.parse("{self.name()}")'
+        return f"NoteName(value={self.value!r})"
 
     def __add__(self, other: "NoteName") -> "NoteName":
         return NoteName(self.value + other.value)
@@ -89,6 +103,11 @@ class Pitch:
     音高は、C4の音に対し上方のオクターブ移動と完全五度移動がそれぞれ何回行われたかによって表現される。
     """
 
+    def __repr__(self) -> str:
+        if _REPR_HUMAN_READABLE:
+            return f'Pitch.parse("{self.name()}")'
+        return f"Pitch(octave={self.octave!r}, note_name={self.note_name!r})"
+
     octave: Octave
     note_name: NoteName
 
@@ -159,6 +178,12 @@ class Pitch:
         """
         return PitchNumber(self.note_name.value * 7 + self.octave.value * 12)
 
+    def as_interval(self) -> "Interval":
+        """
+        このPitchと内部表現が同等のIntervalを返す。中央ハ音から見たIntervalという意味。
+        """
+        return Interval(self.octave.value, self.note_name.value)
+
     # --- private map for name/parse ---
     _STEP_TO_BASE_OCTAVE: ClassVar[dict[str, int]] = {"C": 0, "D": -1, "E": -2, "F": 1, "G": 0, "A": -1, "B": -2}
 
@@ -173,6 +198,13 @@ class Mode(Enum):
 
     MAJOR = "Major"
     MINOR = "Minor"
+
+    @classmethod
+    def parse(cls, name: str) -> "Mode":
+        for mode in cls:
+            if mode.value == name:
+                return mode
+        raise ValueError(f"Invalid mode name: {name}")
 
     def offset(self) -> int:
         """
@@ -194,6 +226,75 @@ class Key:
     tonic: NoteName
     mode: Mode
 
+    def __repr__(self) -> str:
+        if _REPR_HUMAN_READABLE:
+            return f'Key.parse("{self.name()}")'
+        return f"Key(tonic={self.tonic!r}, mode={self.mode!r})"
+
+    def name(self) -> str:
+        return f"{self.tonic.name()} {self.mode.value}"
+
+    @classmethod
+    def parse(cls, name: str) -> "Key":
+        """
+        "C Major", "F# Minor" といった文字列からKeyを作成する
+        """
+        parts = name.split(" ")
+        if len(parts) != 2:
+            raise ValueError(f"Invalid key name format: {name}. Expected 'NoteName Mode'.")
+        tonic_name, mode_name = parts
+        tonic = NoteName.parse(tonic_name)
+        mode = Mode.parse(mode_name)
+        return cls(tonic=tonic, mode=mode)
+
+    def signature_num(self) -> int:
+        """
+        この調の調号の#,bの数。#方向を正の整数で表す。
+        """
+        return self.tonic.value + self.mode.offset()
+
+    _C_MAJOR_SCALE: ClassVar[list[Pitch]]
+
+    @classmethod
+    def interval_step_to_c_major_pitch(cls, interval_step: "IntervalStep") -> Pitch:
+        """
+        中央ハ音を基準として数えたIntervalStepが、ハ長調においてどのPitchかを返す。
+        """
+        in_octave_pitch = Key._C_MAJOR_SCALE[interval_step.inversion_normalized().value]
+        ovtave_interval = Interval(1, 0) * (interval_step.value // 7)
+        return in_octave_pitch + ovtave_interval
+
+    def diatonic_scale_pitch(self, interval_step: "IntervalStep") -> Pitch:
+        """
+        中央ハ音を基準として数えたIntervalStepが、この調の自然音階においてどのPitchかを返す。
+        長調では長音階、短調では自然短音階を利用する。
+        """
+
+        def alters(num: int) -> list[int]:
+            # 調号の数に対し、 [F C G D A E B] のそれぞれの音に#, bが何個付いているかを返す
+            q = num // 7
+            r = num % 7
+            return [q + 1 if i < r else q for i in range(7)]
+
+        # [F C G D A E B] が C から見て何ステップ上かという一覧
+        steps_map = [3, 0, 4, 1, 5, 2, 6]
+        # Key が E minor なら {3: 1, 0: 1, 4: 0, 1: 0, 5: 0, 6: 0} みたいなもの
+        step_alters = {step: alter for step, alter in zip(steps_map, alters(self.signature_num()))}
+        # interval_step が 3 (Cから見てF) なら alter = 1。alterの数だけ増一度上に移動する
+        alter: int = step_alters[interval_step.inversion_normalized().value]
+
+        return Key.interval_step_to_c_major_pitch(interval_step) + (Interval.A1 * alter)
+
+
+Key._C_MAJOR_SCALE = [
+    Pitch.parse("C4"),
+    Pitch.parse("D4"),
+    Pitch.parse("E4"),
+    Pitch.parse("F4"),
+    Pitch.parse("G4"),
+    Pitch.parse("A4"),
+    Pitch.parse("B4"),
+]
 
 ## ----- 調性と音高から導けるもの
 
@@ -320,11 +421,19 @@ class Interval:
     octave: int
     fifth: int
 
+    def __repr__(self) -> str:
+        if _REPR_HUMAN_READABLE:
+            return f'Interval.parse("{self.name()}")'
+        return f"Interval(octave={self.octave!r}, fifth={self.fifth!r})"
+
     def __add__(self, other: "Interval") -> "Interval":
         return Interval(self.octave + other.octave, self.fifth + other.fifth)
 
     def __sub__(self, other: "Interval") -> "Interval":
         return Interval(self.octave - other.octave, self.fifth - other.fifth)
+
+    def __mul__(self, other: int) -> "Interval":
+        return Interval(self.octave * other, self.fifth * other)
 
     @classmethod
     def of(cls, base: Pitch, target: Pitch) -> "Interval":
@@ -531,21 +640,26 @@ class Interval:
         """
         step = self.step()
         alter = self.alter()
-
-        if step.value == 0:
-            pass
-        elif step.value > 0:
-            step = IntervalStep(step.value)
-        else:
-            step = IntervalStep(-1 * step.value)
-
-        return Interval.from_step_alter(step, alter)
+        return Interval.from_step_alter(step.abs(), alter)
 
     def num(self) -> "IntervalNumber":
         """
         このIntervalのIntervalNumberを求める
         """
         return IntervalNumber(self.fifth * 7 + self.octave * 12)
+
+    P1: ClassVar["Interval"]
+    d1: ClassVar["Interval"]
+    A1: ClassVar["Interval"]
+    A2: ClassVar["Interval"]
+    d4: ClassVar["Interval"]
+    A4: ClassVar["Interval"]
+    d5: ClassVar["Interval"]
+    P5: ClassVar["Interval"]
+    A5: ClassVar["Interval"]
+    M6: ClassVar["Interval"]
+    A6: ClassVar["Interval"]
+    P8: ClassVar["Interval"]
 
 
 @dataclass(frozen=True, order=True)
@@ -586,8 +700,24 @@ class IntervalStep:
         else:
             return cls(value + 1)
 
+    def to_idx_1(self) -> int:
+        if self.value >= 0:
+            return self.value + 1
+        else:
+            return self.value - 1
+
     def abs(self) -> "IntervalStep":
+        """
+        3度下を3度上に変える
+        """
         return IntervalStep(abs(self.value))
+
+    def inversion_normalized(self) -> "IntervalStep":
+        """
+        音程を転回した結果、ユニゾン~7度までの範囲に正規化する。
+        例えば3度下は6度上、10度上は3度上になる。
+        """
+        return IntervalStep(self.value % 7)
 
     @classmethod
     def octave(cls) -> "IntervalStep":
@@ -626,6 +756,19 @@ IntervalAlter.MAJOR = IntervalAlter(1)
 IntervalAlter.MINOR = IntervalAlter(-1)
 IntervalAlter.AUGMENTED = IntervalAlter(2)
 IntervalAlter.DIMINISHED = IntervalAlter(-2)
+
+Interval.P1 = Interval.parse("P1")
+Interval.d1 = Interval.parse("d1")
+Interval.A1 = Interval.parse("A1")
+Interval.A2 = Interval.parse("A2")
+Interval.d4 = Interval.parse("d4")
+Interval.A4 = Interval.parse("A4")
+Interval.d5 = Interval.parse("d5")
+Interval.P5 = Interval.parse("P5")
+Interval.A5 = Interval.parse("A5")
+Interval.M6 = Interval.parse("M6")
+Interval.A6 = Interval.parse("A6")
+Interval.P8 = Interval.parse("P8")
 
 ## ----- 半音単位の音高・音程の概念
 
@@ -678,6 +821,9 @@ class Duration:
     def __sub__(self, other: "Duration") -> "Duration":
         return Duration(self.value - other.value)
 
+    def __mul__(self, value: int | Fraction) -> "Duration":
+        return Duration(self.value * value)
+
     @classmethod
     def of(
         cls,
@@ -688,24 +834,6 @@ class Duration:
             return cls(Fraction(numerator, denominator))
         else:
             return cls(Fraction(numerator))
-
-
-## ----- 音符の定義
-
-
-@dataclass(frozen=True)
-class Note:
-    """
-    単一の音符、または休符を表現します。
-    タイの情報を保持します。
-    """
-
-    pitch: Pitch | None  # Noneの場合は休符
-    duration: Duration
-    is_tied_start: bool = False
-
-
-## ----- 楽譜の定義
 
 
 @dataclass(frozen=True, order=True)
@@ -748,28 +876,119 @@ class Offset:
             return cls(Fraction(numerator - 1))
 
 
+## ----- 音符の定義
+
+
+T_Value = TypeVar("T_Value", covariant=True)
+T_Attr = TypeVar("T_Attr", covariant=True)
+
+
 @dataclass(frozen=True)
-class Measure:
+class Note[T_Value, T_Attr]:
     """
-    1小節分のデータを表現します。
+    音符の表現
     """
 
-    notes: list[Note]
+    value: T_Value
+    """
+    音符の主属性。
+    Pitch などが指定される。
+    Pitch | None を指定して、休符を表現することもある。
 
+    最終的に楽譜オブジェクトを作成する際には Pitch | None を指定する。
+    分析の過程では Degree や Degree | None などが入ることもある。
+    """
+
+    duration: Duration
+
+    attribute: T_Attr
+    """
+    音符の副属性
+
+    最終的に楽譜オブジェクトを作成する際には、 HasScoreAttrs を満たす型を指定する。
+    分析の過程では、この音は非和声音のどの種別であるかといった情報を指定することがある。
+    """
+
+    def map_value[U_Value](self, func: Callable[[T_Value], U_Value]) -> "Note[U_Value, T_Attr]":
+        return Note(func(self.value), self.duration, self.attribute)
+
+    def map_duration(self, func: Callable[[Duration], Duration]) -> "Note[T_Value, T_Attr]":
+        return Note(self.value, func(self.duration), self.attribute)
+
+    def map_attribute[U_Attr](self, func: Callable[[T_Attr], U_Attr]) -> "Note[T_Value, U_Attr]":
+        return Note(self.value, self.duration, func(self.attribute))
+
+
+## ----- 和音の定義
+
+
+@dataclass(frozen=True)
+class Chord[T_Value]:
+    """
+    和音の表現。
+
+    空でない集合と、バスの組
+    """
+
+    elements: set[T_Value]
+    bass: T_Value
+
+    def __post_init__(self) -> None:
+        assert self.elements
+
+
+## ----- 楽譜の定義
+
+
+@dataclass(frozen=True)
+class Measure[T_Value, T_Attr]:
+    """
+    小節の表現
+
+    小節は楽譜を表現するオブジェクトの一つだが、音価が絡む計算のためのコンテナとしても機能する。
+    """
+
+    notes: tuple[Note[T_Value, T_Attr], ...]
+
+    @classmethod
+    def of(cls, *notes: Note[T_Value, T_Attr]) -> "Measure[T_Value, T_Attr]":
+        return cls(notes)
+
+    def map_notes[U_Value, U_Attr](
+        self, func: Callable[[Note[T_Value, T_Attr]], Note[U_Value, U_Attr]]
+    ) -> "Measure[U_Value, U_Attr]":
+        return Measure.of(*[func(note) for note in self.notes])
+
+    @cached_property
     def total_duration(self) -> Duration:
         durations = [note.duration for note in self.notes]
-        return sum(durations, Duration(Fraction(0)))
+        return sum(durations, Duration.of(0))
 
-    def at(self, offset: Offset) -> Pitch | None:
+    def offset_notes(self) -> dict[Offset, Note[T_Value, T_Attr]]:
         """
-        小節内のある音符の位置における音符または休符を返す
+        この小節のnotesのオフセットとAnnotatedNoteの組みに変換してdictで返す。
+        dictをイテレートした時は元のnotesの順序を保つ。
+        """
+        result: dict[Offset, Note[T_Value, T_Attr]] = {}
+        current_offset = Offset.of(0)
+
+        for note in self.notes:
+            result[current_offset] = note
+            current_offset = current_offset.add_duration(note.duration)
+
+        return result
+
+    def at(self, offset: Offset) -> tuple[Offset, Note[T_Value, T_Attr]]:
+        """
+        小節内のある位置における音符と、その音が鳴り始めたオフセットを返す(タプルはオフセット・音符の順)
         範囲外の位置を指定された場合は例外となる
         """
-        current_offset = Offset(Fraction(0))
+        current_offset = Offset.of(0)
         for note in self.notes:
-            note_end_offset = Offset(current_offset.value + note.duration.value)
+            note_end_offset = current_offset.add_duration(note.duration)
             if current_offset <= offset < note_end_offset:
-                return note.pitch
+                return (current_offset, note)
+            current_offset = note_end_offset
         raise ValueError(f"offset {offset} not found in this measure: {self.notes}")
 
 
@@ -796,13 +1015,13 @@ class PartId(Enum):
 
 
 @dataclass(frozen=True)
-class Part:
+class Part[T_Value, T_Attr]:
     """
     楽曲のうちの一つの声部の小節の情報を表す
     """
 
     part_id: PartId
-    measures: list[Measure]
+    measures: Sequence[Measure[T_Value, T_Attr]]
 
 
 @dataclass(frozen=True)
@@ -811,29 +1030,48 @@ class TimeSignature:
     拍子。
     - 拍子記号の分母にあたる beat_type と 分子にあたる beats を持つ。
     - beat_type は Duration と同様に **四分音符を1** とする有理数で表現する。
-    - 例えば 3/4 拍子は beats=3, beat_type=1 、 6/8 拍子は beats=6, beat_type=1/2 となる。
+    - 例えば 3/4 拍子は beats=3, beat_type=Duration(1) 、
+      6/8 拍子は beats=6, beat_type=Duration.of(1, 2) となる。
     """
 
     beats: int
-    beat_type: Fraction
+    beat_type: Duration
 
     def duration(self) -> Fraction:
-        return self.beats * self.beat_type
+        return self.beats * self.beat_type.value
 
     def name(self) -> str:
-        denominator = 4 / self.beat_type
+        denominator = 4 / self.beat_type.value
         if denominator.denominator != 1:
             # 分数が残る場合は、そのまま表示(例: 2.666... のようなケースを避ける)
             return f"{self.beats}/{denominator}"
         return f"{self.beats}/{int(denominator)}"
 
 
+class HasScoreAttrs(Protocol):
+    """
+    Scoreオブジェクトを作成する際に必要な Note の attribute
+    """
+
+    @property
+    def is_tied_start(self) -> bool: ...
+
+
+@dataclass(frozen=True)
+class ScoreAttrs:
+    """
+    Scoreオブジェクトを作成する際に利用する標準的な Note の attribute
+    """
+
+    is_tied_start: bool
+
+
 @dataclass
-class Score:
+class Score[A: HasScoreAttrs]:
     """
     楽曲全体を表す
     """
 
     key: Key
     time_signature: TimeSignature
-    parts: list[Part]
+    parts: Sequence[Part[Pitch | None, A]]

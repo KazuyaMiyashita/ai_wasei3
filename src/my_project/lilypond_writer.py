@@ -1,9 +1,9 @@
 from fractions import Fraction
 
-from my_project.model import Duration, Mode, Note, NoteName, PartId, Pitch, Score
+from my_project.model import Duration, HasScoreAttrs, Mode, Note, NoteName, PartId, Pitch, Score
 
 
-def score_to_lilypond(score: Score) -> str:
+def score_to_lilypond[T: HasScoreAttrs](score: Score[T]) -> str:
     """
     与えられたScoreオブジェクトをもとに、LilyPond形式の文字列を作成する
     ピアノ譜を用い、バスはへ音記号で音符の棒を下向き、テノールはヘ音記号で棒を上向き、アルトはト音記号で棒を下向き、ソプラノはト音記号で棒を上向きとする。
@@ -58,10 +58,11 @@ BassMusic  = {{ {bass_notes} }}
 """
 
 
-def note_to_lilypond(note: Note) -> str:
-    pitch_rest_str = pitch_to_lilypond(note.pitch) if note.pitch else "r"
+def note_to_lilypond[A: HasScoreAttrs](note: Note[Pitch | None, A]) -> str:
+    pitch_rest_str = pitch_to_lilypond(note.value) if note.value else "r"
     duration_str = duration_to_lilypond(note.duration)
-    return f"{pitch_rest_str}{duration_str}"
+    tie_str = "~" if note.attribute.is_tied_start else ""
+    return f"{pitch_rest_str}{duration_str}{tie_str}"
 
 
 def pitch_to_lilypond(pitch: Pitch) -> str:

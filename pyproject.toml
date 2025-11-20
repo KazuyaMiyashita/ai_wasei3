@@ -3,8 +3,11 @@ name = "ai-wasei3"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = []
+requires-python = ">=3.13"
+dependencies = [
+    "more-itertools>=10.8.0",
+    "tqdm>=4.66.4",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -12,6 +15,7 @@ dev = [
     "ruff",
     "mypy",
     "snakeviz",
+    "types-tqdm",
 ]
 
 [tool.ruff]
@@ -24,6 +28,7 @@ exclude = [".venv"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "RUF"]
 task-tags = ["TODO", "FIXME", "XXX", "NOTE"]
+allowed-confusables = ["（", "）", "？", "！", "ノ"]
 
 [tool.ruff.lint.pycodestyle]
 # cf. https://docs.astral.sh/ruff/rules/line-too-long/
@@ -37,5 +42,4 @@ quote-style = "double"
 mypy_path = "src"
 
 strict = true
-ignore_missing_imports = true
 pretty = true
