@@ -8,12 +8,12 @@ from pathlib import Path
 from my_project.counterpoint.counterpoint_generator import CounterpointGenerator
 from my_project.counterpoint.model import NoteAnnotation, Species, ToneType
 from my_project.lilypond_writer import score_to_lilypond
-from my_project.model import HasScoreAttrs, Key, PartId, Pitch, Score
+from my_project.model import FullScore, HasScoreAttrs, Key, PartId, Pitch
 
 logger = logging.getLogger(__name__)
 
 
-def format_score_for_debug(score: Score[HasScoreAttrs]) -> str:
+def format_score_for_debug(score: FullScore[HasScoreAttrs]) -> str:
     """
     デバッグ用に Score オブジェクトを整形して文字列として返す
     """

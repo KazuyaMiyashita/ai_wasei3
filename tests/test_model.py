@@ -1,4 +1,22 @@
-from my_project.model import Degree, Interval, IntervalAlter, IntervalStep, Key, Mode, NoteName, Pitch
+from my_project.model import (
+    Chord,
+    Degree,
+    Duration,
+    Identified,
+    Interval,
+    IntervalAlter,
+    IntervalStep,
+    Key,
+    Melody,
+    Mode,
+    Note,
+    NoteName,
+    PartId,
+    Pitch,
+    Score,
+    Score_T,
+    Slice,
+)
 
 
 def test_pitch() -> None:
@@ -284,3 +302,239 @@ def test_interval_normalize() -> None:
     i = Interval.of(base=Pitch.parse("C4"), target=Pitch.parse("E3"))  # 短6度下
     a = Interval.of(base=Pitch.parse("C4"), target=Pitch.parse("Ab4"))  # 短6度上
     assert i.normalize() == a
+
+
+def test_score_transpose_1() -> None:
+    # ソプラノ単旋律を転置する
+    score = Score[PartId, Pitch, None](
+        Chord.of(
+            Note(
+                Identified(
+                    PartId.SOPRANO,
+                    Melody.of(
+                        Note(Pitch.parse("C4"), Duration.of(1), None),
+                        Note(Pitch.parse("C5"), Duration.of(2), None),
+                        Note(Pitch.parse("B4"), Duration.of(1), None),
+                        Note(Pitch.parse("C5"), Duration.of(2), None),
+                    ).map(lambda n: Slice(n, False, False)),
+                ),
+                Duration.of(6),
+                None,
+            )
+        )
+    )
+
+    score_t = Score_T(
+        Melody.of(
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C4"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    )
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C5"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(2),
+                        attribute=None,
+                    )
+                ),
+                Duration.of(2),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("B4"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    )
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C5"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(2),
+                        attribute=None,
+                    )
+                ),
+                Duration.of(2),
+                None,
+            ),
+        ),
+    )
+
+    assert score.T() == score_t
+    assert score.T().T() == score
+
+
+def test_score_transpose_2() -> None:
+    # ソプラノ・アルトの2旋律からなるスコアを転置する
+    score = Score[PartId, Pitch, None](
+        Chord.of(
+            Note(
+                Identified(
+                    PartId.SOPRANO,
+                    Melody.of(
+                        Note(Pitch.parse("C4"), Duration.of(1), None),
+                        Note(Pitch.parse("C5"), Duration.of(2), None),
+                        Note(Pitch.parse("B4"), Duration.of(1), None),
+                        Note(Pitch.parse("C5"), Duration.of(2), None),
+                    ).map(lambda n: Slice(n, False, False)),
+                ),
+                Duration.of(6),
+                None,
+            ),
+            Note(
+                Identified(
+                    PartId.ALTO,
+                    Melody.of(
+                        Note(Pitch.parse("C4"), Duration.of(2), None),
+                        Note(Pitch.parse("D4"), Duration.of(2), None),
+                        Note(Pitch.parse("E4"), Duration.of(2), None),
+                    ).map(lambda n: Slice(n, False, False)),
+                ),
+                Duration.of(6),
+                None,
+            ),
+        )
+    )
+
+    score_t = Score_T(
+        Melody.of(
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C4"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                    Note(
+                        value=Identified(
+                            PartId.ALTO,
+                            value=Slice(value=Pitch.parse("C4"), connects_left=False, connects_right=True),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C5"), connects_left=False, connects_right=True),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                    Note(
+                        value=Identified(
+                            PartId.ALTO,
+                            value=Slice(value=Pitch.parse("C4"), connects_left=True, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C5"), connects_left=True, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                    Note(
+                        value=Identified(
+                            PartId.ALTO,
+                            value=Slice(value=Pitch.parse("D4"), connects_left=False, connects_right=True),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("B4"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                    Note(
+                        value=Identified(
+                            PartId.ALTO,
+                            value=Slice(value=Pitch.parse("D4"), connects_left=True, connects_right=False),
+                        ),
+                        duration=Duration.of(1),
+                        attribute=None,
+                    ),
+                ),
+                Duration.of(1),
+                None,
+            ),
+            Note(
+                Chord.of(
+                    Note(
+                        value=Identified(
+                            PartId.SOPRANO,
+                            value=Slice(value=Pitch.parse("C5"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(2),
+                        attribute=None,
+                    ),
+                    Note(
+                        value=Identified(
+                            PartId.ALTO,
+                            value=Slice(value=Pitch.parse("E4"), connects_left=False, connects_right=False),
+                        ),
+                        duration=Duration.of(2),
+                        attribute=None,
+                    ),
+                ),
+                Duration.of(2),
+                None,
+            ),
+        ),
+    )
+
+    assert score.T() == score_t
+    assert score.T().T() == score

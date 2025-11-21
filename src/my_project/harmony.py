@@ -6,6 +6,7 @@ from my_project.model import (
     DegreeAlter,
     DegreeStep,
     Duration,
+    FullScore,
     Interval,
     IntervalStep,
     Key,
@@ -16,7 +17,6 @@ from my_project.model import (
     Part,
     PartId,
     Pitch,
-    Score,
     ScoreAttrs,
     TimeSignature,
 )
@@ -37,7 +37,7 @@ class Chord:
         return [self.bass, self.tenor, self.alto, self.soprano]
 
 
-def solve(bass_sequence: list[Pitch], key: Key) -> Score[ScoreAttrs]:
+def solve(bass_sequence: list[Pitch], key: Key) -> FullScore[ScoreAttrs]:
     prev_chord: Chord | None = None
     result: list[Chord] = []
     for bass in bass_sequence:
@@ -51,7 +51,7 @@ def solve(bass_sequence: list[Pitch], key: Key) -> Score[ScoreAttrs]:
     return _chords_to_score(result, key)
 
 
-def _chords_to_score(chords: list[Chord], key: Key) -> Score[ScoreAttrs]:
+def _chords_to_score(chords: list[Chord], key: Key) -> FullScore[ScoreAttrs]:
     duration = Duration(Fraction(2))
 
     no_tied = ScoreAttrs(is_tied_start=False)
@@ -61,7 +61,7 @@ def _chords_to_score(chords: list[Chord], key: Key) -> Score[ScoreAttrs]:
     tenor_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.tenor, duration, no_tied) for c in chords]
     bass_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.bass, duration, no_tied) for c in chords]
 
-    score = Score(
+    score = FullScore(
         key=key,
         time_signature=TimeSignature(2, Duration.of(2)),
         parts=[

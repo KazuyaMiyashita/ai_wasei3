@@ -1,9 +1,9 @@
 from fractions import Fraction
 
-from my_project.model import Duration, HasScoreAttrs, Mode, Note, NoteName, PartId, Pitch, Score
+from my_project.model import Duration, FullScore, HasScoreAttrs, Mode, Note, NoteName, PartId, Pitch
 
 
-def score_to_lilypond[T: HasScoreAttrs](score: Score[T]) -> str:
+def score_to_lilypond[T: HasScoreAttrs](score: FullScore[T]) -> str:
     """
     与えられたScoreオブジェクトをもとに、LilyPond形式の文字列を作成する
     ピアノ譜を用い、バスはへ音記号で音符の棒を下向き、テノールはヘ音記号で棒を上向き、アルトはト音記号で棒を下向き、ソプラノはト音記号で棒を上向きとする。
@@ -69,7 +69,7 @@ def pitch_to_lilypond(pitch: Pitch) -> str:
     """
     PitchオブジェクトをLilyPondの音符文字列に変換する
     """
-    _, _, octave = pitch.internal_pitch_notation()
+    _, _, octave = pitch.international_pitch_notation()
 
     lp_note = note_name_to_lilypond(pitch.note_name)
 
@@ -85,7 +85,7 @@ def pitch_to_lilypond(pitch: Pitch) -> str:
 
 
 def note_name_to_lilypond(note_name: NoteName) -> str:
-    step, alter = note_name.internal_pitch_notation()
+    step, alter = note_name.international_pitch_notation()
 
     lp_note = step.lower()
 

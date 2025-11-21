@@ -55,14 +55,15 @@ uv run python -m my_project.counterpoint.main \
   --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 \
   --species fifth \
   --limit 1 \
-  --part_id ALTO
+  --part_id SOPRANO
 
-# simple形式で3つ出力
+# simple形式で3つ出力。途中出力のデバッグあり
 uv run python -m my_project.counterpoint.main \
   --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 \
   --species fifth \
   --output simple \
-  --limit 3
+  --limit 3 \
+  --log-level DEBUG
 
 # lilypond形式で1つ出力
 uv run python -m my_project.counterpoint.main \
@@ -112,7 +113,13 @@ uv run python -m my_project.counterpoint.main \
 - **`--part_id <ID>`**: 生成する対位旋律のパートIDを指定します。
   - 選択肢: `SOPRANO`, `ALTO`, `TENOR`, `BASS`
   - デフォルト: `SOPRANO`
+
+### デバッグ用オプション
+
 - **`--seed <INTEGER>`**: 乱数シードを整数で指定し、結果を再現可能にします。
+- **`--log-level <TYPE>`**: ログレベル。 `DEBUG` を指定すると生成の途中経過が表示されます。
+  - 選択肢: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+  - デフォルト: `INFO`
 
 ### コンソール出力モードのオプション
 - **`--output <FORMAT>`**: コンソールへの出力形式を指定します。

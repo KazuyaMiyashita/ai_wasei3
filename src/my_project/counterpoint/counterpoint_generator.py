@@ -17,6 +17,7 @@ from my_project.counterpoint.rules import get_measure_rythmn_patterns
 from my_project.counterpoint.skeleton_generator import Skeleton, SkeletonGenerator
 from my_project.model import (
     Duration,
+    FullScore,
     HasScoreAttrs,
     Key,
     Measure,
@@ -24,7 +25,6 @@ from my_project.model import (
     Part,
     PartId,
     Pitch,
-    Score,
     TimeSignature,
 )
 from my_project.util import part_range
@@ -113,7 +113,7 @@ class CounterpointGenerator:
     class AbortAttempt(Exception):
         pass
 
-    def generate_scores(self) -> Iterator[Score[HasScoreAttrs]]:
+    def generate_scores(self) -> Iterator[FullScore[HasScoreAttrs]]:
         # logger.info("generate_scoresを開始します")
 
         attempt_count = 0
@@ -136,7 +136,7 @@ class CounterpointGenerator:
         completed_measures: list[AnnotatedMeasure],
         measure_index: int,
         current_start_pitch: Pitch,
-    ) -> Iterator[Score[HasScoreAttrs]]:
+    ) -> Iterator[FullScore[HasScoreAttrs]]:
         log_indents = 2
         indent = " " * (measure_index * log_indents)
         mn_for_log = measure_index + 1
@@ -224,7 +224,7 @@ class CounterpointGenerator:
         else:
             return MeasurePosition.MIDDLE
 
-    def _to_score(self, completed_measures: list[AnnotatedMeasure]) -> Score[HasScoreAttrs]:
+    def _to_score(self, completed_measures: list[AnnotatedMeasure]) -> FullScore[HasScoreAttrs]:
         cf_notes: list[Note[Pitch | None, NoteAnnotation]] = [
             Note(
                 pitch,
@@ -235,7 +235,7 @@ class CounterpointGenerator:
         ]
         cf_measures: list[AnnotatedMeasure] = [Measure.of(note) for note in cf_notes]
 
-        return Score(
+        return FullScore(
             key=self.key,
             time_signature=TimeSignature(2, Duration.of(2)),
             parts=[
