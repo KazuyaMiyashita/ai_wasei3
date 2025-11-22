@@ -1,5 +1,6 @@
 import itertools
 from collections import defaultdict
+from typing import cast
 
 from my_project.counterpoint.measure_search.measure_step_sequence import (
     AbstractMeasureStepSequence,
@@ -13,7 +14,7 @@ from my_project.model import (
     Interval,
     IntervalStep,
     Key,
-    Measure,
+    Melody,
     Mode,
     Note,
     Pitch,
@@ -60,12 +61,12 @@ def apply_pitch_candidates(
                 new_measure_notes.append(Note(diatonic_pitches[pitch_idx], note.duration, note.attribute))
                 pitch_idx += 1
             else:
-                new_measure_notes.append(Note(None, note.duration, note.attribute))
+                new_measure_notes.append(Note(cast(Pitch | None, None), note.duration, note.attribute))
 
-        return [AbstractMeasureStepSequence(Measure.of(*new_measure_notes), next_diatonic_pitch)]
+        return [AbstractMeasureStepSequence(Melody.of(*new_measure_notes), next_diatonic_pitch)]
 
     degree_iter = iter(degree_steps)
-    measure_degrees = measure_step_sequence.measure.map_notes(lambda n: n.map_value(lambda _: next(degree_iter)))
+    measure_degrees = measure_step_sequence.measure.map_elements(lambda n: n.map_value(lambda _: next(degree_iter)))
     measure_degree_step_sequence = AbstractMeasureStepSequence(measure_degrees, next_measure_degree_step)
 
     # 2. Degreeの候補を取得
@@ -98,16 +99,10 @@ def apply_pitch_candidates(
         # next_degree_for_pitch の DegreeAlter と next_diatonic_pitch を組み合わせて Pitch を作る
         next_pitch_candidate = next_diatonic_pitch + Interval.A1 * next_degree_for_pitch.alter.value
 
-        # Measure[Pitch | None, ToneType] を作成
+        # Melody[Note[Pitch | None, ToneType]] を作成
         pitches_iter = iter(pitches)
-        new_measure = measure_step_sequence.measure.map_notes(lambda n: n.map_value(lambda _: next(pitches_iter)))
-
-        result_measure_pitch_sequences.append(
-            AbstractMeasureStepSequence(
-                new_measure,
-                next_pitch_candidate,
-            )
-        )
+        new_melody = measure_step_sequence.measure.map_elements(lambda n: n.map_value(lambda _: next(pitches_iter)))
+        result_measure_pitch_sequences.append(AbstractMeasureStepSequence(new_melody, next_pitch_candidate))
 
     return result_measure_pitch_sequences
 
@@ -124,9 +119,8 @@ def _degree_candidates(
     長調や、短調でvi,viiを含まない場合は結果は1つとなる。
     vi,viiを含む短調の場合は結果が2個になる場合や、不適当と判断されて結果が0個になることがある。
     """
-    measure_degrees: Measure[DegreeStep, ToneType] = measure_degree_step_sequence.measure
+    measure_degrees: Melody[Note[DegreeStep, ToneType]] = measure_degree_step_sequence.measure
     next_measure_degree_step: DegreeStep = measure_degree_step_sequence.next_measure_step
-
     # elems を復元
     elems = [(n.value, n.attribute) for n in measure_degrees.notes if n.value is not None]
     degree_steps: tuple[DegreeStep, ...]
@@ -139,13 +133,12 @@ def _degree_candidates(
     if (mode == Mode.MAJOR) or (not (set([*degree_steps, next_measure_degree_step]) & {SIXTH, SEVENTH})):
         return [
             AbstractMeasureStepSequence(
-                measure_degree_step_sequence.measure.map_notes(
+                measure_degree_step_sequence.measure.map_elements(
                     lambda n: n.map_value(lambda v: Degree(v, DegreeAlter(0)))
                 ),
                 Degree(measure_degree_step_sequence.next_measure_step, DegreeAlter(0)),
             )
         ]
-
     # 共通の候補を事前に計算
     base_candidates: dict[int, list[Degree]] = defaultdict(list)
 
@@ -292,16 +285,15 @@ def _degree_candidates(
 
             # 結果の構築
             degree_iter = iter(degrees_for_measure)
-            new_measure = measure_degree_step_sequence.measure.map_notes(
+            new_melody = measure_degree_step_sequence.measure.map_elements(
                 lambda n: n.map_value(lambda _: next(degree_iter))
             )
             measure_sequences.append(
                 AbstractMeasureStepSequence(
-                    new_measure,
+                    new_melody,
                     next_degree,
                 )
             )
-
     return measure_sequences
 
 

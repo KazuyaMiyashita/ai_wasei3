@@ -10,13 +10,14 @@ from my_project.model import (
     Interval,
     IntervalStep,
     Key,
-    Measure,
+    Melody,
     Mode,
     Note,
     NoteName,
-    Part,
     PartId,
     Pitch,
+    Score_H,
+    Score_V,
     ScoreAttrs,
     TimeSignature,
 )
@@ -53,23 +54,62 @@ def solve(bass_sequence: list[Pitch], key: Key) -> FullScore[ScoreAttrs]:
 
 def _chords_to_score(chords: list[Chord], key: Key) -> FullScore[ScoreAttrs]:
     duration = Duration(Fraction(2))
-
+    time_signature = TimeSignature(2, Duration.of(2))
     no_tied = ScoreAttrs(is_tied_start=False)
 
-    sop_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.soprano, duration, no_tied) for c in chords]
-    alto_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.alto, duration, no_tied) for c in chords]
-    tenor_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.tenor, duration, no_tied) for c in chords]
-    bass_notes: list[Note[Pitch | None, ScoreAttrs]] = [Note(c.bass, duration, no_tied) for c in chords]
+    measure_dur_val = time_signature.duration()
+    notes_per_measure = int(measure_dur_val / duration.value)
+
+    # Score_V holds T_Value which is Melody[Note[Pitch | None, ScoreAttrs]]
+    # Note holds Score_V.
+    # So list[Note[Score_V[PartId, Melody[Note[Pitch | None, ScoreAttrs]]], None]]
+
+    T_Melody = Melody[Note[Pitch | None, ScoreAttrs]]
+    T_Score_V = Score_V[PartId, T_Melody]
+
+    part_melodies_list: dict[PartId, list[Note[T_Score_V, None]]] = {
+        PartId.SOPRANO: [],
+        PartId.ALTO: [],
+        PartId.TENOR: [],
+        PartId.BASS: [],
+    }
+
+    for i in range(0, len(chords), notes_per_measure):
+        measure_chords = chords[i : i + notes_per_measure]
+
+        for part_id, part_attr in [
+            (PartId.SOPRANO, "soprano"),
+            (PartId.ALTO, "alto"),
+            (PartId.TENOR, "tenor"),
+            (PartId.BASS, "bass"),
+        ]:
+            inner_notes: list[Note[Pitch | None, ScoreAttrs]] = []
+            for c in measure_chords:
+                pitch = getattr(c, part_attr)
+                inner_notes.append(Note(pitch, duration, no_tied))
+
+            inner_melody = Melody.of(*inner_notes)
+            # Melody.from_value creates Melody[Note[T_Melody, None]]
+            # Score_V.from_melody expects Melody[Note[U_Value, U_Attr]]
+            # So U_Value is T_Melody.
+
+            inner_score_t = Score_V.from_melody(
+                part_id, Melody.from_value(inner_melody, inner_melody.total_duration, None)
+            )
+
+            part_melodies_list[part_id].append(Note(inner_score_t, inner_melody.total_duration, None))
+
+    # part_melodies: dict[PartId, Melody[Note[T_Score_V, None]]]
+    part_melodies: dict[PartId, Melody[Note[T_Score_V, None]]] = {}
+    for part_id, notes in part_melodies_list.items():
+        part_melodies[part_id] = Melody.of(*notes)
+
+    body = Score_H.from_parts(part_melodies)
 
     score = FullScore(
         key=key,
-        time_signature=TimeSignature(2, Duration.of(2)),
-        parts=[
-            Part(part_id=PartId.SOPRANO, measures=[Measure.of(*sop_notes)]),
-            Part(part_id=PartId.ALTO, measures=[Measure.of(*alto_notes)]),
-            Part(part_id=PartId.TENOR, measures=[Measure.of(*tenor_notes)]),
-            Part(part_id=PartId.BASS, measures=[Measure.of(*bass_notes)]),
-        ],
+        time_signature=time_signature,
+        body=body,
     )
     return score
 

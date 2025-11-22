@@ -1,6 +1,15 @@
 from fractions import Fraction
 
-from my_project.model import Duration, FullScore, HasScoreAttrs, Mode, Note, NoteName, PartId, Pitch
+from my_project.model import (
+    Duration,
+    FullScore,
+    HasScoreAttrs,
+    Mode,
+    Note,
+    NoteName,
+    PartId,
+    Pitch,
+)
 
 
 def score_to_lilypond[T: HasScoreAttrs](score: FullScore[T]) -> str:
@@ -15,22 +24,10 @@ def score_to_lilypond[T: HasScoreAttrs](score: FullScore[T]) -> str:
     time_signature_string = score.time_signature.name()
 
     # Notes for each part
-    soprano_notes = ""
-    alto_notes = ""
-    tenor_notes = ""
-    bass_notes = ""
-
-    for part in score.parts:
-        # パート内の全ての音符を連結する
-        notes_str = " ".join(note_to_lilypond(note) for measure in part.measures for note in measure.notes)
-        if part.part_id == PartId.SOPRANO:
-            soprano_notes = notes_str
-        elif part.part_id == PartId.ALTO:
-            alto_notes = notes_str
-        elif part.part_id == PartId.TENOR:
-            tenor_notes = notes_str
-        elif part.part_id == PartId.BASS:
-            bass_notes = notes_str
+    soprano_notes = " ".join(note_to_lilypond(n) for n in _get_notes_for_part(score, PartId.SOPRANO))
+    alto_notes = " ".join(note_to_lilypond(n) for n in _get_notes_for_part(score, PartId.ALTO))
+    tenor_notes = " ".join(note_to_lilypond(n) for n in _get_notes_for_part(score, PartId.TENOR))
+    bass_notes = " ".join(note_to_lilypond(n) for n in _get_notes_for_part(score, PartId.BASS))
 
     return f"""\\version "2.24.4"
 
@@ -56,6 +53,44 @@ BassMusic  = {{ {bass_notes} }}
   >>
 }}
 """
+
+
+def _get_notes_for_part[T: HasScoreAttrs](score: FullScore[T], part_id: PartId) -> list[Note[Pitch | None, T]]:
+    # body: Score[PartId, Score_T[PartId, Melody[Pitch | None, T], T], T]
+    outer_chord = score.body.chord
+    outer_part_note = next((n for n in outer_chord.elements if n.value.id == part_id), None)
+
+    if not outer_part_note:
+        return []
+
+    # outer_melody: Melody[Slice[Score_T]]
+    outer_melody = outer_part_note.value.value
+    result_notes = []
+
+    for outer_note in outer_melody.notes:
+        # outer_note.value: Slice[Score_T]
+        inner_score_t = outer_note.value.value
+
+        # inner_score_t.melody: Melody[Chord[Identified[PartId, Slice[Melody[Pitch|None]]]]]
+        for inner_note in inner_score_t.melody.notes:
+            # inner_note: Note[Chord[...], T]
+            chord = inner_note.value
+
+            # Find the part in the chord
+            part_in_chord = next((n for n in chord.elements if n.value.id == part_id), None)
+
+            if part_in_chord:
+                # part_in_chord.value.value is Slice[Melody[Pitch|None]]
+                # slice_val.value is Melody[Pitch|None]
+                measure_melody = part_in_chord.value.value.value
+
+                # Iterate notes in the measure
+                for note_in_measure in measure_melody.notes:
+                    result_notes.append(
+                        Note(note_in_measure.value, note_in_measure.duration, note_in_measure.attribute)
+                    )
+
+    return result_notes
 
 
 def note_to_lilypond[A: HasScoreAttrs](note: Note[Pitch | None, A]) -> str:

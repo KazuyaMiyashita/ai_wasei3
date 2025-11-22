@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from my_project.model import (
     Chord,
@@ -10,14 +10,29 @@ from my_project.model import (
     Slice,
 )
 
+if TYPE_CHECKING:
+    # This is only for type hinting to avoid circular imports at runtime
+    # But actually model_score_ops functions don't depend on Score/Measure classes,
+    # they depend on generic Notes/Melodies.
+    # However, if we move logic from Score here, we might need them?
+    # The instruction says "delegating logic to model_score_ops".
+    # The logic in Score.vertical and VerticalScoreView.to_flat_score mainly uses transpose functions.
+    # So model_score_ops already has the core logic.
+    # The wrapper logic (unwrapping/wrapping Measures) can stay in Score/VerticalScoreView or move here.
+    # If we move it here, we need to import Measure/Score here, which causes circular import.
+    # The user instruction says "delegating logic to model_score_ops".
+    # But "Score.vertical" logic is mainly constructing the arguments for transpose.
+    # If we move that construction here, we need Score as input.
+    pass
+
 T_Value = TypeVar("T_Value")
 T_Attr = TypeVar("T_Attr")
 T_Id = TypeVar("T_Id")
 
 
 def transpose_score_to_vertical(
-    elements: frozenset[Note[Identified[T_Id, Melody[Slice[T_Value], T_Attr]], T_Attr]],
-) -> tuple[Note[Chord[Identified[T_Id, Slice[T_Value]], T_Attr], T_Attr], ...]:
+    elements: frozenset[Note[Identified[T_Id, Melody[Note[Slice[T_Value], T_Attr]]], T_Attr]],
+) -> tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...]:
     """
     Score.T の実装詳細。
     Score(Chord) の elements を受け取り、Score_T(Melody) のコンストラクタ引数となる tuple(notes) を返す。
@@ -35,7 +50,7 @@ def transpose_score_to_vertical(
     sorted_offsets = sorted(list(global_offsets))
 
     # 2. 各区間ごとに垂直スライス（Chord）を生成する
-    vertical_slices: list[Note[Chord[Identified[T_Id, Slice[T_Value]], T_Attr], T_Attr]] = []
+    vertical_slices: list[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr]] = []
 
     for i in range(len(sorted_offsets) - 1):
         start = sorted_offsets[i]
@@ -76,6 +91,7 @@ def transpose_score_to_vertical(
             )
 
         # 4. 垂直方向の和音（Chord）を作成
+        # New Chord takes generic elements (Notes)
         interval_chord = Chord(frozenset(chord_elements))
 
         # 5. 旋律の要素となるNoteを作成
@@ -87,8 +103,8 @@ def transpose_score_to_vertical(
 
 
 def transpose_vertical_to_score(
-    vertical_notes: tuple[Note[Chord[Identified[T_Id, Slice[T_Value]], T_Attr], T_Attr], ...],
-) -> frozenset[Note[Identified[T_Id, Melody[Slice[T_Value], T_Attr]], T_Attr]]:
+    vertical_notes: tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...],
+) -> frozenset[Note[Identified[T_Id, Melody[Note[Slice[T_Value], T_Attr]]], T_Attr]]:
     """
     Score_T.T の実装詳細。
     Score_T(Melody) の notes を受け取り、Score(Chord) のコンストラクタ引数となる frozenset(elements) を返す。
@@ -109,7 +125,7 @@ def transpose_vertical_to_score(
             part_map[p_id].append(note_in_melody)
 
     # 2. 水平方向にスライスを走査し、結合可能なものをマージする
-    reconstructed_parts: list[Note[Identified[T_Id, Melody[Slice[T_Value], T_Attr]], T_Attr]] = []
+    reconstructed_parts: list[Note[Identified[T_Id, Melody[Note[Slice[T_Value], T_Attr]]], T_Attr]] = []
 
     for p_id, slices in part_map.items():
         if not slices:

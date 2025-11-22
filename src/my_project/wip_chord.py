@@ -102,36 +102,6 @@ class Inversion(Enum):
     SECOND = auto()
 
 
-# 使い方
-# chord.deg.is_triad()
-
-# ---
-
-# テストコード
-
-
-### 設計のポイント
-
-# 1.  **`Chord(Generic[T])` クラス**:
-#     * これ一つであらゆる「和音的な集合」を表現します。
-#     * `.map()` を持たせることで、`Chord[DegreeStep]` から `Chord[Pitch]`、`Chord[Interval]` への変換を一元化しました。これで `PitchChord` クラスを作る必要はなくなります。
-
-# 2.  **`DegreeStep` 専用ロジックは「関数」にする**:
-#     * Pythonでは `impl Chord<DegreeStep>` のようなことができません。
-#     * クラスに `is_triad` メソッドを生やすと、`Chord[Pitch]` インスタンスでも `is_triad` が呼べてしまい、実行時エラーの温床になります。
-#     * **「データ（Chord）」と「振る舞い（関数）」を分ける** のが、Genericsを使う場合のPythonの定石です。`is_triad(chord)` と呼ぶ形になります。
-
-# 3.  **`OnChord` の扱い**:
-#     * `OnChord` も Generic にできますが、もし転回形判定などが `DegreeStep` でしか行わないのであれば、`OnChord` は `DegreeStep` 専用のクラスにしてしまった方が楽かもしれません。あるいは、上記コードのように「関数にバスを渡す設計」にすれば、`OnChord` クラス自体をなくす（タプルで扱う）ことも可能です。
-
-### どうしてもドット記法 (`chord.is_triad()`) が使いたい場合
-
-# PythonにはC#の拡張メソッドのような機能はありませんが、Pandasの `.dt` や `.str` アクセサのようなパターンで実現することは可能です。ただし、少しコード量が増えます。
-
-
-# おまけ: アクセサパターン（上級編）
-
-
 class DegreeStepChord(Chord[DegreeStep]):
     def is_triad(self) -> bool:
         """指定されたChordが三和音であるか"""

@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 
-from my_project.model import Duration, Key, Measure, Note, NoteName, PartId, Pitch
+from my_project.model import Duration, Key, Melody, Note, NoteName, PartId, Pitch
 
 
 @dataclass(frozen=True)
@@ -10,7 +10,7 @@ class Skeleton:
     課題全体を仮に全音符で実施した際の、協和音の音高と和音の設定を表す。
     """
 
-    measures: list[Measure[Pitch, list[NoteName]]]
+    measures: list[Melody[Note[Pitch, list[NoteName]]]]
     # TODO: attribute は Chord[Degree] なのかで迷っている
 
 
@@ -54,7 +54,7 @@ class SkeletonGenerator:
             Pitch.parse("C3"),
         ]:
             skeleton = Skeleton(
-                [
+                measures=[
                     _create_measure(
                         Pitch.parse("G4"),
                         [NoteName.parse(n) for n in ["C", "E", "G"]],
@@ -87,7 +87,7 @@ class SkeletonGenerator:
             Pitch.parse("C3"),
         ]:
             skeleton = Skeleton(
-                [
+                measures=[
                     _create_measure(
                         Pitch.parse("G4"),
                         [NoteName.parse(n) for n in ["C", "E", "G"]],
@@ -144,7 +144,7 @@ class SkeletonGenerator:
             Pitch.parse("A2"),
         ]:
             skeleton = Skeleton(
-                [
+                measures=[
                     _create_measure(
                         Pitch.parse("E3"),
                         [NoteName.parse(n) for n in ["A", "C", "E"]],
@@ -201,7 +201,7 @@ class SkeletonGenerator:
             Pitch.parse("D3"),
         ]:
             skeleton = Skeleton(
-                [
+                measures=[
                     _create_measure(
                         Pitch.parse("A3"),
                         [NoteName.parse(n) for n in ["D", "F", "A"]],
@@ -248,5 +248,5 @@ class SkeletonGenerator:
         raise NotImplementedError
 
 
-def _create_measure(pitch: Pitch, chord: list[NoteName]) -> Measure[Pitch, list[NoteName]]:
-    return Measure.of(Note(pitch, Duration.of(4), chord))
+def _create_measure(pitch: Pitch, chord: list[NoteName]) -> Melody[Note[Pitch, list[NoteName]]]:
+    return Melody.of(Note(pitch, Duration.of(4), chord))

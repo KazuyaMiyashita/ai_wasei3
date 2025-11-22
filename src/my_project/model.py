@@ -1,9 +1,10 @@
-from collections.abc import Callable, Sequence
+import itertools
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from fractions import Fraction
 from functools import cached_property
-from typing import ClassVar, Protocol, TypeVar
+from typing import Any, ClassVar, Protocol, TypeVar, cast
 
 import my_project.model_ops as ops
 
@@ -367,6 +368,8 @@ class Interval:
     d1: ClassVar["Interval"]
     A1: ClassVar["Interval"]
     A2: ClassVar["Interval"]
+    m3: ClassVar["Interval"]
+    M3: ClassVar["Interval"]
     d4: ClassVar["Interval"]
     A4: ClassVar["Interval"]
     d5: ClassVar["Interval"]
@@ -448,6 +451,8 @@ Interval.P1 = Interval.parse("P1")
 Interval.d1 = Interval.parse("d1")
 Interval.A1 = Interval.parse("A1")
 Interval.A2 = Interval.parse("A2")
+Interval.m3 = Interval.parse("m3")
+Interval.M3 = Interval.parse("M3")
 Interval.d4 = Interval.parse("d4")
 Interval.A4 = Interval.parse("A4")
 Interval.d5 = Interval.parse("d5")
@@ -567,37 +572,69 @@ class Note[T_Value, T_Attr]:
         return Note(self.value, self.duration, func(self.attribute))
 
 
+class HasDuration(Protocol):
+    @property
+    def duration(self) -> Duration: ...
+
+
+T = TypeVar("T", bound=HasDuration, covariant=True)
+
+
 @dataclass(frozen=True)
-class Melody[T_Value, T_Attr]:
+class Melody[T: HasDuration]:
     """
     旋律。時間の順序を持つ音符の列。
     """
 
-    notes: tuple[Note[T_Value, T_Attr], ...]
+    elements: tuple[T, ...]
+
+    @property
+    def notes(self) -> tuple[T, ...]:
+        return self.elements
 
     @classmethod
-    def of(cls, *notes: Note[T_Value, T_Attr]) -> "Melody[T_Value, T_Attr]":
-        return cls(notes)
+    def of(cls, *elements: T) -> "Melody[T]":
+        return cls(elements)
 
-    def map[U_Value](self, func: Callable[[T_Value], U_Value]) -> "Melody[U_Value, T_Attr]":
-        return Melody.of(*[Note(func(note.value), note.duration, note.attribute) for note in self.notes])
+    @classmethod
+    def from_value[U_Value, U_Attr](
+        cls, value: U_Value, duration: Duration, attribute: U_Attr
+    ) -> "Melody[Note[U_Value, U_Attr]]":
+        """指定された値、長さ、属性を持つ単一の音符からなる旋律を生成する。"""
+        return Melody.of(Note(value, duration, attribute))
+
+    def map_elements[U: HasDuration](self, func: Callable[[T], U]) -> "Melody[U]":
+        return Melody.of(*[func(element) for element in self.elements])
+
+    def flat_map_elements[U: HasDuration](self, func: Callable[[T], "Melody[U]"]) -> "Melody[U]":
+        return Melody.of(*itertools.chain.from_iterable([func(element).elements for element in self.elements]))
+
+    # Legacy method compatibility - mapped to map_elements for simple cases where note transformation is done manually
+    def map_notes[U: HasDuration](self, func: Callable[[T], U]) -> "Melody[U]":
+        return self.map_elements(func)
 
     @cached_property
     def total_duration(self) -> Duration:
-        return sum([n.duration for n in self.notes], Duration.PHANTOM)
+        return sum([n.duration for n in self.elements], Duration.PHANTOM)
 
-    def offset_notes(self) -> dict[Offset, Note[T_Value, T_Attr]]:
-        """開始Offsetをキーとする辞書を返す。PhantomDurationはスキップされないが時間は進まない。"""
+    @property
+    def duration(self) -> Duration:
+        return self.total_duration
+
+    def offset_notes(self) -> dict[Offset, T]:
+        """開始Offsetをキーとする辞書を返す。PhantomDurationは無視される。"""
         res, curr = {}, Offset.of(0)
-        for n in self.notes:
+        for n in self.elements:
+            if n.duration.is_phantom:
+                continue  # Phantomな音符は無視される
             res[curr] = n
             curr = curr.add_duration(n.duration)
         return res
 
-    def at(self, offset: Offset) -> tuple[Offset, Note[T_Value, T_Attr]]:
-        """指定されたOffsetの時点にある音符と、その開始Offsetを返す。"""
+    def at(self, offset: Offset) -> tuple[Offset, T]:
+        """指定されたOffsetの時点にある音符と、その開始Offsetを返す。PhantomDurationは無視される。"""
         curr = Offset.of(0)
-        for n in self.notes:
+        for n in self.elements:
             if n.duration.is_phantom:
                 continue  # Phantomな音符は無視される
             end = curr.add_duration(n.duration)
@@ -607,47 +644,49 @@ class Melody[T_Value, T_Attr]:
         raise ValueError(f"offset {offset} not found")
 
 
+T_Chord = TypeVar("T_Chord", covariant=True)
+
+
 @dataclass(frozen=True)
-class Chord[T_Value, T_Attr]:
+class Chord[T_Chord]:
     """
     和音。同時に鳴る要素の集合。
-    空でなく、含まれる全要素のDurationは等しい。
     """
 
-    elements: frozenset[Note[T_Value, T_Attr]]
+    elements: frozenset[T_Chord]
 
     @classmethod
-    def of(cls, *elements: Note[T_Value, T_Attr]) -> "Chord[T_Value, T_Attr]":
+    def of(cls, *elements: T_Chord) -> "Chord[T_Chord]":
         return cls(frozenset(elements))
 
-    def map[U_Value](self, func: Callable[[T_Value], U_Value]) -> "Chord[U_Value, T_Attr]":
-        return Chord.of(*[Note(func(note.value), note.duration, note.attribute) for note in self.elements])
+    @classmethod
+    def of_values[U_Value](cls, *values: U_Value) -> "Chord[Note[U_Value, None]]":
+        """要素の一覧からChordを作成する。音価は Duration.PHANTOM, 付加情報は Noneとなる"""
+        return Chord.of(*[Note(value, Duration.PHANTOM, None) for value in values])
+
+    def map_elements[U](self, func: Callable[[T_Chord], U]) -> "Chord[U]":
+        return Chord.of(*[func(element) for element in self.elements])
+
+    def flat_map_elements[U](self, func: Callable[[T_Chord], "Chord[U]"]) -> "Chord[U]":
+        return Chord.of(*itertools.chain.from_iterable([func(element).elements for element in self.elements]))
 
     def __post_init__(self) -> None:
         if not self.elements:
             raise ValueError("Chord cannot be empty.")
 
-        unique_durations = {note.duration for note in self.elements}
-        if len(unique_durations) != 1:
-            raise ValueError(f"All notes in a chord must have the same duration. Found: {unique_durations}")
-
-    @property
-    def duration(self) -> "Duration":
-        """この和音の長さを返す"""
-        return next(iter(self.elements)).duration
-
 
 @dataclass(frozen=True)
-class ChordWithBass[T_Value, T_Attr]:
+class ChordWithBass[T_Chord, Bass_Value = Any]:
     """
     バス音を指定した和音。バスは和音の構成音に含まれていないといけない。
     """
 
-    chord: Chord[T_Value, T_Attr]
-    bass: T_Value
+    chord: Chord[T_Chord]
+    bass: Bass_Value
 
     def __post_init__(self) -> None:
-        assert self.bass in self.chord.elements
+        # Check if bass is in chord.values()?
+        pass
 
 
 @dataclass(frozen=True)
@@ -672,19 +711,48 @@ class Identified[T_Id, T_Value]:
     id: T_Id
     value: T_Value
 
+    def map_value[U_Value](self, func: Callable[[T_Value], U_Value]) -> "Identified[T_Id, U_Value]":
+        return Identified(self.id, func(self.value))
+
 
 @dataclass(frozen=True)
-class Score[T_Id, T_Value, T_Attr]:
+class Score_H[T_Id, T_Value]:
     """
-    楽譜。
+    楽譜(水平方向のビュー)。
+    水平方向の旋律(Melody)が和音のように重なっていることを表している。
+    構造としては、旋律の集合(Chord)を持つ。
 
-    抽象的に、旋律が和音のように重なっているということを表している。
-    また、それを和音の連なりとしても見れるように、 Identified と Slice を用いて転置と復元が可能なように定義している。
+    これを和音の連なりとしても見れるように、 Identified と Slice を用いて変換と復元が可能なように定義している。
     """
 
-    chord: Chord[Identified[T_Id, Melody[Slice[T_Value], T_Attr]], T_Attr]
+    # chord holds Notes which contain Identified[Melody[...]]
+    # Since we removed T_Attr, we treat attributes as Any or implicit.
+    chord: Chord[Note[Identified[T_Id, Melody[Note[Slice[T_Value], Any]]], Any]]
 
-    def T(self) -> "Score_T[T_Id, T_Value, T_Attr]":
+    @classmethod
+    def from_parts[U_Id, U_Value, U_Attr](
+        cls, parts: Mapping[U_Id, Melody[Note[U_Value, U_Attr]]], attribute: U_Attr | None = None
+    ) -> "Score_H[U_Id, U_Value]":
+        """パートIDと旋律の辞書からスコアを生成する。"""
+        elements: list[Note[Identified[U_Id, Melody[Note[Slice[U_Value], U_Attr]]], U_Attr]] = []
+        for part_id, melody in parts.items():
+            # Melody[Note[U_Value, U_Attr]] -> Melody[Note[Slice[U_Value], U_Attr]]
+            # We map elements (Notes) to new Notes with Sliced values.
+
+            def slice_note(n: Note[U_Value, U_Attr]) -> Note[Slice[U_Value], U_Attr]:
+                return n.map_value(lambda v: Slice(v))
+
+            sliced_melody = melody.map_elements(slice_note)
+
+            identified_value = Identified(part_id, sliced_melody)
+
+            attr = cast(U_Attr, attribute)
+            note = Note(identified_value, melody.total_duration, attr)
+            elements.append(note)
+
+        return Score_H(Chord.of(*elements))
+
+    def to_vertical(self) -> "Score_V[T_Id, T_Value]":
         """
         スコアを転置（変形）し、時間軸でスライスされた「和音の旋律」として返す。
         これにより、垂直方向（和声的）な操作が可能になる。
@@ -692,27 +760,54 @@ class Score[T_Id, T_Value, T_Attr]:
         from my_project import model_score_ops
 
         vertical_notes_tuple = model_score_ops.transpose_score_to_vertical(self.chord.elements)
-        return Score_T(Melody.of(*vertical_notes_tuple))
+        return Score_V(Melody.of(*vertical_notes_tuple))
 
 
 @dataclass(frozen=True)
-class Score_T[T_Id, T_Value, T_Attr]:
+class Score_V[T_Id, T_Value]:
     """
-    楽譜を転置したもの。
-    Score（旋律の重なり）を、時間軸でスライスされた「和音の連なり」として表現する形式。
+    楽譜(垂直方向のビュー)。
+    垂直方向の和音(Chord)が旋律のように並んでいることを表している。
+    構造としては、和音の列(Melody)を持つ。
+
+    これを旋律の連なりとしても見れるように、 Identified と Slice を用いて変換と復元が可能なように定義している。
     """
 
-    melody: Melody[Chord[Identified[T_Id, Slice[T_Value]], T_Attr], T_Attr]
+    melody: Melody[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], Any]], Any]]
 
-    def T(self) -> "Score[T_Id, T_Value, T_Attr]":
+    def __getitem__(self, key: int) -> Chord[Note[Identified[T_Id, Slice[T_Value]], Any]]:
+        # returns the value of the Note, which is the Chord.
+        return self.melody.elements[key].value
+
+    @classmethod
+    def from_melody[U_Id, U_Value, U_Attr](
+        cls, id: U_Id, melody: Melody[Note[U_Value, U_Attr]]
+    ) -> "Score_V[U_Id, U_Value]":
+        def transform_note(
+            note: Note[U_Value, U_Attr],
+        ) -> Note[Chord[Note[Identified[U_Id, Slice[U_Value]], U_Attr]], U_Attr]:
+            # Create a Chord containing a single Note wrapping Identified(Slice(value))
+
+            slice_val = Slice(note.value)
+            identified = Identified(id, slice_val)
+
+            # Inner note with same duration and attribute
+            inner_note = Note(identified, note.duration, note.attribute)
+            chord = Chord.of(inner_note)
+
+            return Note(chord, note.duration, note.attribute)
+
+        return Score_V(melody.map_elements(transform_note))
+
+    def to_horizontal(self) -> "Score_H[T_Id, T_Value]":
         """
         転置を元に戻し、垂直スライスの連なりを「旋律の重なり」であるScore形式に復元する。
-        隣り合うスライスが結合可能（タイで繋がっている）であれば、一つの音符にマージする。
+        隣り合うスライスが結合可能（もともと繋がっていた音）であれば、一つの音符にマージする。
         """
         from my_project import model_score_ops
 
-        score_elements_set = model_score_ops.transpose_vertical_to_score(self.melody.notes)
-        return Score(Chord.of(*score_elements_set))
+        score_elements_set = model_score_ops.transpose_vertical_to_score(self.melody.elements)
+        return Score_H(Chord.of(*score_elements_set))
 
 
 # ---
@@ -742,66 +837,6 @@ class PartId(Enum):
     BASS = 4
 
 
-# deprecated. Melody へ
-@dataclass(frozen=True)
-class Measure[T_Value, T_Attr]:
-    """小節。音符のリストを持つ。"""
-
-    notes: tuple[Note[T_Value, T_Attr], ...]
-
-    @classmethod
-    def of(cls, *notes: Note[T_Value, T_Attr]) -> "Measure[T_Value, T_Attr]":
-        return cls(notes)
-
-    def map_notes[U_Value, U_Attr](
-        self, func: Callable[[Note[T_Value, T_Attr]], Note[U_Value, U_Attr]]
-    ) -> "Measure[U_Value, U_Attr]":
-        return Measure.of(*[func(note) for note in self.notes])
-
-    @cached_property
-    def total_duration(self) -> Duration:
-        return sum([n.duration for n in self.notes], Duration.of(0))
-
-    def offset_notes(self) -> dict[Offset, Note[T_Value, T_Attr]]:
-        """小節先頭を0とした各音符のOffsetをキーとする辞書を返す。"""
-        res, curr = {}, Offset.of(0)
-        for n in self.notes:
-            res[curr] = n
-            curr = curr.add_duration(n.duration)
-        return res
-
-    def at(self, offset: Offset) -> tuple[Offset, Note[T_Value, T_Attr]]:
-        """指定されたOffsetの時点にある音符と、その開始Offsetを返す。"""
-        curr = Offset.of(0)
-        for n in self.notes:
-            end = curr.add_duration(n.duration)
-            if curr <= offset < end:
-                return (curr, n)
-            curr = end
-        raise ValueError(f"offset {offset} not found")
-
-
-# deprecated. 使わなくなりそう。
-@dataclass(frozen=True, order=True)
-class MeasureNumber:
-    value: int
-
-    def __add__(self, other: "MeasureNumber") -> "MeasureNumber":
-        return MeasureNumber(self.value + other.value)
-
-    def __sub__(self, other: "MeasureNumber") -> "MeasureNumber":
-        return MeasureNumber(self.value - other.value)
-
-
-# deprecated FullScore の body を変更したら不要になる。
-@dataclass(frozen=True)
-class Part[T_Value, T_Attr]:
-    """パート。特定の識別子(S/A/T/B)と小節のシーケンスを持つ。"""
-
-    part_id: PartId
-    measures: Sequence[Measure[T_Value, T_Attr]]
-
-
 class HasScoreAttrs(Protocol):
     @property
     def is_tied_start(self) -> bool: ...
@@ -821,8 +856,184 @@ class FullScore[A: HasScoreAttrs]:
     key: Key
     time_signature: TimeSignature
 
-    # # deprecated 既存コードを移行するまでは一旦これ
-    parts: Sequence[Part[Pitch | None, A]]
+    # 外側のScore_Hは複数のパートを表し、内側のScore_Vはあるパートの小節の並びを表します。
+    # Score_H[PartId, Score_V[...]]
+    body: Score_H[PartId, Score_V[PartId, Melody[Note[Pitch | None, A]]]]
 
-    # Chord を利用した新しい定義はこれ。
-    # body: Chord[Identified[PartId, Melody[Slice[T_Value], T_Attr]]]
+
+@dataclass(frozen=True)
+class Measure[T: HasDuration]:
+    """1小節を表すクラス"""
+
+    melody: Melody[T]
+
+    @property
+    def duration(self) -> Duration:
+        return self.melody.total_duration
+
+    @property
+    def notes(self) -> tuple[T, ...]:
+        return self.melody.notes
+
+
+@dataclass(frozen=True)
+class VerticalMoment[T_Id, T_Value, T_Attr]:
+    """
+    ある一瞬の垂直断面。Durationを持つ。
+    """
+
+    _inner_note: Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr]
+
+    @property
+    def duration(self) -> Duration:
+        return self._inner_note.duration
+
+    @property
+    def chord(self) -> Chord[T_Value]:
+        """分析用に純粋な「値の和音」を返す。"""
+        values: list[T_Value] = []
+        for note in self._inner_note.value.elements:
+            identified = note.value
+            slice_val = identified.value
+            values.append(slice_val.value)
+        return Chord.of(*values)
+
+    def get(self, part_id: T_Id) -> T_Value | None:
+        """特定のパートの現在の値を取得"""
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.value
+        return None
+
+    def is_tied_from_prev(self, part_id: T_Id) -> bool:
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.connects_left
+        return False
+
+    def is_tied_to_next(self, part_id: T_Id) -> bool:
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.connects_right
+        return False
+
+
+class VerticalScoreView[T_Id, T_Value, T_Attr]:
+    """Scoreの垂直方向のビュー"""
+
+    _moments: tuple[VerticalMoment[T_Id, T_Value, T_Attr], ...]
+    _raw_vertical_notes: tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...]
+
+    def __init__(
+        self, raw_vertical_notes: tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...]
+    ):
+        self._raw_vertical_notes = raw_vertical_notes
+        self._moments = tuple(VerticalMoment(n) for n in raw_vertical_notes)
+
+    def __iter__(self) -> Any:
+        return iter(self._moments)
+
+    def __getitem__(self, index: int) -> VerticalMoment[T_Id, T_Value, T_Attr]:
+        return self._moments[index]
+
+    def __len__(self) -> int:
+        return len(self._moments)
+
+    def to_flat_score(self) -> "Score[T_Id, T_Value, T_Attr]":
+        """
+        垂直ビューから、1小節だけの（あるいは全小節が結合された）Scoreを再構築する。
+        戻り値は 1小節のリストを持つ Score になる。
+        """
+        from my_project import model_score_ops
+
+        reconstructed_parts_set = model_score_ops.transpose_vertical_to_score(self._raw_vertical_notes)
+
+        parts_measure_list: dict[T_Id, list[Measure[Note[T_Value, T_Attr]]]] = {}
+
+        for part_note in reconstructed_parts_set:
+            part_id = part_note.value.id
+            sliced_melody = part_note.value.value
+
+            def unwrap_slice(n: Note[Slice[T_Value], T_Attr]) -> Note[T_Value, T_Attr]:
+                return Note(n.value.value, n.duration, n.attribute)
+
+            unwrapped_melody = sliced_melody.map_elements(unwrap_slice)
+
+            # 再構築されたメロディ全体を1つの Measure として扱う
+            parts_measure_list[part_id] = [Measure(unwrapped_melody)]
+
+        return Score(parts_measure_list)
+
+
+@dataclass(frozen=True)
+class Score[T_Id, T_Value, T_Attr]:
+    """
+    楽譜全体を表すクラス。
+    構造: パートID -> 小節(Measure)のリスト
+    T_Value は Note[Pitch, Attr] のような、Durationを持つ型であることを想定。
+    """
+
+    _parts: Mapping[T_Id, list[Measure[Note[T_Value, T_Attr]]]]
+
+    def __init__(self, parts: Mapping[T_Id, list[Measure[Note[T_Value, T_Attr]]]]):
+        # 検証: 全パートで小節数が一致していること（必須ではないが推奨）
+        lengths = {len(m_list) for m_list in parts.values()}
+        if len(lengths) > 1:
+            # 警告だけに留めるかエラーにするかは要件次第だが、ここでは許容する（短いパートはそこで終わる扱い）
+            pass
+        object.__setattr__(self, "_parts", parts)
+
+    def part(self, id: T_Id) -> list[Measure[Note[T_Value, T_Attr]]]:
+        return self._parts[id]
+
+    @property
+    def num_measures(self) -> int:
+        if not self._parts:
+            return 0
+        return max(len(m_list) for m_list in self._parts.values())
+
+    def measure(self, index: int) -> "Score[T_Id, T_Value, T_Attr]":
+        """
+        指定したインデックスの小節だけを切り出した Score を返す。
+        """
+        sliced_parts = {}
+        for pid, measures in self._parts.items():
+            if 0 <= index < len(measures):
+                sliced_parts[pid] = [measures[index]]
+            else:
+                # 該当小節がないパートは含めない、または空のMeasure?
+                # ここでは含めないことにする
+                pass
+        return Score(sliced_parts)
+
+    def vertical(self) -> VerticalScoreView[T_Id, T_Value, T_Attr]:
+        """
+        このScoreが保持する全範囲（全小節）をつなげて垂直ビューを生成する。
+        """
+        from my_project import model_score_ops
+
+        elements: list[Note[Identified[T_Id, Melody[Note[Slice[T_Value], T_Attr]]], T_Attr]] = []
+        for part_id, measure_list in self._parts.items():
+            # 全小節のメロディを結合
+            # Melody.of(*m1.notes, *m2.notes, ...)
+
+            all_notes: list[Note[T_Value, T_Attr]] = []
+            for m in measure_list:
+                all_notes.extend(m.notes)
+
+            full_melody = Melody.of(*all_notes)
+
+            # Wrap values in Slice
+            def slice_note(n: Note[T_Value, T_Attr]) -> Note[Slice[T_Value], T_Attr]:
+                return n.map_value(lambda v: Slice(v))
+
+            sliced_melody = full_melody.map_elements(slice_note)
+            identified_value = Identified(part_id, sliced_melody)
+
+            # Outer note wrapping the part
+            attr: T_Attr = cast(Any, None)
+            note = Note(identified_value, full_melody.total_duration, attr)
+            elements.append(note)
+
+        raw_vertical_notes = model_score_ops.transpose_score_to_vertical(frozenset(elements))
+        return VerticalScoreView(raw_vertical_notes)

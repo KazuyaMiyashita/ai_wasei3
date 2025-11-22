@@ -3,7 +3,7 @@ import unittest
 from my_project.counterpoint.measure_search.measure_step_sequence import MeasureStepSequence
 from my_project.counterpoint.measure_search.rythmn_applyer import try_apply_rythmn
 from my_project.counterpoint.model import MeasureRythmnPattern, NoteAnnotation, ToneType
-from my_project.model import Duration, IntervalStep, Measure, Note
+from my_project.model import Duration, IntervalStep, Melody, Note
 
 
 class TestTryApplyRythmn(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestTryApplyRythmn(unittest.TestCase):
         pattern = MeasureRythmnPattern.R_4444
         result = try_apply_rythmn(seq, pattern)
         self.assertIsNotNone(result)
-        expected_measure = Measure.of(
+        expected_melody = Melody.of(
             Note(
                 IntervalStep(0),
                 Duration.of(1),
@@ -35,7 +35,7 @@ class TestTryApplyRythmn(unittest.TestCase):
                 NoteAnnotation(is_tied_start=False, tone_type=ToneType.HARMONIC_TONE),
             ),
         )
-        self.assertEqual(result, expected_measure)
+        self.assertEqual(result, expected_melody)
 
     def test_note_count_mismatch(self) -> None:
         """異常系: 音符数が一致しないケース"""
@@ -64,7 +64,7 @@ class TestTryApplyRythmn(unittest.TestCase):
         pattern = MeasureRythmnPattern.R_t22
         result = try_apply_rythmn(seq, pattern)
         self.assertIsNotNone(result)
-        expected_measure = Measure.of(
+        expected_melody = Melody.of(
             Note(
                 IntervalStep(1),
                 Duration.of(2),
@@ -76,7 +76,7 @@ class TestTryApplyRythmn(unittest.TestCase):
                 NoteAnnotation(is_tied_start=False, tone_type=ToneType.HARMONIC_TONE),
             ),
         )
-        self.assertEqual(result, expected_measure)
+        self.assertEqual(result, expected_melody)
 
         # R_22 は前にタイが付かないのでNG
         pattern = MeasureRythmnPattern.R_22

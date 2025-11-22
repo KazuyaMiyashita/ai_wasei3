@@ -5,7 +5,7 @@ from functools import cached_property
 from my_project.counterpoint.model import (
     ToneType,
 )
-from my_project.model import Duration, IntervalStep, Measure, Note, Pitch
+from my_project.model import Duration, IntervalStep, Melody, Note, Pitch
 
 AnnotatedIntervalStep = Note[IntervalStep, ToneType]
 """
@@ -15,7 +15,7 @@ AnnotatedIntervalStep = Note[IntervalStep, ToneType]
 
 @dataclass(frozen=True)
 class AbstractMeasureStepSequence[T]:
-    measure: Measure[T, ToneType]
+    measure: Melody[Note[T, ToneType]]
     next_measure_step: T
 
     def num_notes_in_measure(self) -> int:
@@ -126,7 +126,7 @@ class MeasureStepSequence(AbstractMeasureStepSequence[IntervalStep]):
             parsed_steps.append(Note(interval_step, Duration.of(1), tone_type))
 
         return cls(
-            measure=Measure.of(*parsed_steps),
+            measure=Melody.of(*parsed_steps),
             next_measure_step=IntervalStep(int(next_measure_step_str)),
         )
 

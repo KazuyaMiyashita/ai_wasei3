@@ -18,13 +18,13 @@ from my_project.counterpoint.skeleton_generator import Skeleton, SkeletonGenerat
 from my_project.model import (
     Duration,
     FullScore,
-    HasScoreAttrs,
     Key,
-    Measure,
+    Melody,
     Note,
-    Part,
     PartId,
     Pitch,
+    Score_H,
+    Score_V,
     TimeSignature,
 )
 from my_project.util import part_range
@@ -113,7 +113,7 @@ class CounterpointGenerator:
     class AbortAttempt(Exception):
         pass
 
-    def generate_scores(self) -> Iterator[FullScore[HasScoreAttrs]]:
+    def generate_scores(self) -> Iterator[FullScore[NoteAnnotation]]:
         # logger.info("generate_scoresを開始します")
 
         attempt_count = 0
@@ -136,7 +136,7 @@ class CounterpointGenerator:
         completed_measures: list[AnnotatedMeasure],
         measure_index: int,
         current_start_pitch: Pitch,
-    ) -> Iterator[FullScore[HasScoreAttrs]]:
+    ) -> Iterator[FullScore[NoteAnnotation]]:
         log_indents = 2
         indent = " " * (measure_index * log_indents)
         mn_for_log = measure_index + 1
@@ -151,7 +151,7 @@ class CounterpointGenerator:
 
         # 最終小節の場合
         if measure_index == self._measure_length - 1:
-            last_measure_candidate: AnnotatedMeasure = Measure.of(
+            last_measure_candidate: AnnotatedMeasure = Melody.of(
                 Note(
                     skeleton.measures[measure_index].notes[0].value,
                     Duration.of(4),
@@ -224,7 +224,7 @@ class CounterpointGenerator:
         else:
             return MeasurePosition.MIDDLE
 
-    def _to_score(self, completed_measures: list[AnnotatedMeasure]) -> FullScore[HasScoreAttrs]:
+    def _to_score(self, completed_measures: list[AnnotatedMeasure]) -> FullScore[NoteAnnotation]:
         cf_notes: list[Note[Pitch | None, NoteAnnotation]] = [
             Note(
                 pitch,
@@ -233,13 +233,45 @@ class CounterpointGenerator:
             )
             for pitch in self.cantus_firmus
         ]
-        cf_measures: list[AnnotatedMeasure] = [Measure.of(note) for note in cf_notes]
+        cf_measures: list[AnnotatedMeasure] = [Melody.of(note) for note in cf_notes]
+
+        # body Construction
+        time_signature = TimeSignature(2, Duration.of(2))
+
+        all_notes_by_part_and_measure: dict[PartId, list[Note[Pitch | None, NoteAnnotation]]] = {
+            self.cf_part_id: [],
+            self.part_id: [],
+        }
+
+        for measure in cf_measures:
+            all_notes_by_part_and_measure[self.cf_part_id].extend(measure.notes)
+
+        for measure in completed_measures:
+            all_notes_by_part_and_measure[self.part_id].extend(measure.notes)
+
+        part_melodies_list: dict[
+            PartId, list[Note[Score_V[PartId, Melody[Note[Pitch | None, NoteAnnotation]]], None]]
+        ] = {
+            self.cf_part_id: [],
+            self.part_id: [],
+        }
+
+        for part_id, measures_list in [(self.cf_part_id, cf_measures), (self.part_id, completed_measures)]:
+            for m in measures_list:
+                # m is Melody[Pitch | None, NoteAnnotation]
+                score_t = Score_V.from_melody(part_id, Melody.from_value(m, m.total_duration, None))
+                part_melodies_list[part_id].append(Note(score_t, m.total_duration, None))
+
+        part_melodies: dict[
+            PartId, Melody[Note[Score_V[PartId, Melody[Note[Pitch | None, NoteAnnotation]]], None]]
+        ] = {}
+        for part_id, notes in part_melodies_list.items():
+            part_melodies[part_id] = Melody.of(*notes)
+
+        body = Score_H.from_parts(part_melodies)
 
         return FullScore(
             key=self.key,
-            time_signature=TimeSignature(2, Duration.of(2)),
-            parts=[
-                Part(part_id=self.cf_part_id, measures=cf_measures),  # type: ignore # AnnotatedMeasure は HasScoreAttrs だが mypy は認識してくれない
-                Part(part_id=self.part_id, measures=completed_measures),  # type: ignore # AnnotatedMeasure は HasScoreAttrs だが mypy は認識してくれない
-            ],
+            time_signature=time_signature,
+            body=body,
         )

@@ -17,7 +17,7 @@ from my_project.counterpoint.measure_search.pitch_applyer import apply_pitch_can
 from my_project.counterpoint.measure_search.pitch_filter import filter_pitch_sequences
 from my_project.counterpoint.measure_search.rythmn_applyer import apply_rythmn
 from my_project.counterpoint.model import AnnotatedMeasure, MeasureRythmnPattern, NoteAnnotation, ToneType
-from my_project.model import Degree, Duration, IntervalStep, Key, Measure, Note, NoteName, Octave, Pitch
+from my_project.model import Degree, Duration, IntervalStep, Key, Melody, Note, NoteName, Octave, Pitch
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class MeasureSearchResult:
 
             notes.append(Note(pitch, duration, NoteAnnotation(is_tied_start, tone_type)))
 
-        return cls(Measure.of(*notes), next_pitch)
+        return cls(Melody.of(*notes), next_pitch)
 
 
 class MeasureSearch:

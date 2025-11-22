@@ -3,7 +3,7 @@ from my_project.model import (
     Duration,
     Interval,
     IntervalStep,
-    Measure,
+    Melody,
     Note,
     Offset,
     Pitch,
@@ -69,20 +69,20 @@ def _validate_interval(
     # かつ、not (後続の5度・8度をなす音が同時に打音されていない and (反行している または いずれかの音が非和声音))
 
     # 簡単のため、小節と現在の小節を繋げた1小節を考え、Offset.of(4)以降のものに対して確認をする
-    cf_measure: Measure[Pitch, ToneType] = Measure.of(
+    cf_melody: Melody[Note[Pitch, ToneType]] = Melody.of(
         Note(previous_cf, Duration.of(4), ToneType.HARMONIC_TONE),
         Note(current_cf, Duration.of(4), ToneType.HARMONIC_TONE),
     )
-    realize_measure: Measure[Pitch | None, ToneType] = Measure.of(
+    realize_melody: Melody[Note[Pitch | None, ToneType]] = Melody.of(
         *[
             Note(note.value, note.duration, note.attribute.tone_type)
             for note in [*previous_measure.notes, *current_measure.notes]
         ]
     )
-    for realize_current_offset, realize_current_a_note in realize_measure.offset_notes().items():
+    for realize_current_offset, realize_current_a_note in realize_melody.offset_notes().items():
         if realize_current_offset < Offset.of(4):
             continue
-        for realize_previous_offset, realize_previous_a_note in realize_measure.offset_notes().items():
+        for realize_previous_offset, realize_previous_a_note in realize_melody.offset_notes().items():
             # Offset の差が Duration.of(4) 以下の異なる2音を選ぶ。
             if not (Offset.of(0) < realize_current_offset - realize_previous_offset <= Offset.of(4)):
                 continue
@@ -96,8 +96,8 @@ def _validate_interval(
 
             # ある他の声部の、それらの音に同時になっている2音を選ぶ。
             # (現在は定旋律に対して確認しているので必ず音高が取得できる)
-            cf_current_offset_note = cf_measure.at(realize_current_offset)
-            cf_previous_offset_note = cf_measure.at(realize_previous_offset)
+            cf_current_offset_note = cf_melody.at(realize_current_offset)
+            cf_previous_offset_note = cf_melody.at(realize_previous_offset)
             cf_current_offset, cf_current_annotated_note = cf_current_offset_note
             _cf_previous_offset, cf_previous_annotated_note = cf_previous_offset_note
             cf_current_pitch = cf_current_annotated_note.value

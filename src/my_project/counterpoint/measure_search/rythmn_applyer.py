@@ -3,16 +3,16 @@ from my_project.counterpoint.measure_search.measure_step_sequence import (
     MeasureStepSequence,
 )
 from my_project.counterpoint.model import MeasureRythmnPattern, NoteAnnotation, ToneType
-from my_project.model import Duration, IntervalStep, Measure, Note, Offset
+from my_project.model import Duration, IntervalStep, Melody, Note, Offset
 from my_project.util import sliding
 
 
 def try_apply_rythmn(
     step_sequence: MeasureStepSequence, rythmn_pattern: MeasureRythmnPattern
-) -> Measure[IntervalStep | None, NoteAnnotation] | None:
+) -> Melody[Note[IntervalStep | None, NoteAnnotation]] | None:
     """
     MeasureStepSequence に対して MeasureRythmnPattern を適用できるかを判断する。
-    可能なら適用した Measure を返し、不可能なら None を返す。
+    可能なら適用した Melody を返し、不可能なら None を返す。
     """
 
     if step_sequence.num_notes_in_measure() != rythmn_pattern.measure_rythmn().num_durations():
@@ -20,30 +20,30 @@ def try_apply_rythmn(
     if step_sequence.is_tied_to_next_measure_required() != rythmn_pattern.measure_rythmn().is_next_tied:
         return None
 
-    measure: Measure[IntervalStep | None, NoteAnnotation] = apply_rythmn(step_sequence, rythmn_pattern)
+    melody: Melody[Note[IntervalStep | None, NoteAnnotation]] = apply_rythmn(step_sequence, rythmn_pattern)
 
     # タイで繋ぐ場合、最後の音は3拍目の2分音符である必要がある
     if step_sequence.is_tied_to_next_measure_required():
-        offset_notes = measure.offset_notes()
+        offset_notes = melody.offset_notes()
         note_at_beat3 = offset_notes.get(Offset.idx_1(3))
-        if not note_at_beat3 or note_at_beat3.duration != Duration.of(2) or note_at_beat3 is not measure.notes[-1]:
+        if not note_at_beat3 or note_at_beat3.duration != Duration.of(2) or note_at_beat3 is not melody.notes[-1]:
             return None
 
     # 掛留音
-    if measure.notes[0].attribute.tone_type == ToneType.SUSPENDED_TONE:
+    if melody.notes[0].attribute.tone_type == ToneType.SUSPENDED_TONE:
         # 掛留音から始まる場合、リズムは前にタイが付いていないといけない
         if not rythmn_pattern.measure_rythmn().is_previous_tied:
             return None
 
         # 掛留音は3拍目に解決しなければならない
-        offset3_note = measure.offset_notes().get(Offset.idx_1(3))
+        offset3_note = melody.offset_notes().get(Offset.idx_1(3))
         if not offset3_note:
             return None
         if not offset3_note.attribute.tone_type == ToneType.HARMONIC_TONE:
             return None
 
         # 3拍目より前に解決してはいけない
-        for offset, note in measure.offset_notes().items():
+        for offset, note in melody.offset_notes().items():
             if Offset.of(0) < offset < Offset.idx_1(3):
                 if note.attribute.tone_type == ToneType.HARMONIC_TONE:
                     return None
@@ -55,7 +55,7 @@ def try_apply_rythmn(
         duration=Duration.of(1),
         attribute=NoteAnnotation(is_tied_start=False, tone_type=ToneType.HARMONIC_TONE),
     )
-    notes_to_check: list[Note[IntervalStep | None, NoteAnnotation]] = [*list(measure.notes), next_note_dummy]
+    notes_to_check: list[Note[IntervalStep | None, NoteAnnotation]] = [*list(melody.notes), next_note_dummy]
 
     for current_note, next_note in sliding(notes_to_check, 2):
         if current_note.value is not None and current_note.duration == Duration.of(1, 2):
@@ -63,14 +63,14 @@ def try_apply_rythmn(
                 if (current_note.value - next_note.value).abs() >= IntervalStep.idx_1(3):
                     return None
 
-    return measure
+    return melody
 
 
 def apply_rythmn[T](
     step_sequence: AbstractMeasureStepSequence[T], rythmn_pattern: MeasureRythmnPattern
-) -> Measure[T | None, NoteAnnotation]:
+) -> Melody[Note[T | None, NoteAnnotation]]:
     """
-    任意の AbstractMeasureStepSequence に対して MeasureRythmnPattern を適用した Measure を返す。
+    任意の AbstractMeasureStepSequence に対して MeasureRythmnPattern を適用した Melody を返す。
     ここではリズムの検証は行われない。事前に検証済みの内容に関して利用すること。
     """
     rythmn = rythmn_pattern.measure_rythmn()
@@ -98,4 +98,4 @@ def apply_rythmn[T](
                 ),
             )
         )
-    return Measure.of(*notes)
+    return Melody.of(*notes)
