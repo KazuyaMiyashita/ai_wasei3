@@ -33,40 +33,28 @@ def format_score_for_debug(score: FullScore[NoteAnnotation]) -> str:
     result_lines = []
 
     # Use body
-    outer_chord = score.body.chord
     for part_id in [PartId.SOPRANO, PartId.ALTO, PartId.TENOR, PartId.BASS]:
-        outer_part_note = next((n for n in outer_chord.elements if n.value.id == part_id), None)
-
-        if not outer_part_note:
+        try:
+            measures = score.body.part(part_id)
+        except KeyError:
             continue
 
-        outer_melody = outer_part_note.value.value
         all_measure_parts: list[str] = []
 
-        for outer_note in outer_melody.notes:
-            inner_score_t = outer_note.value.value
+        for m in measures:
             note_parts_in_measure: list[str] = []
 
-            # inner_score_t.melody: Melody[Chord[Identified[PartId, Slice[Melody[Pitch|None]]]]]
-            for inner_note in inner_score_t.melody.notes:
-                chord = inner_note.value
-                part_in_chord = next((n for n in chord.elements if n.value.id == part_id), None)
+            for note_in_measure in m.notes:
+                pitch = note_in_measure.value
+                pitch_name = pitch.name() if pitch else "R"
+                duration_str = f"d={note_in_measure.duration.value}"
 
-                if part_in_chord:
-                    measure_melody = part_in_chord.value.value.value
+                tone_type_str = ""
+                if isinstance(note_in_measure.attribute, NoteAnnotation):
+                    tone_type_str = tone_map.get(note_in_measure.attribute.tone_type, "")
+                tied_str = ",t" if note_in_measure.attribute.is_tied_start else ""
 
-                    # Iterate notes in the measure
-                    for note_in_measure in measure_melody.notes:
-                        pitch = note_in_measure.value
-                        pitch_name = pitch.name() if pitch else "R"
-                        duration_str = f"d={note_in_measure.duration.value}"
-
-                        tone_type_str = ""
-                        if isinstance(note_in_measure.attribute, NoteAnnotation):
-                            tone_type_str = tone_map.get(note_in_measure.attribute.tone_type, "")
-                        tied_str = ",t" if note_in_measure.attribute.is_tied_start else ""
-
-                        note_parts_in_measure.append(f"{pitch_name}({duration_str}{tone_type_str}{tied_str})")
+                note_parts_in_measure.append(f"{pitch_name}({duration_str}{tone_type_str}{tied_str})")
 
             all_measure_parts.append(" ".join(note_parts_in_measure))
 

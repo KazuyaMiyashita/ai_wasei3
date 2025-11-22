@@ -19,12 +19,12 @@ from my_project.model import (
     Duration,
     FullScore,
     Key,
+    Measure,
     Melody,
     Note,
     PartId,
     Pitch,
-    Score_H,
-    Score_V,
+    Score,
     TimeSignature,
 )
 from my_project.util import part_range
@@ -238,37 +238,12 @@ class CounterpointGenerator:
         # body Construction
         time_signature = TimeSignature(2, Duration.of(2))
 
-        all_notes_by_part_and_measure: dict[PartId, list[Note[Pitch | None, NoteAnnotation]]] = {
-            self.cf_part_id: [],
-            self.part_id: [],
+        parts = {
+            self.cf_part_id: [Measure(m) for m in cf_measures],
+            self.part_id: [Measure(m) for m in completed_measures],
         }
 
-        for measure in cf_measures:
-            all_notes_by_part_and_measure[self.cf_part_id].extend(measure.notes)
-
-        for measure in completed_measures:
-            all_notes_by_part_and_measure[self.part_id].extend(measure.notes)
-
-        part_melodies_list: dict[
-            PartId, list[Note[Score_V[PartId, Melody[Note[Pitch | None, NoteAnnotation]]], None]]
-        ] = {
-            self.cf_part_id: [],
-            self.part_id: [],
-        }
-
-        for part_id, measures_list in [(self.cf_part_id, cf_measures), (self.part_id, completed_measures)]:
-            for m in measures_list:
-                # m is Melody[Pitch | None, NoteAnnotation]
-                score_t = Score_V.from_melody(part_id, Melody.from_value(m, m.total_duration, None))
-                part_melodies_list[part_id].append(Note(score_t, m.total_duration, None))
-
-        part_melodies: dict[
-            PartId, Melody[Note[Score_V[PartId, Melody[Note[Pitch | None, NoteAnnotation]]], None]]
-        ] = {}
-        for part_id, notes in part_melodies_list.items():
-            part_melodies[part_id] = Melody.of(*notes)
-
-        body = Score_H.from_parts(part_melodies)
+        body = Score(parts)
 
         return FullScore(
             key=self.key,

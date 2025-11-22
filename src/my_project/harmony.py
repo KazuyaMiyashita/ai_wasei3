@@ -10,14 +10,14 @@ from my_project.model import (
     Interval,
     IntervalStep,
     Key,
+    Measure,
     Melody,
     Mode,
     Note,
     NoteName,
     PartId,
     Pitch,
-    Score_H,
-    Score_V,
+    Score,
     ScoreAttrs,
     TimeSignature,
 )
@@ -60,14 +60,7 @@ def _chords_to_score(chords: list[Chord], key: Key) -> FullScore[ScoreAttrs]:
     measure_dur_val = time_signature.duration()
     notes_per_measure = int(measure_dur_val / duration.value)
 
-    # Score_V holds T_Value which is Melody[Note[Pitch | None, ScoreAttrs]]
-    # Note holds Score_V.
-    # So list[Note[Score_V[PartId, Melody[Note[Pitch | None, ScoreAttrs]]], None]]
-
-    T_Melody = Melody[Note[Pitch | None, ScoreAttrs]]
-    T_Score_V = Score_V[PartId, T_Melody]
-
-    part_melodies_list: dict[PartId, list[Note[T_Score_V, None]]] = {
+    part_measures: dict[PartId, list[Measure[Note[Pitch | None, ScoreAttrs]]]] = {
         PartId.SOPRANO: [],
         PartId.ALTO: [],
         PartId.TENOR: [],
@@ -89,22 +82,9 @@ def _chords_to_score(chords: list[Chord], key: Key) -> FullScore[ScoreAttrs]:
                 inner_notes.append(Note(pitch, duration, no_tied))
 
             inner_melody = Melody.of(*inner_notes)
-            # Melody.from_value creates Melody[Note[T_Melody, None]]
-            # Score_V.from_melody expects Melody[Note[U_Value, U_Attr]]
-            # So U_Value is T_Melody.
+            part_measures[part_id].append(Measure(inner_melody))
 
-            inner_score_t = Score_V.from_melody(
-                part_id, Melody.from_value(inner_melody, inner_melody.total_duration, None)
-            )
-
-            part_melodies_list[part_id].append(Note(inner_score_t, inner_melody.total_duration, None))
-
-    # part_melodies: dict[PartId, Melody[Note[T_Score_V, None]]]
-    part_melodies: dict[PartId, Melody[Note[T_Score_V, None]]] = {}
-    for part_id, notes in part_melodies_list.items():
-        part_melodies[part_id] = Melody.of(*notes)
-
-    body = Score_H.from_parts(part_melodies)
+    body = Score(part_measures)
 
     score = FullScore(
         key=key,

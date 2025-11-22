@@ -715,150 +715,6 @@ class Identified[T_Id, T_Value]:
         return Identified(self.id, func(self.value))
 
 
-@dataclass(frozen=True)
-class Score_H[T_Id, T_Value]:
-    """
-    楽譜(水平方向のビュー)。
-    水平方向の旋律(Melody)が和音のように重なっていることを表している。
-    構造としては、旋律の集合(Chord)を持つ。
-
-    これを和音の連なりとしても見れるように、 Identified と Slice を用いて変換と復元が可能なように定義している。
-    """
-
-    # chord holds Notes which contain Identified[Melody[...]]
-    # Since we removed T_Attr, we treat attributes as Any or implicit.
-    chord: Chord[Note[Identified[T_Id, Melody[Note[Slice[T_Value], Any]]], Any]]
-
-    @classmethod
-    def from_parts[U_Id, U_Value, U_Attr](
-        cls, parts: Mapping[U_Id, Melody[Note[U_Value, U_Attr]]], attribute: U_Attr | None = None
-    ) -> "Score_H[U_Id, U_Value]":
-        """パートIDと旋律の辞書からスコアを生成する。"""
-        elements: list[Note[Identified[U_Id, Melody[Note[Slice[U_Value], U_Attr]]], U_Attr]] = []
-        for part_id, melody in parts.items():
-            # Melody[Note[U_Value, U_Attr]] -> Melody[Note[Slice[U_Value], U_Attr]]
-            # We map elements (Notes) to new Notes with Sliced values.
-
-            def slice_note(n: Note[U_Value, U_Attr]) -> Note[Slice[U_Value], U_Attr]:
-                return n.map_value(lambda v: Slice(v))
-
-            sliced_melody = melody.map_elements(slice_note)
-
-            identified_value = Identified(part_id, sliced_melody)
-
-            attr = cast(U_Attr, attribute)
-            note = Note(identified_value, melody.total_duration, attr)
-            elements.append(note)
-
-        return Score_H(Chord.of(*elements))
-
-    def to_vertical(self) -> "Score_V[T_Id, T_Value]":
-        """
-        スコアを転置（変形）し、時間軸でスライスされた「和音の旋律」として返す。
-        これにより、垂直方向（和声的）な操作が可能になる。
-        """
-        from my_project import model_score_ops
-
-        vertical_notes_tuple = model_score_ops.transpose_score_to_vertical(self.chord.elements)
-        return Score_V(Melody.of(*vertical_notes_tuple))
-
-
-@dataclass(frozen=True)
-class Score_V[T_Id, T_Value]:
-    """
-    楽譜(垂直方向のビュー)。
-    垂直方向の和音(Chord)が旋律のように並んでいることを表している。
-    構造としては、和音の列(Melody)を持つ。
-
-    これを旋律の連なりとしても見れるように、 Identified と Slice を用いて変換と復元が可能なように定義している。
-    """
-
-    melody: Melody[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], Any]], Any]]
-
-    def __getitem__(self, key: int) -> Chord[Note[Identified[T_Id, Slice[T_Value]], Any]]:
-        # returns the value of the Note, which is the Chord.
-        return self.melody.elements[key].value
-
-    @classmethod
-    def from_melody[U_Id, U_Value, U_Attr](
-        cls, id: U_Id, melody: Melody[Note[U_Value, U_Attr]]
-    ) -> "Score_V[U_Id, U_Value]":
-        def transform_note(
-            note: Note[U_Value, U_Attr],
-        ) -> Note[Chord[Note[Identified[U_Id, Slice[U_Value]], U_Attr]], U_Attr]:
-            # Create a Chord containing a single Note wrapping Identified(Slice(value))
-
-            slice_val = Slice(note.value)
-            identified = Identified(id, slice_val)
-
-            # Inner note with same duration and attribute
-            inner_note = Note(identified, note.duration, note.attribute)
-            chord = Chord.of(inner_note)
-
-            return Note(chord, note.duration, note.attribute)
-
-        return Score_V(melody.map_elements(transform_note))
-
-    def to_horizontal(self) -> "Score_H[T_Id, T_Value]":
-        """
-        転置を元に戻し、垂直スライスの連なりを「旋律の重なり」であるScore形式に復元する。
-        隣り合うスライスが結合可能（もともと繋がっていた音）であれば、一つの音符にマージする。
-        """
-        from my_project import model_score_ops
-
-        score_elements_set = model_score_ops.transpose_vertical_to_score(self.melody.elements)
-        return Score_H(Chord.of(*score_elements_set))
-
-
-# ---
-
-
-@dataclass(frozen=True)
-class TimeSignature:
-    """拍子記号。"""
-
-    beats: int
-    beat_type: Duration
-
-    def duration(self) -> Fraction:
-        """1小節の長さを返す。"""
-        return self.beats * self.beat_type.value
-
-    def name(self) -> str:
-        """'4/4' のような文字列表現を返す。"""
-        denom = 4 / self.beat_type.value
-        return f"{self.beats}/{int(denom) if denom.denominator == 1 else denom}"
-
-
-class PartId(Enum):
-    SOPRANO = 1
-    ALTO = 2
-    TENOR = 3
-    BASS = 4
-
-
-class HasScoreAttrs(Protocol):
-    @property
-    def is_tied_start(self) -> bool: ...
-
-
-@dataclass(frozen=True)
-class ScoreAttrs:
-    is_tied_start: bool
-
-
-@dataclass
-class FullScore[A: HasScoreAttrs]:
-    """
-    楽譜全体を表すクラス。
-    """
-
-    key: Key
-    time_signature: TimeSignature
-
-    # 外側のScore_Hは複数のパートを表し、内側のScore_Vはあるパートの小節の並びを表します。
-    # Score_H[PartId, Score_V[...]]
-    body: Score_H[PartId, Score_V[PartId, Melody[Note[Pitch | None, A]]]]
 
 
 @dataclass(frozen=True)
@@ -1037,3 +893,54 @@ class Score[T_Id, T_Value, T_Attr]:
 
         raw_vertical_notes = model_score_ops.transpose_score_to_vertical(frozenset(elements))
         return VerticalScoreView(raw_vertical_notes)
+
+
+# ---
+
+
+@dataclass(frozen=True)
+class TimeSignature:
+    """拍子記号。"""
+
+    beats: int
+    beat_type: Duration
+
+    def duration(self) -> Fraction:
+        """1小節の長さを返す。"""
+        return self.beats * self.beat_type.value
+
+    def name(self) -> str:
+        """'4/4' のような文字列表現を返す。"""
+        denom = 4 / self.beat_type.value
+        return f"{self.beats}/{int(denom) if denom.denominator == 1 else denom}"
+
+
+class PartId(Enum):
+    SOPRANO = 1
+    ALTO = 2
+    TENOR = 3
+    BASS = 4
+
+
+class HasScoreAttrs(Protocol):
+    @property
+    def is_tied_start(self) -> bool: ...
+
+
+@dataclass(frozen=True)
+class ScoreAttrs:
+    is_tied_start: bool
+
+
+@dataclass
+class FullScore[A: HasScoreAttrs]:
+    """
+    楽譜全体を表すクラス。
+    """
+
+    key: Key
+    time_signature: TimeSignature
+
+    # 外側のScore_Hは複数のパートを表し、内側のScore_Vはあるパートの小節の並びを表します。
+    # Score_H[PartId, Score_V[...]]
+    body: Score[PartId, Pitch | None, A]

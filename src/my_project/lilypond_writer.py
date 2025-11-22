@@ -56,40 +56,14 @@ BassMusic  = {{ {bass_notes} }}
 
 
 def _get_notes_for_part[T: HasScoreAttrs](score: FullScore[T], part_id: PartId) -> list[Note[Pitch | None, T]]:
-    # body: Score[PartId, Score_T[PartId, Melody[Pitch | None, T], T], T]
-    outer_chord = score.body.chord
-    outer_part_note = next((n for n in outer_chord.elements if n.value.id == part_id), None)
-
-    if not outer_part_note:
+    try:
+        measures = score.body.part(part_id)
+    except KeyError:
         return []
 
-    # outer_melody: Melody[Slice[Score_T]]
-    outer_melody = outer_part_note.value.value
-    result_notes = []
-
-    for outer_note in outer_melody.notes:
-        # outer_note.value: Slice[Score_T]
-        inner_score_t = outer_note.value.value
-
-        # inner_score_t.melody: Melody[Chord[Identified[PartId, Slice[Melody[Pitch|None]]]]]
-        for inner_note in inner_score_t.melody.notes:
-            # inner_note: Note[Chord[...], T]
-            chord = inner_note.value
-
-            # Find the part in the chord
-            part_in_chord = next((n for n in chord.elements if n.value.id == part_id), None)
-
-            if part_in_chord:
-                # part_in_chord.value.value is Slice[Melody[Pitch|None]]
-                # slice_val.value is Melody[Pitch|None]
-                measure_melody = part_in_chord.value.value.value
-
-                # Iterate notes in the measure
-                for note_in_measure in measure_melody.notes:
-                    result_notes.append(
-                        Note(note_in_measure.value, note_in_measure.duration, note_in_measure.attribute)
-                    )
-
+    result_notes: list[Note[Pitch | None, T]] = []
+    for m in measures:
+        result_notes.extend(m.notes)
     return result_notes
 
 
