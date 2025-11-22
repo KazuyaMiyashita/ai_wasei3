@@ -1,6 +1,7 @@
 from my_project.counterpoint.measure_search.measure_step_sequence import (
     AbstractMeasureStepSequence,
 )
+from my_project.counterpoint.model import ToneType
 from my_project.model import Degree, Interval, IntervalStep, Key, Mode, Pitch
 from my_project.util import sliding
 
@@ -38,6 +39,29 @@ def filter_pitch_sequences(
 
         pitches = [*[note.value for note in candidate.measure.notes], candidate.next_measure_step]
         degrees = [Degree.from_note_name_key(pitch.note_name, key) for pitch in pitches]
+
+        # 不正な下方掛留(上がって解決)を除外する
+        # 可能な下方掛留は、短調の vii↑ -> i か、定旋律と協和音程を形成するもの。
+        # TODO: 定旋律と協和音程を形成するものは小節内の和音交代の時に扱う。現在は除外される。
+        if candidate.measure.notes[0].attribute == ToneType.SUSPENDED_TONE:
+            resolve_pitch: Pitch = next(
+                note.value for note in candidate.measure.notes if note.attribute == ToneType.HARMONIC_TONE
+            )
+            resolve_interval_step = (resolve_pitch - candidate.measure.notes[0].value).step()
+            if resolve_interval_step == IntervalStep.idx_1(2):
+                # 下方掛留(上がって解決)
+                resolve_degree = Degree.from_note_name_key(resolve_pitch.note_name, key)
+                if key.mode == Mode.MINOR and resolve_degree == Degree.idx_1(1, 0):
+                    pass
+                else:
+                    continue
+            elif resolve_interval_step == IntervalStep.idx_1(-2):
+                # 上方掛留(下がって解決)はOK
+                pass
+            else:
+                # 掛留音の解決が2度上でも2度下でもないものがここで選ばれているのはおかしい。
+                # generatorでそうしたものは作成されないはず。
+                raise RuntimeError(f"invalid {resolve_interval_step=}")
 
         # 音域の確認
         is_valid = True

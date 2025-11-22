@@ -41,11 +41,11 @@ open dist/out.png.cropped.png
 
 ## 対位法の実行例
 
-実行のたびに結果が変わります。連続のチェックちょっと一旦ないです。細かめのルールがまだいくつか実装されていません。
+`my_project.counterpoint.main` を実行すると、デフォルトで対位法の実施結果がシンプルなテキスト形式でコンソールに出力されます。
 
 ![](./docs/example_counterpoint.png)
 
-### 通常実行モード
+### usage
 
 `main.py` を実行すると、デフォルトで対位法の結果がシンプルなテキスト形式でコンソールに出力されます。`--output` オプションで出力形式を、`--limit` オプションで出力数を制御できます。
 
@@ -57,12 +57,12 @@ uv run python -m my_project.counterpoint.main \
   --limit 1 \
   --part_id SOPRANO
 
-# simple形式で3つ出力。途中出力のデバッグあり
+# simple形式で100個出力。途中出力のデバッグあり
 uv run python -m my_project.counterpoint.main \
-  --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 \
+  --cf C4 A3 G3 C3 \
   --species fifth \
   --output simple \
-  --limit 3 \
+  --limit 100 \
   --log-level DEBUG
 
 # lilypond形式で1つ出力
@@ -75,31 +75,24 @@ uv run python -m my_project.counterpoint.main \
 
 ### lilypond経由でpngファイルを出力する
 
-`main.py` の `--generate-pngs` オプションを使用することで、指定した数の対位法を生成し、LilyPond経由でPNGファイルとして出力できます。
+`--batch` オプションを使用することで、指定した数の対位法を生成し、LilyPond経由でPNGファイルとして出力できます。
 
 ```bash
-# 10枚のPNG画像を生成し、dist/ ディレクトリに保存 (実行前に既存ファイルを削除)
+# 100枚のPNG画像を生成し、dist/ ディレクトリに保存 (実行前に既存ファイルを削除)
 uv run python -m my_project.counterpoint.main \
   --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 \
   --species fifth \
-  --generate-pngs 10 \
+  --log-level DEBUG \
+  --limit 100 \
+  --batch \
   --output-dir dist \
   --clean
-
-# 生成された .ly ファイルを残しつつ、5枚のPNG画像を custom_output/ ディレクトリに保存
-uv run python -m my_project.counterpoint.main \
-  --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3 \
-  --species fifth \
-  --generate-pngs 5 \
-  --output-dir custom_output \
-  --keep-ly
 ```
 
 **注意点:**
 *   `lilypond` コマンドがシステムパスに設定されている必要があります。
 *   `--output-dir` で指定したディレクトリが存在しない場合、自動的に作成されます。
 *   `--clean` オプションを使用すると、指定ディレクトリ内の既存の `.png` および `.ly` ファイルが削除されます。
-*   `--keep-ly` オプションを使用しない場合、中間生成物である `.ly` ファイルは削除されます。
 
 ## コマンドラインオプション一覧
 
@@ -113,6 +106,8 @@ uv run python -m my_project.counterpoint.main \
 - **`--part_id <ID>`**: 生成する対位旋律のパートIDを指定します。
   - 選択肢: `SOPRANO`, `ALTO`, `TENOR`, `BASS`
   - デフォルト: `SOPRANO`
+- **`--limit <NUMBER|infinity>`**: 出力する解の最大数を指定します。
+  - デフォルト: `infinity`
 
 ### デバッグ用オプション
 
@@ -125,15 +120,12 @@ uv run python -m my_project.counterpoint.main \
 - **`--output <FORMAT>`**: コンソールへの出力形式を指定します。
   - 選択肢: `simple`, `lilypond`
   - デフォルト: `simple`
-- **`--limit <NUMBER|infinity>`**: 出力する解の最大数を指定します。
-  - デフォルト: `infinity`
 
-### PNG生成モードのオプション
-- **`--generate-pngs <INTEGER>`**: 生成するPNG画像の枚数を指定します。このオプションを指定するとPNG生成モードが有効になります。
+### バッチモードのオプション
+- **`--batch`**: このオプションを指定するとバッチモードが有効になります。
 - **`--output-dir <PATH>`**: 生成ファイル (PNG, .ly) の出力先ディレクトリを指定します。
   - デフォルト: `dist`
 - **`--clean`**: PNG生成前に出力ディレクトリ内の既存の `.png` と `.ly` ファイルを削除します。
-- **`--keep-ly`**: PNG生成後、中間生成物である `.ly` ファイルを削除せずに残します。
 
 ---
 
@@ -146,6 +138,8 @@ uv run python -m my_project.main
 # -e つけないとだめだよ
 uv pip install -e .
 uv pip install -e ".[dev]"
+
+uv run task all で以下3つ
 
 uv run pytest
 uv run ruff format .

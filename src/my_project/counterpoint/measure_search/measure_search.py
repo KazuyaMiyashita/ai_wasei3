@@ -17,7 +17,7 @@ from my_project.counterpoint.measure_search.pitch_applyer import apply_pitch_can
 from my_project.counterpoint.measure_search.pitch_filter import filter_pitch_sequences
 from my_project.counterpoint.measure_search.rythmn_applyer import apply_rythmn
 from my_project.counterpoint.model import AnnotatedMeasure, MeasureRythmnPattern, NoteAnnotation, ToneType
-from my_project.model import Degree, Duration, IntervalStep, Key, Melody, Note, NoteName, Octave, Pitch
+from my_project.model import Degree, Duration, IntervalStep, Key, Measure, Melody, Note, NoteName, Octave, Pitch
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ SHORTHAND_TO_TONE_TYPE = {v: k for k, v in TONE_TYPE_SHORTHAND.items()}
 class MeasureSearchResult:
     measure: AnnotatedMeasure
     next_measure_start_pitch: Pitch
+    rythmn_pattern: MeasureRythmnPattern
 
     def to_string(self) -> str:
         notes_str_parts: list[str] = []
@@ -62,16 +63,19 @@ class MeasureSearchResult:
 
         notes_str = " ".join(notes_str_parts)
         next_pitch_str = self.next_measure_start_pitch.name()
-        return f"[{notes_str} | {next_pitch_str}]"
+        return f"[{notes_str} | {next_pitch_str}; {self.rythmn_pattern.name}]"
 
     @classmethod
     def parse(cls, text: str) -> "MeasureSearchResult":
-        match = re.fullmatch(r"\[(.+?)\s*\|\s*(.+?)\]", text)
+        match = re.fullmatch(r"\[(.+?)\s*\|\s*(.+?);\s*(.+?)\]", text)
         if not match:
-            raise ValueError(f"Invalid format for parse: {text}")
+            raise ValueError(
+                f"Invalid format for parse: {text}. Expected format: [Notes | NextPitch; RythmnPatternName]"
+            )
 
-        notes_str, next_pitch_str = match.groups()
+        notes_str, next_pitch_str, rythmn_pattern_name = match.groups()
         next_pitch = Pitch.parse(next_pitch_str)
+        rythmn_pattern = MeasureRythmnPattern[rythmn_pattern_name]
 
         notes: list[Note[Pitch | None, NoteAnnotation]] = []
         note_pattern = re.compile(r"([A-G][#b]*\d+|R)\s*\((.*?)\)")
@@ -103,7 +107,7 @@ class MeasureSearchResult:
 
             notes.append(Note(pitch, duration, NoteAnnotation(is_tied_start, tone_type)))
 
-        return cls(Melody.of(*notes), next_pitch)
+        return cls(Measure(Melody.of(*notes)), next_pitch, rythmn_pattern)
 
 
 class MeasureSearch:
@@ -226,7 +230,7 @@ def _to_measure_search_result(
     for pitch_measure_sequence in pitch_measure_sequences:
         for rythmn_pattern in target_patterns:
             measure = apply_rythmn(pitch_measure_sequence, rythmn_pattern)
-            results.append(MeasureSearchResult(measure, pitch_measure_sequence.next_measure_step))
+            results.append(MeasureSearchResult(measure, pitch_measure_sequence.next_measure_step, rythmn_pattern))
 
     return results
 

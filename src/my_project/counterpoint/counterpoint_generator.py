@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from functools import cached_property
 
 from my_project.counterpoint import all_measure_validator, validator
-from my_project.counterpoint.measure_search.measure_search import MeasureSearch
+from my_project.counterpoint.measure_search.measure_search import MeasureSearch, MeasureSearchResult
 from my_project.counterpoint.model import (
     AnnotatedMeasure,
     MeasurePosition,
+    MeasureRythmnPattern,
     NoteAnnotation,
     Species,
     ToneType,
@@ -44,7 +45,9 @@ class CounterpointGenerator:
     skeleton_generator: SkeletonGenerator
     rand: random.Random
 
-    _MAX_TRIES = 30
+    _MAX_STEPS_PER_ATTEMPT = 100  # 試行間のバリデーション失敗回数の上限。超えたら最初からやり直し
+    _MAX_VALID_CANDIDATES_PER_MEASURE = 3  # 失敗が連続した際に早く前に戻るために、小節候補を絞る。
+    _current_step_count: int = 0
 
     def __init__(
         self,
@@ -65,6 +68,7 @@ class CounterpointGenerator:
         self.rand = rand
         self.measure_search = measure_search
         self.skeleton_generator = skeleton_generator
+        self._current_step_count = 0
         pass
 
     @classmethod
@@ -113,19 +117,29 @@ class CounterpointGenerator:
     class AbortAttempt(Exception):
         pass
 
+    class SucceededAndRestart(Exception):
+        pass
+
     def generate_scores(self) -> Iterator[FullScore[NoteAnnotation]]:
         # logger.info("generate_scoresを開始します")
 
         attempt_count = 0
         while True:
             attempt_count += 1
+            self._current_step_count = 0
             # 課題全体の骨格を作成
             skeleton: Skeleton = self.skeleton_generator.generate_skeleton()
-            logger.debug(f"Attempt {attempt_count}: Start")
+            # スケルトンの旋律をロギング
+            skeleton_melody_str = " ".join([s.notes[0].value.name() for s in skeleton.measures])
+            logger.debug(f"Attempt {attempt_count}: Choose skeleton: [{skeleton_melody_str}]")
+            logger.debug(f"Attempt {attempt_count}: Start Generate Measures.")
 
             initial_start_pitch = skeleton.measures[0].notes[0].value
             try:
-                yield from self._generate_recursive(skeleton, [], 0, initial_start_pitch)
+                yield from self._generate_recursive(skeleton, [], 0, initial_start_pitch, previous_rythmn_pattern=None)
+            except CounterpointGenerator.SucceededAndRestart:
+                logger.debug(f"Attempt {attempt_count}: Succeeded! Restarting from scratch.")
+                continue
             except CounterpointGenerator.AbortAttempt:
                 logger.debug(f"Attempt {attempt_count}: Aborted. Restarting from scratch.")
                 continue
@@ -136,9 +150,17 @@ class CounterpointGenerator:
         completed_measures: list[AnnotatedMeasure],
         measure_index: int,
         current_start_pitch: Pitch,
+        previous_rythmn_pattern: MeasureRythmnPattern | None,
     ) -> Iterator[FullScore[NoteAnnotation]]:
+        self._current_step_count += 1
+        if self._current_step_count > self._MAX_STEPS_PER_ATTEMPT:
+            logger.debug(
+                f"Attempt aborted due to step limit ({self._MAX_STEPS_PER_ATTEMPT}). Too deep or stuck in local optima."
+            )
+            raise CounterpointGenerator.AbortAttempt()
+
         log_indents = 2
-        indent = " " * (measure_index * log_indents)
+        indent = " " * ((measure_index + 1) * log_indents)
         mn_for_log = measure_index + 1
 
         previous_measure: AnnotatedMeasure | None = None
@@ -151,11 +173,13 @@ class CounterpointGenerator:
 
         # 最終小節の場合
         if measure_index == self._measure_length - 1:
-            last_measure_candidate: AnnotatedMeasure = Melody.of(
-                Note(
-                    skeleton.measures[measure_index].notes[0].value,
-                    Duration.of(4),
-                    NoteAnnotation(is_tied_start=False, tone_type=ToneType.HARMONIC_TONE),
+            last_measure_candidate: AnnotatedMeasure = Measure(
+                Melody.of(
+                    Note(
+                        skeleton.measures[measure_index].notes[0].value,
+                        Duration.of(4),
+                        NoteAnnotation(is_tied_start=False, tone_type=ToneType.HARMONIC_TONE),
+                    )
                 )
             )
 
@@ -168,24 +192,26 @@ class CounterpointGenerator:
                 else:
                     logger.debug(f"{indent}Attempt succeeded: [SUCCEED] All measures passed validation.]")
                     yield self._to_score(final_measures)
+                    raise CounterpointGenerator.SucceededAndRestart()
             else:
                 logger.debug(f"{indent}Measure {mn_for_log}: [FAILED] Last measure created but failed validation.]")
             return
         # 最終小節以外の場合
         else:
-            current_measure_position = self._current_measure_position(measure_index)
+            available_rythmn_patterns = self._get_available_rythmn_patterns(measure_index, previous_rythmn_pattern)
+
             results = self.measure_search.search(
                 start_pitch=current_start_pitch,
                 start_harmonic_pitch=skeleton.measures[measure_index].notes[0].value,
                 next_measure_start_harmonic_pitch=skeleton.measures[measure_index + 1].notes[0].value,
-                harmonic_note_names=tuple(skeleton.measures[measure_index].notes[0].attribute),
+                harmonic_note_names=tuple(skeleton.measures[measure_index].notes[0].attribute.chord.elements),
                 key=self.key,
-                measure_rythmn_patterns=tuple(get_measure_rythmn_patterns(self.species, current_measure_position)),
+                measure_rythmn_patterns=tuple(available_rythmn_patterns),
                 pitch_range=self._pitch_range,
             )
             self.rand.shuffle(results)
 
-            valid_candidates = []
+            valid_candidates: list[MeasureSearchResult] = []
             for chosen_result in results:
                 if validator.validate(previous_measure, chosen_result.measure, previous_cf, current_cf):
                     valid_candidates.append(chosen_result)
@@ -205,6 +231,10 @@ class CounterpointGenerator:
                 f" Valid {len(valid_candidates)} candidates found."
             )
 
+            if len(valid_candidates) > self._MAX_VALID_CANDIDATES_PER_MEASURE:
+                valid_candidates = valid_candidates[: self._MAX_VALID_CANDIDATES_PER_MEASURE]
+                logger.debug(f"{indent}Limiting to top {self._MAX_VALID_CANDIDATES_PER_MEASURE} valid candidates.")
+
             for candidate in valid_candidates:
                 next_start_pitch = candidate.next_measure_start_pitch
                 yield from self._generate_recursive(
@@ -212,7 +242,25 @@ class CounterpointGenerator:
                     [*completed_measures, candidate.measure],
                     measure_index + 1,
                     next_start_pitch,
+                    previous_rythmn_pattern=candidate.rythmn_pattern,
                 )
+
+    def _get_available_rythmn_patterns(
+        self, measure_index: int, previous_rythmn_pattern: MeasureRythmnPattern | None
+    ) -> list[MeasureRythmnPattern]:
+        current_measure_position = self._current_measure_position(measure_index)
+        available_rythmn_patterns = list(get_measure_rythmn_patterns(self.species, current_measure_position))
+
+        if previous_rythmn_pattern is not None:
+            if previous_rythmn_pattern in available_rythmn_patterns:
+                available_rythmn_patterns.remove(previous_rythmn_pattern)
+
+            is_previous_tied_to_next = previous_rythmn_pattern.measure_rythmn().is_next_tied
+            available_rythmn_patterns = [
+                p for p in available_rythmn_patterns if p.measure_rythmn().is_previous_tied == is_previous_tied_to_next
+            ]
+
+        return available_rythmn_patterns
 
     def _current_measure_position(self, current_measure_idx: int) -> MeasurePosition:
         if current_measure_idx == 0:
@@ -233,14 +281,14 @@ class CounterpointGenerator:
             )
             for pitch in self.cantus_firmus
         ]
-        cf_measures: list[AnnotatedMeasure] = [Melody.of(note) for note in cf_notes]
+        cf_measures: list[AnnotatedMeasure] = [Measure(Melody.of(note)) for note in cf_notes]
 
         # body Construction
         time_signature = TimeSignature(2, Duration.of(2))
 
         parts = {
-            self.cf_part_id: [Measure(m) for m in cf_measures],
-            self.part_id: [Measure(m) for m in completed_measures],
+            self.cf_part_id: cf_measures,
+            self.part_id: completed_measures,
         }
 
         body = Score(parts)

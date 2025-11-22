@@ -5,7 +5,7 @@ from fractions import Fraction
 
 from my_project.model import (
     Duration,
-    Melody,
+    Measure,
     Note,
     Pitch,
 )
@@ -55,7 +55,7 @@ class NoteAnnotation:
     tone_type: ToneType
 
 
-AnnotatedMeasure = Melody[Note[Pitch | None, NoteAnnotation]]
+AnnotatedMeasure = Measure[Note[Pitch | None, NoteAnnotation]]
 
 
 @dataclass(frozen=True)

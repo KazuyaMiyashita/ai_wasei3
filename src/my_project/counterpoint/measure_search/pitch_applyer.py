@@ -14,7 +14,7 @@ from my_project.model import (
     Interval,
     IntervalStep,
     Key,
-    Melody,
+    Measure,
     Mode,
     Note,
     Pitch,
@@ -63,10 +63,12 @@ def apply_pitch_candidates(
             else:
                 new_measure_notes.append(Note(cast(Pitch | None, None), note.duration, note.attribute))
 
-        return [AbstractMeasureStepSequence(Melody.of(*new_measure_notes), next_diatonic_pitch)]
+        return [AbstractMeasureStepSequence(Measure.of(*new_measure_notes), next_diatonic_pitch)]
 
     degree_iter = iter(degree_steps)
-    measure_degrees = measure_step_sequence.measure.map_elements(lambda n: n.map_value(lambda _: next(degree_iter)))
+    measure_degrees = Measure(
+        measure_step_sequence.measure.melody.map(lambda n: n.map_value(lambda _: next(degree_iter)))
+    )
     measure_degree_step_sequence = AbstractMeasureStepSequence(measure_degrees, next_measure_degree_step)
 
     # 2. Degreeの候補を取得
@@ -101,7 +103,9 @@ def apply_pitch_candidates(
 
         # Melody[Note[Pitch | None, ToneType]] を作成
         pitches_iter = iter(pitches)
-        new_melody = measure_step_sequence.measure.map_elements(lambda n: n.map_value(lambda _: next(pitches_iter)))
+        new_melody = Measure(
+            measure_step_sequence.measure.melody.map(lambda n: n.map_value(lambda _: next(pitches_iter)))
+        )
         result_measure_pitch_sequences.append(AbstractMeasureStepSequence(new_melody, next_pitch_candidate))
 
     return result_measure_pitch_sequences
@@ -119,7 +123,7 @@ def _degree_candidates(
     長調や、短調でvi,viiを含まない場合は結果は1つとなる。
     vi,viiを含む短調の場合は結果が2個になる場合や、不適当と判断されて結果が0個になることがある。
     """
-    measure_degrees: Melody[Note[DegreeStep, ToneType]] = measure_degree_step_sequence.measure
+    measure_degrees: Measure[Note[DegreeStep, ToneType]] = measure_degree_step_sequence.measure
     next_measure_degree_step: DegreeStep = measure_degree_step_sequence.next_measure_step
     # elems を復元
     elems = [(n.value, n.attribute) for n in measure_degrees.notes if n.value is not None]
@@ -133,8 +137,10 @@ def _degree_candidates(
     if (mode == Mode.MAJOR) or (not (set([*degree_steps, next_measure_degree_step]) & {SIXTH, SEVENTH})):
         return [
             AbstractMeasureStepSequence(
-                measure_degree_step_sequence.measure.map_elements(
-                    lambda n: n.map_value(lambda v: Degree(v, DegreeAlter(0)))
+                Measure(
+                    measure_degree_step_sequence.measure.melody.map(
+                        lambda n: n.map_value(lambda v: Degree(v, DegreeAlter(0)))
+                    )
                 ),
                 Degree(measure_degree_step_sequence.next_measure_step, DegreeAlter(0)),
             )
@@ -180,6 +186,8 @@ def _degree_candidates(
 
         elif tone_type == ToneType.SUSPENDED_TONE:
             # 掛留音はそれが解決した音が何かによって定まる
+
+            # 掛留音が利用されるのは i==0 の時だけなので、elems[i:] は elems と同じなのでは。
             resolve_degree_step: DegreeStep = next(elem[0] for elem in elems[i:] if elem[1] == ToneType.HARMONIC_TONE)
             if (degree_step == SEVENTH) and (resolve_degree_step == DegreeStep.idx_1(1)):
                 base_candidates[i] = [Degree(degree_step, DegreeAlter(1))]
@@ -285,8 +293,8 @@ def _degree_candidates(
 
             # 結果の構築
             degree_iter = iter(degrees_for_measure)
-            new_melody = measure_degree_step_sequence.measure.map_elements(
-                lambda n: n.map_value(lambda _: next(degree_iter))
+            new_melody = Measure(
+                measure_degree_step_sequence.measure.melody.map(lambda n: n.map_value(lambda _: next(degree_iter)))
             )
             measure_sequences.append(
                 AbstractMeasureStepSequence(

@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from my_project.counterpoint.measure_search.measure_step_sequence import AnnotatedIntervalStep, MeasureStepSequence
 from my_project.counterpoint.model import ToneType
-from my_project.model import Duration, IntervalStep, Melody, Note
+from my_project.model import Duration, IntervalStep, Measure, Note
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def generate() -> list[MeasureStepSequence]:
         for next_measure_step in next_options:
             all_patterns.append(
                 MeasureStepSequence(
-                    measure=Melody.of(*melody),
+                    measure=Measure.of(*melody),
                     next_measure_step=next_measure_step,
                 )
             )

@@ -3,7 +3,7 @@ from my_project.counterpoint.measure_search.measure_step_sequence import (
     MeasureStepSequence,
 )
 from my_project.counterpoint.model import MeasureRythmnPattern, NoteAnnotation, ToneType
-from my_project.model import Duration, IntervalStep, Melody, Note, Offset
+from my_project.model import Duration, IntervalStep, Measure, Melody, Note, Offset
 from my_project.util import sliding
 
 
@@ -20,13 +20,19 @@ def try_apply_rythmn(
     if step_sequence.is_tied_to_next_measure_required() != rythmn_pattern.measure_rythmn().is_next_tied:
         return None
 
-    melody: Melody[Note[IntervalStep | None, NoteAnnotation]] = apply_rythmn(step_sequence, rythmn_pattern)
+    melody: Melody[Note[IntervalStep | None, NoteAnnotation]] = apply_rythmn(step_sequence, rythmn_pattern).melody
 
-    # タイで繋ぐ場合、最後の音は3拍目の2分音符である必要がある
+    # 次にタイで繋ぐ必要がある場合、最後の音は3拍目の2分音符で、和声音である必要がある。
     if step_sequence.is_tied_to_next_measure_required():
         offset_notes = melody.offset_notes()
         note_at_beat3 = offset_notes.get(Offset.idx_1(3))
-        if not note_at_beat3 or note_at_beat3.duration != Duration.of(2) or note_at_beat3 is not melody.notes[-1]:
+        if (
+            not note_at_beat3
+            or note_at_beat3.duration != Duration.of(2)
+            or note_at_beat3 is not melody.notes[-1]
+            or note_at_beat3.attribute.tone_type
+            != ToneType.HARMONIC_TONE  # 和声音である必要があるというのはここでやることか？
+        ):
             return None
 
     # 掛留音
@@ -68,7 +74,7 @@ def try_apply_rythmn(
 
 def apply_rythmn[T](
     step_sequence: AbstractMeasureStepSequence[T], rythmn_pattern: MeasureRythmnPattern
-) -> Melody[Note[T | None, NoteAnnotation]]:
+) -> Measure[Note[T | None, NoteAnnotation]]:
     """
     任意の AbstractMeasureStepSequence に対して MeasureRythmnPattern を適用した Melody を返す。
     ここではリズムの検証は行われない。事前に検証済みの内容に関して利用すること。
@@ -98,4 +104,4 @@ def apply_rythmn[T](
                 ),
             )
         )
-    return Melody.of(*notes)
+    return Measure.of(*notes)

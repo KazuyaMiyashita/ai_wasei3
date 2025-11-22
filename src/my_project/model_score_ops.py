@@ -1,33 +1,190 @@
-from typing import TYPE_CHECKING, TypeVar
+from __future__ import annotations
+
+from collections.abc import Callable, Iterator, Mapping
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from my_project.model import (
     Chord,
     Duration,
-    Identified,
+    Measure,
     Melody,
     Note,
     Offset,
-    Slice,
 )
 
 if TYPE_CHECKING:
-    # This is only for type hinting to avoid circular imports at runtime
-    # But actually model_score_ops functions don't depend on Score/Measure classes,
-    # they depend on generic Notes/Melodies.
-    # However, if we move logic from Score here, we might need them?
-    # The instruction says "delegating logic to model_score_ops".
-    # The logic in Score.vertical and VerticalScoreView.to_flat_score mainly uses transpose functions.
-    # So model_score_ops already has the core logic.
-    # The wrapper logic (unwrapping/wrapping Measures) can stay in Score/VerticalScoreView or move here.
-    # If we move it here, we need to import Measure/Score here, which causes circular import.
-    # The user instruction says "delegating logic to model_score_ops".
-    # But "Score.vertical" logic is mainly constructing the arguments for transpose.
-    # If we move that construction here, we need Score as input.
-    pass
+    from my_project.model import Score, VerticalMoment, VerticalScoreView
 
 T_Value = TypeVar("T_Value")
 T_Attr = TypeVar("T_Attr")
 T_Id = TypeVar("T_Id")
+
+
+@dataclass(frozen=True)
+class Slice[T_Value]:
+    """
+    分割可能な要素を表すコンテナ。
+    分析の際の編集や転置において、音符が分割された際の状態（結合可能性）を保持する。
+
+    """
+
+    value: T_Value
+    connects_left: bool = False
+    connects_right: bool = False
+
+
+@dataclass(frozen=True)
+class Identified[T_Id, T_Value]:
+    """
+    ID付けされた要素。
+    声部（PartId）などを区別するために利用する。
+    """
+
+    id: T_Id
+    value: T_Value
+
+    def map_value[U_Value](self, func: Callable[[T_Value], U_Value]) -> Identified[T_Id, U_Value]:
+        return Identified(self.id, func(self.value))
+
+
+class VerticalMomentImpl[T_Id, T_Value, T_Attr]:
+    """
+    ある一瞬の垂直断面。Durationを持つ。
+    """
+
+    _inner_note: Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr]
+
+    def __init__(self, inner_note: Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr]):
+        self._inner_note = inner_note
+
+    @property
+    def duration(self) -> Duration:
+        return self._inner_note.duration
+
+    @property
+    def chord(self) -> Chord[T_Value]:
+        """分析用に純粋な「値の和音」を返す。"""
+        values: list[T_Value] = []
+        for note in self._inner_note.value.elements:
+            identified = note.value
+            slice_val = identified.value
+            values.append(slice_val.value)
+        return Chord.of(*values)
+
+    def get(self, part_id: T_Id) -> T_Value | None:
+        """特定のパートの現在の値を取得"""
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.value
+        return None
+
+    def is_tied_from_prev(self, part_id: T_Id) -> bool:
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.connects_left
+        return False
+
+    def is_tied_to_next(self, part_id: T_Id) -> bool:
+        for note in self._inner_note.value.elements:
+            if note.value.id == part_id:
+                return note.value.value.connects_right
+        return False
+
+
+class VerticalScoreViewImpl[T_Id, T_Value, T_Attr]:
+    """Scoreの垂直方向のビューの実装"""
+
+    _moments: tuple[VerticalMomentImpl[T_Id, T_Value, T_Attr], ...]
+    _raw_vertical_notes: tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...]
+    _score_cls: type[Score[T_Id, T_Value, T_Attr]]
+
+    def __init__(
+        self,
+        raw_vertical_notes: tuple[Note[Chord[Note[Identified[T_Id, Slice[T_Value]], T_Attr]], T_Attr], ...],
+        score_cls: type[Score[T_Id, T_Value, T_Attr]],
+    ):
+        self._raw_vertical_notes = raw_vertical_notes
+        self._moments = tuple(VerticalMomentImpl(n) for n in raw_vertical_notes)
+        self._score_cls = score_cls
+
+    def __iter__(self) -> Iterator[VerticalMoment[T_Id, T_Value]]:
+        return iter(self._moments)
+
+    def __getitem__(self, index: int) -> VerticalMoment[T_Id, T_Value]:
+        return self._moments[index]
+
+    def __len__(self) -> int:
+        return len(self._moments)
+
+    def to_flat_score(self) -> Score[T_Id, T_Value, T_Attr]:
+        """
+        垂直ビューから、1小節だけの（あるいは全小節が結合された）Scoreを再構築する。
+        戻り値は 1小節のリストを持つ Score になる。
+        """
+        reconstructed_parts_set = transpose_vertical_to_score(self._raw_vertical_notes)
+
+        parts_measure_list: dict[T_Id, list[Measure[Note[T_Value, T_Attr]]]] = {}
+
+        for part_note in reconstructed_parts_set:
+            part_id = part_note.value.id
+            sliced_melody = part_note.value.value
+
+            def unwrap_slice(n: Note[Slice[T_Value], T_Attr]) -> Note[T_Value, T_Attr]:
+                return Note(n.value.value, n.duration, n.attribute)
+
+            unwrapped_melody = sliced_melody.map(unwrap_slice)
+
+            # 再構築されたメロディ全体を1つの Measure として扱う
+            parts_measure_list[part_id] = [Measure(unwrapped_melody)]
+
+        return self._score_cls(parts_measure_list)
+
+
+def score_measure[T_Id, T_Value, T_Attr](
+    score: Score[T_Id, T_Value, T_Attr], index: int
+) -> Score[T_Id, T_Value, T_Attr]:
+    """
+    指定したインデックスの小節だけを切り出した Score を返す。
+    """
+    sliced_parts = {}
+    for pid, measures in score.parts.items():
+        if 0 <= index < len(measures):
+            sliced_parts[pid] = [measures[index]]
+    return score.__class__(sliced_parts)
+
+
+def create_vertical_score_view[T_Id, T_Value, T_Attr](
+    parts: Mapping[T_Id, list[Measure[Note[T_Value, T_Attr]]]],
+    score_cls: type[Score[T_Id, T_Value, T_Attr]],
+) -> VerticalScoreView[T_Id, T_Value, T_Attr]:
+    """
+    Scoreの垂直ビューを作成するファクトリ関数
+    """
+    elements: list[Note[Identified[T_Id, Melody[Note[Slice[T_Value], T_Attr]]], T_Attr]] = []
+    for part_id, measure_list in parts.items():
+        # 全小節のメロディを結合
+        all_notes: list[Note[T_Value, T_Attr]] = []
+        for m in measure_list:
+            all_notes.extend(m.notes)
+
+        full_melody = Melody.of(*all_notes)
+
+        # Wrap values in Slice
+        def slice_note(n: Note[T_Value, T_Attr]) -> Note[Slice[T_Value], T_Attr]:
+            return n.map_value(lambda v: Slice(v))
+
+        sliced_melody = full_melody.map(slice_note)
+        identified_value = Identified(part_id, sliced_melody)
+
+        # Outer note wrapping the part
+        attr: T_Attr = cast(Any, None)
+        note = Note(identified_value, full_melody.total_duration, attr)
+        elements.append(note)
+
+    raw_vertical_notes = transpose_score_to_vertical(frozenset(elements))
+    # We return the implementation, which satisfies the Protocol
+    return VerticalScoreViewImpl(raw_vertical_notes, score_cls)
 
 
 def transpose_score_to_vertical(

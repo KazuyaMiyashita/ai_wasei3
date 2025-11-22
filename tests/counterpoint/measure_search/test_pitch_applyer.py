@@ -12,7 +12,7 @@ from my_project.counterpoint.measure_search.pitch_applyer import (
     apply_pitch_candidates,
 )
 from my_project.counterpoint.model import ToneType
-from my_project.model import Degree, DegreeStep, Duration, IntervalStep, Key, Melody, Mode, Note, Pitch
+from my_project.model import Degree, DegreeStep, Duration, IntervalStep, Key, Measure, Mode, Note, Pitch
 
 
 def test_apply_pitch_diatonic_simple() -> None:
@@ -50,7 +50,7 @@ def test_apply_pitch_candidates_minor_leading_tone() -> None:
     }
     start_pitch = Pitch.parse("B4")
 
-    measure = Melody.of(
+    measure = Measure.of(
         Note(IntervalStep(0), Duration.of(1), ToneType.HARMONIC_TONE),
         Note(IntervalStep(2), Duration.of(1), ToneType.HARMONIC_TONE),
         Note(IntervalStep(4), Duration.of(1), ToneType.HARMONIC_TONE),
@@ -59,7 +59,7 @@ def test_apply_pitch_candidates_minor_leading_tone() -> None:
 
     expected = [
         AbstractMeasureStepSequence(
-            Melody.of(
+            Measure.of(
                 Note(Pitch.parse("B4"), Duration.of(1), ToneType.HARMONIC_TONE),
                 Note(Pitch.parse("D#5"), Duration.of(1), ToneType.HARMONIC_TONE),
                 Note(Pitch.parse("F#5"), Duration.of(1), ToneType.HARMONIC_TONE),
@@ -88,13 +88,13 @@ def test_degree_candidates_minor_harmonic() -> None:
     }
 
     # 第7音(G)が和声音(HARMONIC_TONE)として与えられる
-    input_measure_degrees = Melody.of(Note(DegreeStep.idx_1(7), Duration.of(1), ToneType.HARMONIC_TONE))
+    input_measure_degrees = Measure.of(Note(DegreeStep.idx_1(7), Duration.of(1), ToneType.HARMONIC_TONE))
     input_next_measure_degree_step = DegreeStep.idx_1(1)  # 現時点では未使用
 
     input_mss_degree_step = AbstractMeasureStepSequence(input_measure_degrees, input_next_measure_degree_step)
 
     # 和音に含まれるG# (DegreeAlter(1)) が選択されるはず
-    expected_measure = Melody.of(Note(Degree.idx_1(7, 1), Duration.of(1), ToneType.HARMONIC_TONE))
+    expected_measure = Measure.of(Note(Degree.idx_1(7, 1), Duration.of(1), ToneType.HARMONIC_TONE))
     expected_next_degree_step = Degree.idx_1(1, 0)  # TODO: alter も考慮に入れる
     expected = [AbstractMeasureStepSequence(expected_measure, expected_next_degree_step)]
 
@@ -291,7 +291,7 @@ def _run_degree_test(input_str: str, expected_strs: list[str]) -> None:
     measure_notes: list[Note[DegreeStep, ToneType]] = []
     for elem in parsed_elems:
         measure_notes.append(Note(elem[0], Duration.of(1), elem[1]))
-    input_measure_degrees = Melody.of(*measure_notes)
+    input_measure_degrees = Measure.of(*measure_notes)
 
     # next_measure_degree_step は必ず DegreeStep(0) (1度) としておく。
     # このテストはDegreeAlterを見るためのもので、next_measure_degree_step自体が変化することはないため。
@@ -325,7 +325,7 @@ def _run_degree_test(input_str: str, expected_strs: list[str]) -> None:
         expected_next_degree_step = Degree.idx_1(next_step_val, next_alter)
 
         expected_measure_sequences.append(
-            AbstractMeasureStepSequence(Melody.of(*expected_measure_notes), expected_next_degree_step)
+            AbstractMeasureStepSequence(Measure.of(*expected_measure_notes), expected_next_degree_step)
         )
 
     # Execute

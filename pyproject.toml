@@ -14,6 +14,7 @@ dev = [
     "pytest",
     "ruff",
     "mypy",
+    "taskipy",
     "snakeviz",
     "types-tqdm",
 ]
@@ -43,3 +44,7 @@ mypy_path = "src"
 
 strict = true
 pretty = true
+
+[tool.taskipy.tasks]
+# uv run task all
+all = "uv run ruff format . && uv run ruff check && uv run mypy . && uv run pytest"

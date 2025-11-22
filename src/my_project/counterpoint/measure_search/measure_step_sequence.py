@@ -5,7 +5,7 @@ from functools import cached_property
 from my_project.counterpoint.model import (
     ToneType,
 )
-from my_project.model import Duration, IntervalStep, Melody, Note, Pitch
+from my_project.model import Duration, IntervalStep, Measure, Note, Pitch
 
 AnnotatedIntervalStep = Note[IntervalStep, ToneType]
 """
@@ -15,7 +15,7 @@ AnnotatedIntervalStep = Note[IntervalStep, ToneType]
 
 @dataclass(frozen=True)
 class AbstractMeasureStepSequence[T]:
-    measure: Melody[Note[T, ToneType]]
+    measure: Measure[Note[T, ToneType]]
     next_measure_step: T
 
     def num_notes_in_measure(self) -> int:
@@ -67,6 +67,7 @@ class MeasureStepSequence(AbstractMeasureStepSequence[IntervalStep]):
     def used_harmonic_steps(self) -> frozenset[IntervalStep]:
         """
         小節内の音列で和声音として利用されている IntervalStep の集合を返す。
+        掛留音が解決する前に跳躍して進行する音もここに含める。
 
         - IntervalStep はユニゾン~7度までの範囲に正規化(inversion_normalized)される。
         """
@@ -74,7 +75,7 @@ class MeasureStepSequence(AbstractMeasureStepSequence[IntervalStep]):
             map(
                 lambda step: step.value.inversion_normalized(),
                 filter(
-                    lambda step: step.attribute == ToneType.HARMONIC_TONE,
+                    lambda step: step.attribute in {ToneType.HARMONIC_TONE, ToneType.SUSPENDED_RESOLVING_HARMONIC_TONE},
                     self.measure.notes,
                 ),
             )
@@ -126,7 +127,7 @@ class MeasureStepSequence(AbstractMeasureStepSequence[IntervalStep]):
             parsed_steps.append(Note(interval_step, Duration.of(1), tone_type))
 
         return cls(
-            measure=Melody.of(*parsed_steps),
+            measure=Measure.of(*parsed_steps),
             next_measure_step=IntervalStep(int(next_measure_step_str)),
         )
 

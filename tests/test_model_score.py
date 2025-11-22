@@ -65,7 +65,7 @@ def test_score_measures() -> None:
     assert score.part(PartId.SOPRANO)[1].melody == s2
 
     # 2. Vertical access (Full score)
-    vertical_view = score.vertical()
+    vertical_view = score.to_vertical_view()
     assert len(vertical_view) == 9
 
     # Check specific moment (Measure 2 start) -> Index 3
@@ -82,7 +82,7 @@ def test_score_measures() -> None:
     score_m2 = score.measure(1)
     assert score_m2.num_measures == 1
 
-    vertical_view_m2 = score_m2.vertical()
+    vertical_view_m2 = score_m2.to_vertical_view()
 
     # Measure 2:
     # Sop: [C5(1), D5(1), B4(2)]
