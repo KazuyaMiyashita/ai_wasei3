@@ -1,0 +1,189 @@
+openapi: 3.0.0
+info:
+  title: Counterpoint Service
+  version: 0.0.0
+tags: []
+paths:
+  /counterpoint:
+    post:
+      operationId: generateCounterpoint
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullScore'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CounterpointRequest'
+components:
+  schemas:
+    CounterpointRequest:
+      type: object
+      required:
+        - cf
+        - key
+        - cf_part_id
+        - part_id
+        - species
+      properties:
+        cf:
+          type: array
+          items:
+            type: string
+        key:
+          type: string
+        cf_part_id:
+          $ref: '#/components/schemas/PartId'
+        part_id:
+          $ref: '#/components/schemas/PartId'
+        species:
+          $ref: '#/components/schemas/Species'
+    Duration:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          $ref: '#/components/schemas/Fraction'
+    Fraction:
+      type: object
+      required:
+        - numerator
+        - denominator
+      properties:
+        numerator:
+          type: integer
+          format: int32
+        denominator:
+          type: integer
+          format: int32
+    FullScore:
+      type: object
+      required:
+        - key
+        - time_signature
+        - body
+      properties:
+        key:
+          $ref: '#/components/schemas/Key'
+        time_signature:
+          $ref: '#/components/schemas/TimeSignature'
+        body:
+          $ref: '#/components/schemas/Score'
+    Key:
+      type: object
+      required:
+        - tonic
+        - mode
+      properties:
+        tonic:
+          $ref: '#/components/schemas/NoteName'
+        mode:
+          $ref: '#/components/schemas/Mode'
+    Measure:
+      type: object
+      required:
+        - notes
+      properties:
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Note'
+    Mode:
+      type: string
+      enum:
+        - Major
+        - Minor
+    Note:
+      type: object
+      required:
+        - value
+        - duration
+        - attribute
+      properties:
+        value:
+          anyOf:
+            - $ref: '#/components/schemas/Pitch'
+            - $ref: '#/components/schemas/Rest'
+        duration:
+          $ref: '#/components/schemas/Duration'
+        attribute:
+          $ref: '#/components/schemas/ScoreAttrs'
+    NoteName:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: integer
+          format: int32
+    Octave:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: integer
+          format: int32
+    PartId:
+      type: string
+      enum:
+        - SOPRANO
+        - ALTO
+        - TENOR
+        - BASS
+    Pitch:
+      type: object
+      required:
+        - octave
+        - note_name
+      properties:
+        octave:
+          $ref: '#/components/schemas/Octave'
+        note_name:
+          $ref: '#/components/schemas/NoteName'
+    Rest:
+      type: object
+    Score:
+      type: object
+      required:
+        - parts
+      properties:
+        parts:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/Measure'
+    ScoreAttrs:
+      type: object
+      required:
+        - is_tied_start
+      properties:
+        is_tied_start:
+          type: boolean
+    Species:
+      type: string
+      enum:
+        - first
+        - second
+        - third
+        - fourth
+        - fifth
+    TimeSignature:
+      type: object
+      required:
+        - beats
+        - beat_type
+      properties:
+        beats:
+          type: integer
+          format: int32
+        beat_type:
+          $ref: '#/components/schemas/Duration'

@@ -57,6 +57,14 @@ uv run python -m my_project.counterpoint.main \
   --limit 1 \
   --part_id SOPRANO
 
+uv run python -m my_project.counterpoint.main \
+  --cf_part_id SOPRANO \
+  --cf G5 E5 D5 B4 C5 E5 D5 B4 A4 G4 \
+  --key "G Major" \
+  --species fifth \
+  --limit 1 \
+  --part_id TENOR
+
 # simple形式で100個出力。途中出力のデバッグあり
 uv run python -m my_project.counterpoint.main \
   --cf C4 A3 G3 C3 \
@@ -106,6 +114,9 @@ uv run python -m my_project.counterpoint.main \
 - **`--part_id <ID>`**: 生成する対位旋律のパートIDを指定します。
   - 選択肢: `SOPRANO`, `ALTO`, `TENOR`, `BASS`
   - デフォルト: `SOPRANO`
+- **`--cf_part_id <ID>`**: 定旋律 (Cantus Firmus) のパートIDを指定します。
+  - 選択肢: `SOPRANO`, `ALTO`, `TENOR`, `BASS`
+  - デフォルト: `BASS`
 - **`--limit <NUMBER|infinity>`**: 出力する解の最大数を指定します。
   - デフォルト: `infinity`
 
@@ -129,6 +140,19 @@ uv run python -m my_project.counterpoint.main \
 
 ---
 
+```
+uv run python -m my_project.counterpoint.main \
+  --cf_part_id SOPRANO \
+  --cf G5 E5 D5 B4 C5 E5 D5 B4 A4 G4 \
+  --key "G Major" \
+  --species fifth \
+  --part_id TENOR \
+  --limit 100 \
+  --log-level DEBUG \
+  --batch \
+  --output-dir dist \
+  --clean
+```
 
 ## よく使うコマンド
 
@@ -149,3 +173,25 @@ uv run python -m cProfile -m my_project.counterpoint.main --cf C4 A3 G3 E3 F3 A3
 uv run python -m cProfile -o profile.stats -m my_project.counterpoint.main --cf C4 A3 G3 E3 F3 A3 G3 E3 D3 C3
 uv run snakeviz profile.stats
 ```
+
+```
+npm install -g @typespec/compiler
+
+cd backend
+uv run --with datamodel-code-generator datamodel-codegen --input ../schema/tsp-output/@typespec/openapi3/openapi.yaml --output src/my_project/server/generated_models.py
+
+
+
+uv run uvicorn my_project.server.main:app
+http://localhost:8000/docs#/
+http POST http://localhost:8000/counterpoint cf:='["C4", "A3", "G3", "E3", "F3", "A3", "G3", "E3", "D3", "C3"]' cf_part_id="BASS" part_id="SOPRANO" key="C Major" species="fifth"
+
+
+# フロントの起動
+cd frontend
+pnpm dev
+
+cd frontend
+pnpm check
+pnpm build
+

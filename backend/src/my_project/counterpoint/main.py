@@ -39,7 +39,7 @@ def main() -> None:
     except Exception as e:
         logger.error(f"Failed to parse bass sequence '{args.cf}'. Error: {e}")
         return
-    cf_part_id = PartId.BASS  # TODO
+    cf_part_id = PartId[args.cf_part_id]
     species: Species
     if args.species == "first":
         species = Species.FIRST_SPECIES
@@ -118,6 +118,13 @@ def parse_args() -> argparse.Namespace:
         default="SOPRANO",
         choices=["SOPRANO", "ALTO", "TENOR", "BASS"],
         help="Part ID for the generated counterpoint. Defaults to SOPRANO.",
+    )
+    parser.add_argument(
+        "--cf_part_id",
+        type=str,
+        default="BASS",
+        choices=["SOPRANO", "ALTO", "TENOR", "BASS"],
+        help="Part ID for the Cantus Firmus. Defaults to BASS.",
     )
     parser.add_argument(
         "--log-level",

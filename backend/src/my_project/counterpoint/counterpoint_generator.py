@@ -15,7 +15,7 @@ from my_project.counterpoint.model import (
     ToneType,
 )
 from my_project.counterpoint.rules import get_measure_rythmn_patterns
-from my_project.counterpoint.skeleton_generator import Skeleton, SkeletonGenerator
+from my_project.counterpoint.skeleton_search.old_skeleton_generator import Skeleton, SkeletonGenerator
 from my_project.model import (
     Duration,
     FullScore,
