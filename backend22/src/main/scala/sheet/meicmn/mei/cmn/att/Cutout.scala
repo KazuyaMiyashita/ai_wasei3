@@ -1,0 +1,8 @@
+package sheet.meicmn.mei.cmn.att
+
+/** Attributes that indicate how to render the staff lines of the measure containing an element belonging to this attribute class.
+  *
+  * Ident: att.cutout
+  * Module: MEI.cmn
+  */
+trait Cutout {}

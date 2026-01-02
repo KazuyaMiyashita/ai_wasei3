@@ -1,0 +1,8 @@
+package sheet.meicmn.mei.data.interval
+
+/** A token indicating direction of the interval but not its precise value, a diatonic interval (with optional direction and quality), or a decimal value in half steps. Decimal values are permitted to accommodate micro-tuning.
+  *
+  * Ident: data.INTERVAL.MELODIC
+  * Module: MEI
+  */
+trait MELODIC {}

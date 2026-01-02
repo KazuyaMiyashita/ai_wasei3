@@ -1,129 +1,70 @@
-import model._
-import parser.musicxml.MusicXMLParser
+import java.net.InetAddress
+
+import scala.xml.{PrettyPrinter, XML}
+
+import com.illposed.osc.transport.OSCPortOut
+import model.containers.{Score, PartwiseScore}
+import model.elements.Part
+import performer.{OscSender, Performer, PerformerEvent}
+import sheet.{MeiScore, NoteInfo}
+import sheet.meicmn.MeiXML
 
 object Main {
 
-  val resourcePath = "/data/268.musicxml"
+  val printer = new PrettyPrinter(120, 2)
 
   def main(args: Array[String]): Unit = {
-
-    val resource = getClass.getResource(resourcePath)
+    val resourcePath = s"/data/mei/356.mei"
+    val resource     = getClass.getResource(resourcePath)
 
     if (resource == null) {
       System.err.println(s"Error: Resource not found: $resourcePath")
-      sys.exit(1)
+      return
     }
 
-    println(s"Loading MusicXML from: $resource")
+    println(s"Loading MEI file from: $resource")
+    // Load from XML file
+    val xml          = XML.load(resource)
+    val meiStructure = MeiXML.load(xml)
+    val meiScore     = MeiScore(meiStructure)
 
-    // 1. Parse to SheetMusic
-    val sheetMusic = MusicXMLParser.parse(resource)
-    println("Successfully parsed SheetMusic.")
-    println(s"Key: ${sheetMusic.key}")
-    println(s"Time Signature: ${sheetMusic.timeSignature}")
+    val tempo = meiScore.tempo.getOrElse(80.0)
 
-    // 2. Convert to Score
-    println("=== Converted Score Structure ===")
-    val score = toScore(sheetMusic)
-    printPrettyScore(score)(partIdOrdering)
+    val score: Score[NoteInfo, Unit] = meiScore.toScore
 
-    // 4. Grid Transformation (Homophonic View)
-    println()
-    println("=== Grid (Homophonic View) ===")
+    val partwizeScore: PartwiseScore[NoteInfo, Unit] = score.partwise
 
-    val gridScore = toGridScore(sheetMusic)(partIdOrdering)
-    printPrettyScore(gridScore)(partIdOrdering)
+    val soprano = partwizeScore.elems.find(e => e.part == Part("Soprano" :: Nil))
+    println("Soprano:")
+    soprano.take(10).foreach(println)
+    println("...")
 
-    // 5. Windowed Score (Duration.of(3, 2))
-    println()
-    println("=== Windowed Score (Window: 3/2) ===")
-    val windowedScore = toWindowedScore(sheetMusic, Duration.of(3, 2))(partIdOrdering)
-    printPrettyScore(windowedScore)(partIdOrdering)
-
+    // イベント生成
+    val events = Performer.perform(partwizeScore, tempo)
+    println(s"生成されたイベント数: ${events.length}")
+    events.take(10).foreach(println)
+    println("...")
+    sendOsc(events)
   }
 
-  val partIdOrdering: Ordering[PartId] = Ordering.by(_.ordinal)
+  def sendOsc(events: List[PerformerEvent]): Unit = {
+    val ip   = InetAddress.getByName("127.0.0.1")
+    val port = 8000
 
-  def printPrettyScore[Id, A, Attr](score: Score[Id, A, Attr], indentLevel: Int = 0)(ordering: Ordering[Id]): Unit = {
-    val indent = "  " * indentLevel
-    score match {
-      case Score.NoteScore(note) =>
-        println(s"${indent}Note: $note")
+    val sender = new OSCPortOut(ip, port)
 
-      case Score.MelodyScore(melody) =>
-        val isLeafMelody = melody.elems.forall {
-          case Score.NoteScore(_) => true
-          case _                  => false
-        }
+    try {
+      println(s"[送信開始] $ip:$port へイベントを生成中...")
 
-        if (isLeafMelody) {
-          val notesStr = melody.elems
-            .collect { case Score.NoteScore(n) =>
-              s"${n.value}(${n.duration})"
-            }
-            .mkString(", ")
-          println(s"${indent}Melody: [$notesStr]")
-        } else {
-          println(s"${indent}Melody:")
-          melody.elems.foreach { s =>
-            printPrettyScore(s, indentLevel + 1)(ordering)
-          }
-        }
+      // 送信処理
+      OscSender.sendEvents(sender, events)
 
-      case Score.ChordScore(chord) =>
-        println(s"${indent}Chord:")
-        // パートの順序を指定された Ordering に従ってソート
-        chord.keyElems.toList.sortBy(_._1)(using ordering).foreach { case (key, subScore) =>
-          println(s"${indent}  Part $key:")
-          printPrettyScore(subScore, indentLevel + 2)(ordering)
-        }
+      println("[完了]")
+    } catch {
+      case e: Exception => e.printStackTrace()
+    } finally {
+      sender.close()
     }
-  }
-
-  def toScore(sheetMusic: SheetMusic): Score[PartId, Pitch | Rest, Option[ScoreAttrs]] = {
-    import ScoreSyntax.*
-    sheetMusic.toChord.asScore
-  }
-
-  def toGridScore(
-      sheetMusic: SheetMusic,
-  )(ordering: Ordering[PartId]): Score[PartId, Pitch | Rest, Option[ScoreAttrs]] = {
-
-    import ScoreSyntax.*
-
-    val flattenMeasureChord: Chord[PartId, Melody[Note[Pitch | Rest, Option[ScoreAttrs]]]] =
-      sheetMusic.toChord.map(_.flatten)
-
-    val grid = Grid.fromPolyphonicMelodiesChord(flattenMeasureChord, ordering)(_.value)
-
-    grid.toChordsMelody.asScore[PartId, Pitch | Rest, Option[ScoreAttrs]]
-
-  }
-
-  def toWindowedScore(sheetMusic: SheetMusic, windowSize: Duration)(
-      ordering: Ordering[PartId],
-  ): Score[PartId, Pitch | Rest, Option[ScoreAttrs]] = {
-
-    import ScoreSyntax.*
-
-    val flattenMeasureChord: Chord[PartId, Melody[Note[Pitch | Rest, Option[ScoreAttrs]]]] =
-      sheetMusic.toChord.map(_.flatten)
-
-    val windowedMelodiesChord: Chord[PartId, Melody[Melody[Note[Pitch | Rest, Option[ScoreAttrs]]]]] =
-      flattenMeasureChord.map { melody =>
-
-        val splitPoints = Iterator.iterate(Offset.of(0))(_ + windowSize)
-
-        val windows = Sliceable.sliceList(melody)(splitPoints).map(_.value)
-
-        Melody(windows)
-
-      }
-
-    val grid = Grid.fromMelodiesChord(windowedMelodiesChord, ordering)
-
-    grid.toChordsMelody.asScore[PartId, Pitch | Rest, Option[ScoreAttrs]]
-
   }
 
 }

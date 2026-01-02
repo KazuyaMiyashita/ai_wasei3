@@ -55,5 +55,13 @@
   },
   "files.watcherExclude": {
     "**/target": true
+  },
+
+  "[xml]": {
+    "editor.formatOnSave": false
+  },
+
+  "files.associations": {
+    "*.css": "tailwindcss"
   }
 }

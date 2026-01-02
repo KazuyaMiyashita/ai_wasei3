@@ -1,0 +1,1359 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<mei meiversion="5.1" xmlns="http://www.music-encoding.org/ns/mei">
+   <meiHead xml:id="md8ojw0">
+      <fileDesc xml:id="f1n8vi7e">
+         <titleStmt xml:id="tuegxaf">
+            <title>189</title>
+            <respStmt/>
+         </titleStmt>
+         <pubStmt xml:id="pir1l2c">
+            <date isodate="2025-07-29" type="encoding-date">2025-07-29</date>
+         </pubStmt>
+      </fileDesc>
+      <encodingDesc xml:id="e10nu14e">
+         <appInfo xml:id="a88hhtn">
+            <application xml:id="a8bjs33" isodate="2025-12-21T09:56:34" version="5.7.0">
+               <name xml:id="n1bvoskb">Verovio</name>
+               <p xml:id="p5d7e4g">Transcoded from MusicXML</p>
+            </application>
+         </appInfo>
+      </encodingDesc>
+   </meiHead>
+   <music>
+      <body>
+         <mdiv xml:id="z1yp39xh">
+            <score xml:id="a1fqrxl0">
+               <scoreDef xml:id="b115lh1s">
+                  <staffGrp xml:id="d5mlb1i">
+                     <staffGrp xml:id="e11cldid" bar.thru="true">
+                        <grpSym xml:id="fm14zw3" symbol="bracket"/>
+                        <staffDef xml:id="P1" n="1" lines="5" ppq="256">
+                           <label xml:id="g191dcvb">Soprano</label>
+                           <clef xml:id="q17cwxqv" shape="C" line="1"/>
+                           <keySig xml:id="rwojvzr" mode="major" sig="1s"/>
+                           <meterSig xml:id="s181bv2y" count="2" unit="4"/>
+                        </staffDef>
+                        <staffDef xml:id="P2" n="2" lines="5" ppq="256">
+                           <label xml:id="fvtod4p">Alto</label>
+                           <clef xml:id="p1ips3q1" shape="C" line="3"/>
+                           <keySig xml:id="qp5sx8i" mode="major" sig="1s"/>
+                           <meterSig xml:id="rlky1p9" count="2" unit="4"/>
+                        </staffDef>
+                        <staffDef xml:id="P3" n="3" lines="5" ppq="256">
+                           <label xml:id="k10i40vd">Tenor</label>
+                           <clef xml:id="u1b6096p" shape="C" line="4"/>
+                           <keySig xml:id="vthnl64" mode="major" sig="1s"/>
+                           <meterSig xml:id="wlaag3" count="2" unit="4"/>
+                        </staffDef>
+                        <staffDef xml:id="P4" n="4" lines="5" ppq="256">
+                           <label xml:id="j19pgkkp">Bass</label>
+                           <clef xml:id="t1suep8y" shape="F" line="4"/>
+                           <keySig xml:id="u386wvl" mode="major" sig="1s"/>
+                           <meterSig xml:id="v1mz07zf" count="2" unit="4"/>
+                        </staffDef>
+                     </staffGrp>
+                  </staffGrp>
+               </scoreDef>
+               <section xml:id="ch4o9pm">
+                  <measure xml:id="ttvfcda" n="1">
+                     <staff xml:id="c1b78f3m" n="1">
+                        <layer xml:id="da515xo" n="1">
+                           <note xml:id="k1vcgpyi" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="b1it1fq0" n="2">
+                        <layer xml:id="c1m10azf" n="1">
+                           <note xml:id="gvf0xj1" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g19sbq76" n="3">
+                        <layer xml:id="h128lq57" n="1">
+                           <note xml:id="lxt76rc" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="m8qdut1" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="fhecmdz" n="4">
+                        <layer xml:id="gxvlyd1" n="1">
+                           <note xml:id="kr2v0ze" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                           <note xml:id="l8icx7c" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="e1o62t4y" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="f18zbbf4" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <tempo xml:id="htusuqx" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="i1uiur6j" fontfam="Palatino" fontstyle="normal" fontweight="bold">Allegretto</rend>
+                     </tempo>
+                     <slur xml:id="lpahw6v" startid="#k1vcgpyi" endid="#b13mxfb7" curvedir="above"/>
+                     <dynam xml:id="d3e68tu" staff="2" tstamp="1" vgrp="2000">
+                        <rend xml:id="eued921" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <tie xml:id="hjnucyq" startid="#gvf0xj1" endid="#tztd0hr" curvedir="above"/>
+                     <dynam xml:id="i11h1d5l" staff="3" tstamp="1" vgrp="2000">
+                        <rend xml:id="j4zktj4" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <dynam xml:id="hmktr4a" staff="4" tstamp="1" vgrp="2000">
+                        <rend xml:id="i1sytqk8" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                  </measure>
+                  <measure xml:id="m1gd5rwt" n="2">
+                     <staff xml:id="v1blwvel" n="1">
+                        <layer xml:id="wfo1g60" n="1">
+                           <note xml:id="xe7br0i" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="yeyokzh" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="rlso8qy" n="2">
+                        <layer xml:id="sop0bci" n="1">
+                           <note xml:id="tztd0hr" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="u73r6hy" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="w1cduhpx" n="3">
+                        <layer xml:id="x1al4idj" n="1">
+                           <note xml:id="y61iymf" dur.ppq="512" dur="2" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="v1vxx4vb" n="4">
+                        <layer xml:id="w1tica3b" n="1">
+                           <note xml:id="x138emki" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                           <note xml:id="yirfk11" dur.ppq="256" dur="4" oct="2" pname="a" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="zug2gzc" n="3">
+                     <staff xml:id="i14o46n4" n="1">
+                        <layer xml:id="j1k5hpgz" n="1">
+                           <note xml:id="l1ynqb1b" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f14p5757" n="2">
+                        <layer xml:id="gjr886x" n="1">
+                           <note xml:id="i14qjtse" dur.ppq="512" dur="2" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="igeux71" n="3">
+                        <layer xml:id="j1pi0acc" n="1">
+                           <note xml:id="l1fvmeak" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down">
+                              <accid xml:id="miho0va" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="i8jihya" n="4">
+                        <layer xml:id="jejfjsw" n="1">
+                           <note xml:id="k1dye0k3" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up"/>
+                           <note xml:id="m4medy0" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <hairpin xml:id="k146rwf7" staff="1" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="h163ik8z" staff="2" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="k17s9ddc" staff="3" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="l14z9hv2" staff="4" tstamp="2" tstamp2="2m+1.9961" form="cres" vgrp="2000"/>
+                     <tie xml:id="noyx8qg" startid="#m4medy0" endid="#z1r8sy3r" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="m12psw7s" n="4">
+                     <staff xml:id="v1n9jwyd" n="1">
+                        <layer xml:id="w189ncpa" n="1">
+                           <note xml:id="xcnfz56" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down">
+                              <accid xml:id="yinyz35" accid="s"/>
+                           </note>
+                           <note xml:id="z2x2nih" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down">
+                              <accid xml:id="af81pqv" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="tfobhlb" n="2">
+                        <layer xml:id="u1amvjt1" n="1">
+                           <note xml:id="v1duj3wz" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="w1f26sv" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="w1badacy" n="3">
+                        <layer xml:id="xcygvgx" n="1">
+                           <note xml:id="y4jc5a2" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                           <note xml:id="z1gcaxef" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="x3zha88" n="4">
+                        <layer xml:id="y1o4pine" n="1">
+                           <note xml:id="z1r8sy3r" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                           <note xml:id="awjk4zi" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="b9sfpgk" n="5">
+                     <staff xml:id="k1wd2ur0" n="1">
+                        <layer xml:id="lxxyu02" n="1">
+                           <note xml:id="mr4vd2f" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                           <note xml:id="n1yk52s5" dur.ppq="256" dur="4" oct="5" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="huz544z" n="2">
+                        <layer xml:id="i1b4abty" n="1">
+                           <note xml:id="j1dyo1ry" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="k1r9zfmy" n="3">
+                        <layer xml:id="l1fq1fos" n="1">
+                           <note xml:id="m3zw4li" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                           <note xml:id="nrn0gqx" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down">
+                              <accid xml:id="otg0csw" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="kj6mlfh" n="4">
+                        <layer xml:id="ld5c6oq" n="1">
+                           <note xml:id="m16i6ah2" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                           <note xml:id="n1oxlibk" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="p13h6mcm" startid="#nrn0gqx" endid="#b1505has" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="o1iqorbo" n="6">
+                     <staff xml:id="x1r7hznq" n="1">
+                        <layer xml:id="ywy4rhc" n="1">
+                           <note xml:id="z1411ew3" dur.ppq="512" dur="2" oct="5" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="t1kse0d8" n="2">
+                        <layer xml:id="uqra9mn" n="1">
+                           <note xml:id="v1aqntdj" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down">
+                              <accid xml:id="waac1lw" accid="s"/>
+                           </note>
+                           <note xml:id="x1e9rklw" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="z1hew6vw" n="3">
+                        <layer xml:id="a1jiwekn" n="1">
+                           <note xml:id="b1505has" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down" accid.ges="s"/>
+                           <note xml:id="dg44i7s" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="x6vh959" n="4">
+                        <layer xml:id="y2w4eab" n="1">
+                           <note xml:id="zxmaf1a" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down" accid.ges="s"/>
+                           <note xml:id="b1aiv2dj" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="b1ceyevj" n="7">
+                     <staff xml:id="khom61v" n="1">
+                        <layer xml:id="luqv56s" n="1">
+                           <note xml:id="m1yjl7bl" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                           <note xml:id="nfx4hqq" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="h13tkpma" n="2">
+                        <layer xml:id="i1luh3oq" n="1">
+                           <note xml:id="j1rl0kd5" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="n1ai1qn" n="3">
+                        <layer xml:id="o16walec" n="1">
+                           <note xml:id="p192t23t" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="q1k8rhpw" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="l9bl2y2" n="4">
+                        <layer xml:id="mwl8yvk" n="1">
+                           <note xml:id="n1hep4up" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up">
+                              <accid xml:id="ojcbar3" accid="s"/>
+                           </note>
+                           <note xml:id="pvk3tzs" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="o1g1l9tz" startid="#nfx4hqq" endid="#abycfjn" curvedir="above"/>
+                     <tie xml:id="kaft56p" startid="#j1rl0kd5" endid="#w13y5gxr" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="pcg90zh" n="8">
+                     <staff xml:id="y1rczxj6" n="1">
+                        <layer xml:id="z127jspo" n="1">
+                           <note xml:id="abycfjn" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                           <note xml:id="b13mxfb7" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down">
+                              <accid xml:id="c11do7r" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="ufgebfb" n="2">
+                        <layer xml:id="v23wor8" n="1">
+                           <note xml:id="w13y5gxr" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                           <note xml:id="x1edkilf" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down">
+                              <accid xml:id="ynqzjnn" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="b121jeze" n="3">
+                        <layer xml:id="c1ro8agy" n="1">
+                           <note xml:id="d3z5otm" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="e7lrx2o" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="zbshbuf" n="4">
+                        <layer xml:id="a1gmk9fh" n="1">
+                           <note xml:id="b8u7byz" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                           <note xml:id="cw4itjj" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="dy1azvz" n="9">
+                     <staff xml:id="mjrvbm8" n="1">
+                        <layer xml:id="n5ga1w7" n="1">
+                           <note xml:id="r152wxb3" dur.ppq="512" dur="2" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="i1w4y8hl" n="2">
+                        <layer xml:id="j2sjglk" n="1">
+                           <note xml:id="n1dbs89p" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="oi4id9y" n="3">
+                        <layer xml:id="p1ico7pq" n="1">
+                           <note xml:id="td70jai" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="ucrmdap" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="n1lkmn7n" n="4">
+                        <layer xml:id="o118ozz6" n="1">
+                           <note xml:id="s1cehpwj" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                           <note xml:id="twmbra9" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="ohr7y5r" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="pyvgai3" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">mf</rend>
+                     </dynam>
+                     <slur xml:id="st0sxnz" startid="#r152wxb3" endid="#u1dxkrzn" curvedir="above"/>
+                     <dynam xml:id="k1hiyf07" staff="2" tstamp="1" vgrp="2000">
+                        <rend xml:id="l1b4gp15" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">mf</rend>
+                     </dynam>
+                     <tie xml:id="o1qds1cp" startid="#n1dbs89p" endid="#a1g8culi" curvedir="above"/>
+                     <dynam xml:id="qa5yyux" staff="3" tstamp="1" vgrp="2000">
+                        <rend xml:id="rdg9m8b" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">mf</rend>
+                     </dynam>
+                     <dynam xml:id="pmdv30e" staff="4" tstamp="1" vgrp="2000">
+                        <rend xml:id="qqur68s" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">mf</rend>
+                     </dynam>
+                  </measure>
+                  <measure xml:id="t1akqh8w" n="10">
+                     <staff xml:id="c1krn622" n="1">
+                        <layer xml:id="ddac7gc" n="1">
+                           <note xml:id="e6j4tjt" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down">
+                              <accid xml:id="fwj140y" accid="n"/>
+                           </note>
+                           <note xml:id="g1jkbbxs" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="ypdm2lb" n="2">
+                        <layer xml:id="z5qmhtt" n="1">
+                           <note xml:id="a1g8culi" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                           <note xml:id="bde63ek" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="e8kx17a" n="3">
+                        <layer xml:id="f1vw2u44" n="1">
+                           <note xml:id="g1seczed" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="d12c66vq" n="4">
+                        <layer xml:id="eblxx9n" n="1">
+                           <note xml:id="f1nz0sjk" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                           <note xml:id="gzu1fo4" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="hgcul44" n="11">
+                     <staff xml:id="q1cmhz3c" n="1">
+                        <layer xml:id="r1qfwhl0" n="1">
+                           <note xml:id="t1lz5duu" dur.ppq="512" dur="2" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="l1dx4mzq" n="2">
+                        <layer xml:id="m17sis3i" n="1">
+                           <note xml:id="osbv199" dur.ppq="512" dur="2" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="q1hoyjrj" n="3">
+                        <layer xml:id="r4jh2b" n="1">
+                           <note xml:id="t1uihwue" dur.ppq="512" dur="2" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="qa0crr9" n="4">
+                        <layer xml:id="rsu1mv3" n="1">
+                           <note xml:id="s1ef8oll" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="u17voq8r" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <hairpin xml:id="sregk6p" staff="1" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="n1mpt85h" staff="2" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="s16figcv" staff="3" tstamp="1" tstamp2="1m+2.9961" form="cres" vgrp="2000"/>
+                     <hairpin xml:id="t1418g29" staff="4" tstamp="2" tstamp2="2m+1.9961" form="cres" vgrp="2000"/>
+                     <tie xml:id="v1jqtzfr" startid="#u17voq8r" endid="#hinhuxb" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="u12qtxs9" n="12">
+                     <staff xml:id="d33zll3" n="1">
+                        <layer xml:id="e1yhpfon" n="1">
+                           <note xml:id="f1tmd4wm" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                           <note xml:id="g6x5edc" dur.ppq="256" dur="4" oct="5" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="y15d70uw" n="2">
+                        <layer xml:id="zq1k73s" n="1">
+                           <note xml:id="a1wsv40s" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                           <note xml:id="b3hd9qf" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="e1vnkb75" n="3">
+                        <layer xml:id="f1oy46v9" n="1">
+                           <note xml:id="g7jcx3k" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="h4xxtv9" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="frpgyez" n="4">
+                        <layer xml:id="g1ib6b6l" n="1">
+                           <note xml:id="hinhuxb" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="i1r0wbbg" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="i4npls4" n="13">
+                     <staff xml:id="rtvy6kj" n="1">
+                        <layer xml:id="s3lek5i" n="1">
+                           <note xml:id="ttmi1iu" dur.ppq="512" dur="2" oct="5" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="l1yu2k91" n="2">
+                        <layer xml:id="m2gpcz" n="1">
+                           <note xml:id="nt3ap9a" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                           <note xml:id="o192y09u" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="r17t70dw" n="3">
+                        <layer xml:id="s66e7nx" n="1">
+                           <note xml:id="tf7ei9a" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="s1rjo3dd" n="4">
+                        <layer xml:id="t1tl7nvd" n="1">
+                           <note xml:id="u165ttg9" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                           <note xml:id="v187ev07" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="u4nq3za" startid="#ttmi1iu" endid="#g14kdaoo" curvedir="above"/>
+                     <tie xml:id="u1k7kxmh" startid="#tf7ei9a" endid="#g1szrgy6" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="v8gbk03" n="14">
+                     <staff xml:id="e1swhouf" n="1">
+                        <layer xml:id="fpnr5dq" n="1">
+                           <note xml:id="g14kdaoo" dur.ppq="256" dur="4" oct="5" pname="g" stem.dir="down"/>
+                           <note xml:id="h10yfx8b" dur.ppq="256" dur="4" oct="5" pname="f" stem.dir="down">
+                              <accid xml:id="i31zdcu" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="yfzxjgg" n="2">
+                        <layer xml:id="zarp48d" n="1">
+                           <note xml:id="a1l1o5d8" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                           <note xml:id="b1dmrv7l" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="eqhbmcc" n="3">
+                        <layer xml:id="fhq7u0o" n="1">
+                           <note xml:id="g1szrgy6" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="fa3drk8" n="4">
+                        <layer xml:id="g5y11nv" n="1">
+                           <note xml:id="hfbzy65" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="is5111f" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="h521ng7" startid="#g1szrgy6" endid="#t14zxx1r" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="jglurin" n="15">
+                     <staff xml:id="sbrjpo3" n="1">
+                        <layer xml:id="tyjeq04" n="1">
+                           <note xml:id="u1rk0b9r" dur.ppq="512" dur="2" oct="5" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="l2nx8vw" n="2">
+                        <layer xml:id="mzx0d77" n="1">
+                           <note xml:id="n1831ulf" dur.ppq="512" dur="2" oct="5" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="r16dea7" n="3">
+                        <layer xml:id="stcydsk" n="1">
+                           <note xml:id="t14zxx1r" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="s1p53xa1" n="4">
+                        <layer xml:id="t1m07yaq" n="1">
+                           <note xml:id="uirhzuj" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                           <note xml:id="v15mvwxh" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="v11obl5r" startid="#u1rk0b9r" endid="#hlzrj7o" curvedir="above"/>
+                     <tie xml:id="o11baah0" startid="#n1831ulf" endid="#ayxzkp3" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="w1r79b8x" n="16">
+                     <staff xml:id="f1kzcitb" n="1">
+                        <layer xml:id="g10t06sz" n="1">
+                           <note xml:id="hlzrj7o" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                           <note xml:id="io57hpq" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="y10ufv9l" n="2">
+                        <layer xml:id="z1kdr7w7" n="1">
+                           <note xml:id="ayxzkp3" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                           <note xml:id="ba8oj1g" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="dqpseja" n="3">
+                        <layer xml:id="epp07oa" n="1">
+                           <note xml:id="fjao6ql" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="g1h7biw6" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down">
+                              <accid xml:id="hduysy3" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f1gvjc9t" n="4">
+                        <layer xml:id="g1kwnvfr" n="1">
+                           <note xml:id="hwopma" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down">
+                              <accid xml:id="i1e5pa8e" accid="n"/>
+                           </note>
+                           <note xml:id="j14aiamj" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="j1aq5jhu" n="17">
+                     <staff xml:id="s1jay2x4" n="1">
+                        <layer xml:id="tvekuxi" n="1">
+                           <note xml:id="u1dxkrzn" dur.ppq="512" dur="2" oct="5" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="l18ovrfx" n="2">
+                        <layer xml:id="m1rk1kxv" n="1">
+                           <note xml:id="n15epon3" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                           <note xml:id="o1izrzzb" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="r9d5ko8" n="3">
+                        <layer xml:id="s12u1b2p" n="1">
+                           <note xml:id="t1lnfevf" dur.ppq="512" dur="2" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="tf8oqjb" n="4">
+                        <layer xml:id="uc7g5x4" n="1">
+                           <note xml:id="v8vneb2" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="w1y70hs5" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="p1j0q0fq" startid="#o1izrzzb" endid="#b1r5zptt" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="vzl3wup" n="18">
+                     <staff xml:id="el8lqjl" n="1">
+                        <layer xml:id="fpgsp9v" n="1">
+                           <note xml:id="g10dxozf" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down">
+                              <accid xml:id="h1x8qpzd" accid="f"/>
+                           </note>
+                           <note xml:id="j1r5xrg" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="zj2hbo6" n="2">
+                        <layer xml:id="a1r1k5kt" n="1">
+                           <note xml:id="b1r5zptt" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="c1bqpuft" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="dd8lmlr" n="3">
+                        <layer xml:id="eqhjsnk" n="1">
+                           <note xml:id="f1d5sfuu" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down">
+                              <accid xml:id="g173hhr9" accid="n"/>
+                           </note>
+                           <note xml:id="hd7fs4y" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g1wp9a7j" n="4">
+                        <layer xml:id="hvjhkf5" n="1">
+                           <note xml:id="i19x38j8" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="j1jrn6w6" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <slur xml:id="it9fb2t" startid="#g10dxozf" endid="#v99z6c2" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="k4lv6ji" n="19">
+                     <staff xml:id="t17k3dtq" n="1">
+                        <layer xml:id="u1nrgcna" n="1">
+                           <note xml:id="v99z6c2" dur.ppq="512" dur="2" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="m1qlporh" n="2">
+                        <layer xml:id="n1mbibmw" n="1">
+                           <note xml:id="o33fzyy" dur.ppq="512" dur="2" oct="4" pname="f" stem.dir="down">
+                              <accid xml:id="pvkb5xb" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="rcm7564" n="3">
+                        <layer xml:id="s18ko0im" n="1">
+                           <note xml:id="tibg7fj" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                           <note xml:id="u9hteac" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down">
+                              <accid xml:id="v10iq812" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="tmnsdze" n="4">
+                        <layer xml:id="u1mwp58p" n="1">
+                           <note xml:id="v15jeycp" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down">
+                              <accid xml:id="w5evifl" accid="n"/>
+                           </note>
+                           <note xml:id="x7mc4ms" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="q1h6tn7s" startid="#o33fzyy" endid="#cv4lrer" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="wbdze41" n="20">
+                     <staff xml:id="f255nwn" n="1">
+                        <layer xml:id="g1q9nmr" n="1">
+                           <note xml:id="h1rkp1ft" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="jemhjxh" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down">
+                              <accid xml:id="k11xjbvm" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="a1iffo7w" n="2">
+                        <layer xml:id="b1klw0gv" n="1">
+                           <note xml:id="cv4lrer" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down"/>
+                           <note xml:id="d1nm9t50" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f8dnqli" n="3">
+                        <layer xml:id="g1jn3yvo" n="1">
+                           <note xml:id="htuwu5y" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="huyh3mk" n="4">
+                        <layer xml:id="i1ti8ap6" n="1">
+                           <note xml:id="jtstwo0" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up">
+                              <accid xml:id="kn201xc" accid="f"/>
+                           </note>
+                           <note xml:id="ltlr4m4" dur.ppq="256" dur="4" oct="2" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <slur xml:id="iudzvfn" startid="#h1rkp1ft" endid="#j1v3x1cv" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="l1vgzaqb" n="21">
+                     <staff xml:id="uaswvqw" n="1">
+                        <layer xml:id="v1ad0a6y" n="1">
+                           <note xml:id="wxcyxdt" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="xd9nggy" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="n1ap15xw" n="2">
+                        <layer xml:id="o1ozj2jq" n="1">
+                           <note xml:id="pm4pwx" dur.ppq="512" dur="2" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="r3o47p0" n="3">
+                        <layer xml:id="s1tltyaa" n="1">
+                           <note xml:id="t1uyjhjm" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down">
+                              <accid xml:id="u89noiy" accid="s"/>
+                           </note>
+                           <note xml:id="vtxocqk" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="vdwzsul" n="4">
+                        <layer xml:id="w6hh49u" n="1">
+                           <note xml:id="xqyob3p" dur.ppq="256" dur="4" oct="2" pname="a" stem.dir="up"/>
+                           <note xml:id="ysrmvjw" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up">
+                              <accid xml:id="z1luenes" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="y15tmeno" n="22">
+                     <staff xml:id="h1kbg5hm" n="1">
+                        <layer xml:id="i5bvvu9" n="1">
+                           <note xml:id="j1v3x1cv" dur.ppq="512" dur="2" oct="4" pname="f" stem.dir="up">
+                              <accid xml:id="khlqq3b" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="zzzeofp" n="2">
+                        <layer xml:id="a7sz0sc" n="1">
+                           <note xml:id="b1e4ovgp" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f19ctu3m" n="3">
+                        <layer xml:id="gpp2vge" n="1">
+                           <note xml:id="h1wf3sxi" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="i3889ol" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="j1uwsmh3" n="4">
+                        <layer xml:id="kd22xn5" n="1">
+                           <note xml:id="l17gockc" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="m1hcg2wt" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up">
+                              <accid xml:id="n17ekt6" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <tie xml:id="c1gt8des" startid="#b1e4ovgp" endid="#ozx70qu" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="l1i5xkng" n="23">
+                     <staff xml:id="uzm9nec" n="1">
+                        <layer xml:id="v8izptp" n="1">
+                           <note xml:id="wjm7y0f" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="up">
+                              <accid xml:id="xq9z0t9" accid="f"/>
+                           </note>
+                           <note xml:id="z13kusvd" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="mnlclyn" n="2">
+                        <layer xml:id="n8qru7u" n="1">
+                           <note xml:id="ozx70qu" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="pzbpga8" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="sfdaodc" n="3">
+                        <layer xml:id="t4wglew" n="1">
+                           <note xml:id="u1rz385w" dur.ppq="512" dur="2" oct="3" pname="b" stem.dir="down">
+                              <accid xml:id="vgaw5q3" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="xeslqs6" n="4">
+                        <layer xml:id="yh2ogwr" n="1">
+                           <note xml:id="z1ucmfsa" dur.ppq="256" dur="4" oct="2" pname="g" stem.dir="up"/>
+                           <note xml:id="a5kn3nu" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down">
+                              <accid xml:id="bp8vw2b" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <slur xml:id="y1aq0431" startid="#wjm7y0f" endid="#sil6lwr" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="an2zuq2" n="24">
+                     <staff xml:id="jrehuo0" n="1">
+                        <layer xml:id="ks8ahuj" n="1">
+                           <note xml:id="laxhf4c" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="up">
+                              <accid xml:id="m1pfxah7" accid="n"/>
+                           </note>
+                           <note xml:id="nl4grzq" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="up">
+                              <accid xml:id="o1luwyza" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="z1wx7ugm" n="2">
+                        <layer xml:id="a14a2jv8" n="1">
+                           <note xml:id="b185l3tj" dur.ppq="512" dur="2" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f1awqz4e" n="3">
+                        <layer xml:id="gqer6a7" n="1">
+                           <note xml:id="h6um8nl" dur.ppq="512" dur="2" oct="3" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="lsme742" n="4">
+                        <layer xml:id="m145fa6x" n="1">
+                           <note xml:id="nrl0ju3" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down">
+                              <accid xml:id="o8xf3rc" accid="n"/>
+                           </note>
+                           <note xml:id="p3i8twe" dur.ppq="256" dur="4" oct="2" pname="f" stem.dir="up">
+                              <accid xml:id="q1a6ziva" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <tie xml:id="czdrnw7" startid="#b185l3tj" endid="#o1xcpu63" curvedir="above"/>
+                     <tie xml:id="i1rt2fch" startid="#h6um8nl" endid="#u18ysefe" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="p1r8emgz" n="25">
+                     <staff xml:id="yoj123r" n="1">
+                        <layer xml:id="z1ck5uoz" n="1">
+                           <note xml:id="a2hczst" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="m1yu5qcj" n="2">
+                        <layer xml:id="n19b04i3" n="1">
+                           <note xml:id="o1xcpu63" dur.ppq="512" dur="2" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="sp4kp6d" n="3">
+                        <layer xml:id="t5m5f6" n="1">
+                           <note xml:id="u18ysefe" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="v19xkt37" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="up" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="a1k55r0m" n="4">
+                        <layer xml:id="b5uw1ln" n="1">
+                           <note xml:id="cav4knn" dur.ppq="256" dur="4" oct="2" pname="f" stem.dir="up">
+                              <accid xml:id="d1p8jho9" accid="s"/>
+                           </note>
+                           <note xml:id="e1lnk12v" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="ffm5ouf" startid="#e1lnk12v" endid="#r10y2m1j" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="b2z2px6" n="26">
+                     <staff xml:id="k1y4htyj" n="1">
+                        <layer xml:id="lb0i2sv" n="1">
+                           <note xml:id="m1wpoqy5" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="up">
+                              <accid xml:id="ni770ce" accid="n"/>
+                           </note>
+                           <note xml:id="ow8j5g9" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="up">
+                              <accid xml:id="p1a53xrm" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="y1wbz85m" n="2">
+                        <layer xml:id="zvlvl7a" n="1">
+                           <note xml:id="a9ixvnq" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="up">
+                              <accid xml:id="banmkf" accid="f"/>
+                           </note>
+                           <note xml:id="crausj5" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g12lsih9" n="3">
+                        <layer xml:id="h1uttkm5" n="1">
+                           <note xml:id="ihizaej" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="up"/>
+                           <note xml:id="j1hfavm7" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="p1nemje2" n="4">
+                        <layer xml:id="q1h07upq" n="1">
+                           <note xml:id="r10y2m1j" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="s1e71pcw" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="q1d96cod" n="27">
+                     <staff xml:id="z1e7o745" n="1">
+                        <layer xml:id="aevg9ry" n="1">
+                           <note xml:id="e157geaf" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="f15nwzb2" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down">
+                              <accid xml:id="g1c7mm1m" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="m1wumfch" n="2">
+                        <layer xml:id="na9di8n" n="1">
+                           <note xml:id="o156anwv" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="p4z9il" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down">
+                              <accid xml:id="qo4723j" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="toj7ryw" n="3">
+                        <layer xml:id="uqhs21f" n="1">
+                           <note xml:id="vqbcfrl" dur.ppq="512" dur="2" oct="3" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="c1wfj2sj" n="4">
+                        <layer xml:id="dferh9u" n="1">
+                           <note xml:id="ecnf5xs" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up">
+                              <accid xml:id="fdy6ifc" accid="f"/>
+                           </note>
+                           <note xml:id="g1p6ya1u" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <dir xml:id="b1i19awy" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="cbxdc92" fontstyle="normal" fontweight="normal">rit.</rend>
+                     </dir>
+                  </measure>
+                  <measure xml:id="hw2u8z7" n="28">
+                     <staff xml:id="q1njj7ww" n="1">
+                        <layer xml:id="r1ux36os" n="1">
+                           <note xml:id="sil6lwr" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <rest xml:id="twkkeoj" dur.ppq="256" dur="4"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="a1v1v441" n="2">
+                        <layer xml:id="b1ucaw1t" n="1">
+                           <note xml:id="cvi5z39" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down">
+                              <accid xml:id="dlv8es8" accid="s"/>
+                           </note>
+                           <rest xml:id="e1u9ob46" dur.ppq="256" dur="4"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f2o2m90" n="3">
+                        <layer xml:id="g1foih1r" n="1">
+                           <note xml:id="hvmlrmu" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <rest xml:id="i11daq7e" dur.ppq="256" dur="4"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="q1r5k4yh" n="4">
+                        <layer xml:id="r16onyf8" n="1">
+                           <note xml:id="s159wevi" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <rest xml:id="tly8sbc" dur.ppq="256" dur="4"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="u8loatm" n="29">
+                     <staff xml:id="d1gpgy6w" n="1">
+                        <layer xml:id="ev9eyc2" n="1">
+                           <note xml:id="l12c9tzx" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down">
+                              <accid xml:id="m1q6qfj0" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="oixa3q6" n="2">
+                        <layer xml:id="p1pcazsn" n="1">
+                           <note xml:id="tr0p8s0" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="s3vrsua" n="3">
+                        <layer xml:id="t1wspkd6" n="1">
+                           <note xml:id="xrohjuz" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="y1kywvrg" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="d4u2imk" n="4">
+                        <layer xml:id="e1er3xwr" n="1">
+                           <note xml:id="iss1mxq" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                           <note xml:id="j10n7bza" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="f10kyatd" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="g12jxdhh" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <tempo xml:id="i16tbw2x" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="jlwq1lo" fontfam="Palatino" fontstyle="normal" fontweight="bold">a Tempo</rend>
+                     </tempo>
+                     <slur xml:id="n17wovv9" startid="#l12c9tzx" endid="#b803kkq" curvedir="above"/>
+                     <dynam xml:id="qyoj1s1" staff="2" tstamp="1" vgrp="2000">
+                        <rend xml:id="r1o3278a" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <tie xml:id="ucyako0" startid="#tr0p8s0" endid="#g1r8t0q2" curvedir="above"/>
+                     <dynam xml:id="u1msoep2" staff="3" tstamp="1" vgrp="2000">
+                        <rend xml:id="v1ihdhuf" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <dynam xml:id="fnmwel7" staff="4" tstamp="1" vgrp="2000">
+                        <rend xml:id="g9bizxg" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                  </measure>
+                  <measure xml:id="oqo7aj1" n="30">
+                     <staff xml:id="x132xrkc" n="1">
+                        <layer xml:id="y1ob3dbf" n="1">
+                           <note xml:id="z1pjggm7" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="a1jm3dpd" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="etu8tim" n="2">
+                        <layer xml:id="f1rn9gzz" n="1">
+                           <note xml:id="g1r8t0q2" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="h7tbwqu" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="ieng6sf" n="3">
+                        <layer xml:id="j14dm2jd" n="1">
+                           <note xml:id="klgdatd" dur.ppq="512" dur="2" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="tifhjtn" n="4">
+                        <layer xml:id="u1r5c0jg" n="1">
+                           <note xml:id="vf1ngn" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                           <note xml:id="w1it5b34" dur.ppq="256" dur="4" oct="2" pname="a" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="b104imwz" n="31">
+                     <staff xml:id="k28w59w" n="1">
+                        <layer xml:id="l1jsv1e1" n="1">
+                           <note xml:id="m1aitybi" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="s1u536vf" n="2">
+                        <layer xml:id="t1ggs0jj" n="1">
+                           <note xml:id="unf2xrk" dur.ppq="512" dur="2" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="u19obfl2" n="3">
+                        <layer xml:id="v10a2q3l" n="1">
+                           <note xml:id="w9hcpkz" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down">
+                              <accid xml:id="xn5yfi7" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g1oj255t" n="4">
+                        <layer xml:id="h2jnjf7" n="1">
+                           <note xml:id="i78lkc6" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up"/>
+                           <note xml:id="j19x35iz" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="k1hpxw69" startid="#j19x35iz" endid="#w1xu8qn0" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="nlg2spr" n="32">
+                     <staff xml:id="w1rt9r6q" n="1">
+                        <layer xml:id="x11mbwxt" n="1">
+                           <note xml:id="y1gzoz2v" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down">
+                              <accid xml:id="zchyq1w" accid="s"/>
+                           </note>
+                           <note xml:id="a13uhidu" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down">
+                              <accid xml:id="b10crr15" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f36bblq" n="2">
+                        <layer xml:id="g1vxmqzi" n="1">
+                           <note xml:id="h19fzbdt" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="i1eemtm" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="h1qn2sxp" n="3">
+                        <layer xml:id="i1a2sk3d" n="1">
+                           <note xml:id="jwpgafd" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                           <note xml:id="k10zwme9" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="u4xq4b8" n="4">
+                        <layer xml:id="v1fkopq6" n="1">
+                           <note xml:id="w1xu8qn0" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                           <note xml:id="xqiu6e6" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="c1c0m3fi" n="33">
+                     <staff xml:id="l1l3mzik" n="1">
+                        <layer xml:id="m1mxwk8e" n="1">
+                           <note xml:id="nnqk670" dur.ppq="256" dur="4" oct="5" pname="e" stem.dir="down"/>
+                           <note xml:id="of4t4hf" dur.ppq="256" dur="4" oct="5" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="t15ywak0" n="2">
+                        <layer xml:id="u1ekcd3s" n="1">
+                           <note xml:id="v1mcsong" dur.ppq="512" dur="2" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="vh48k84" n="3">
+                        <layer xml:id="w19ep1p1" n="1">
+                           <note xml:id="xyyvco8" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                           <note xml:id="yqzvs1b" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down">
+                              <accid xml:id="z1ts187w" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="h11hyp4q" n="4">
+                        <layer xml:id="i1t1nm8k" n="1">
+                           <note xml:id="j1exmwwp" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                           <note xml:id="k8ma43" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="wli2odg" startid="#v1mcsong" endid="#i141fvf3" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="qxlid4m" n="34">
+                     <staff xml:id="z2t83tc" n="1">
+                        <layer xml:id="a1ivgkdd" n="1">
+                           <note xml:id="b803kkq" dur.ppq="512" dur="2" oct="5" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g84gj7l" n="2">
+                        <layer xml:id="h37i7ip" n="1">
+                           <note xml:id="i141fvf3" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                           <note xml:id="j166qeaf" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down">
+                              <accid xml:id="k153h5mm" accid="f"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="jgqiksx" n="3">
+                        <layer xml:id="kmidmbi" n="1">
+                           <note xml:id="l1yj3al1" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down">
+                              <accid xml:id="mfszd3y" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <staff xml:id="v1izj36h" n="4">
+                        <layer xml:id="w1r0vvi6" n="1">
+                           <note xml:id="xxi38lg" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down">
+                              <accid xml:id="y1hx7p3v" accid="n"/>
+                           </note>
+                           <note xml:id="z56oqp" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="clx2af8" startid="#b803kkq" endid="#o1ti1rr" curvedir="above"/>
+                  </measure>
+                  <measure xml:id="du768fr" n="35">
+                     <staff xml:id="m10bgxlv" n="1">
+                        <layer xml:id="n15z4w2p" n="1">
+                           <note xml:id="o1ti1rr" dur.ppq="256" dur="4" oct="5" pname="g" stem.dir="down"/>
+                           <note xml:id="s1hpz3j5" dur.ppq="256" dur="4" oct="5" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="u1nofmh1" n="2">
+                        <layer xml:id="v1npcia6" n="1">
+                           <note xml:id="wq7hbu0" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="a1kz6654" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="wwemmtn" n="3">
+                        <layer xml:id="x1kis7ac" n="1">
+                           <note xml:id="yw9wjyj" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down">
+                              <accid xml:id="z1ghzha8" accid="s"/>
+                           </note>
+                           <note xml:id="ds57juf" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="j1jfky7a" n="4">
+                        <layer xml:id="k6k8l5a" n="1">
+                           <note xml:id="l1ej9ra0" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="p1vgj416" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up">
+                              <accid xml:id="qbahaw9" accid="s"/>
+                           </note>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="prig2kc" staff="1" tstamp="2" vgrp="2000">
+                        <rend xml:id="qjlcm0m" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">f</rend>
+                     </dynam>
+                     <slur xml:id="t181pbrp" startid="#s1hpz3j5" endid="#e1owmju1" curvedir="above"/>
+                     <dynam xml:id="xe2h5cj" staff="2" tstamp="2" vgrp="2000">
+                        <rend xml:id="y52rvan" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">f</rend>
+                     </dynam>
+                     <dynam xml:id="a2q541u" staff="3" tstamp="2" vgrp="2000">
+                        <rend xml:id="b1jyhh0c" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">f</rend>
+                     </dynam>
+                     <dynam xml:id="mcvbq1g" staff="4" tstamp="2" vgrp="2000">
+                        <rend xml:id="n1xe72t6" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">f</rend>
+                     </dynam>
+                  </measure>
+                  <measure xml:id="u3q8u8d" n="36">
+                     <staff xml:id="d1652ts6" n="1">
+                        <layer xml:id="ezhxvw8" n="1">
+                           <note xml:id="fyt72zz" dur.ppq="256" dur="4" oct="5" pname="f" stem.dir="down">
+                              <accid xml:id="gwh7qzw" accid="n"/>
+                           </note>
+                           <note xml:id="h1ppgzbp" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="k1ipgzwu" n="2">
+                        <layer xml:id="l1um1qc3" n="1">
+                           <note xml:id="mnkd3w4" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down">
+                              <accid xml:id="npumarb" accid="n"/>
+                           </note>
+                           <note xml:id="oqccml0" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="n6o0v44" n="3">
+                        <layer xml:id="oj08ldz" n="1">
+                           <note xml:id="p1exr3c9" dur.ppq="512" dur="2" oct="3" pname="a" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="a1fln51n" n="4">
+                        <layer xml:id="b1fre23r" n="1">
+                           <note xml:id="c1k6wpco" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="daravq0" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="down">
+                              <accid xml:id="e1o25bkc" accid="n"/>
+                           </note>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="i1v1f1wb" n="37">
+                     <staff xml:id="rgc89sz" n="1">
+                        <layer xml:id="svge1xe" n="1">
+                           <note xml:id="tj0iqbm" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                           <note xml:id="u1nix562" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="ys1junz" n="2">
+                        <layer xml:id="z1l8pzba" n="1">
+                           <note xml:id="aowamyc" dur.ppq="512" dur="2" oct="4" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="zzqmd4q" n="3">
+                        <layer xml:id="a3go3e8" n="1">
+                           <note xml:id="bydyre" dur.ppq="512" dur="2" oct="3" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="o1crzgou" n="4">
+                        <layer xml:id="p7vvjdt" n="1">
+                           <note xml:id="q1wgfqn8" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="down"/>
+                           <note xml:id="rb1ful8" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <tie xml:id="c4pr5gi" startid="#bydyre" endid="#o1302sp7" curvedir="below"/>
+                  </measure>
+                  <measure xml:id="v1yorkk8" n="38">
+                     <staff xml:id="e1h7q1lb" n="1">
+                        <layer xml:id="f18f1yrh" n="1">
+                           <note xml:id="g13b0ymt" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="up"/>
+                           <note xml:id="h74khmd" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="k13sd5ma" n="2">
+                        <layer xml:id="l1dyvj" n="1">
+                           <note xml:id="m1p014qr" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                           <note xml:id="n12hdop" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="mcii4v1" n="3">
+                        <layer xml:id="n13xdzbd" n="1">
+                           <note xml:id="o1302sp7" dur.ppq="512" dur="2" oct="3" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="blok5bp" n="4">
+                        <layer xml:id="c1vpwfvq" n="1">
+                           <note xml:id="d7ncwc5" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                           <note xml:id="e17fvgur" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="ikc1ndg" n="39">
+                     <staff xml:id="r16d9fz2" n="1">
+                        <layer xml:id="s1pjt5d3" n="1">
+                           <note xml:id="w90tpwl" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="up"/>
+                           <note xml:id="xle0ak2" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="x1u5c0oe" n="2">
+                        <layer xml:id="yh6chm0" n="1">
+                           <note xml:id="cudt5p" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="up"/>
+                           <note xml:id="d18whhxq" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="yyc9bsj" n="3">
+                        <layer xml:id="zd87nae" n="1">
+                           <note xml:id="d1ca92dc" dur.ppq="256" dur="4" oct="3" pname="f" stem.dir="up" accid.ges="s"/>
+                           <note xml:id="fadm3qf" dur.ppq="256" dur="4" oct="3" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="od55v6z" n="4">
+                        <layer xml:id="pa2gq41" n="1">
+                           <note xml:id="tmds665" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                           <note xml:id="ui3br3h" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="telnf81" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="u114mctg" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <dynam xml:id="z1ioj6ys" staff="2" tstamp="1" vgrp="2000">
+                        <rend xml:id="av2xub9" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <dynam xml:id="a1tqqvzw" staff="3" tstamp="1" vgrp="2000">
+                        <rend xml:id="b172wxwc" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <dynam xml:id="q35nykr" staff="4" tstamp="1" vgrp="2000">
+                        <rend xml:id="rtf6jgu" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">p</rend>
+                     </dynam>
+                     <tie xml:id="vpox1ri" startid="#ui3br3h" endid="#hqs7mj" curvedir="below"/>
+                  </measure>
+                  <measure xml:id="yfj2xp7" n="40">
+                     <staff xml:id="h14uzzha" n="1">
+                        <layer xml:id="i1m544i9" n="1">
+                           <note xml:id="m15j8teq" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="up" accid.ges="s"/>
+                           <note xml:id="o1xkcera" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="n1fifi0h" n="2">
+                        <layer xml:id="oh5bt30" n="1">
+                           <note xml:id="pts7xxi" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                           <note xml:id="q16tvj36" dur.ppq="256" dur="4" oct="4" pname="e" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="pktbrp0" n="3">
+                        <layer xml:id="qvxzhjr" n="1">
+                           <note xml:id="r1corzeu" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="sjq8e8i" dur.ppq="256" dur="4" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="f1x6bwbe" n="4">
+                        <layer xml:id="ge6esh5" n="1">
+                           <note xml:id="hqs7mj" dur.ppq="256" dur="4" oct="3" pname="c" stem.dir="up"/>
+                           <note xml:id="i1mvdzhb" dur.ppq="256" dur="4" oct="2" pname="b" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <dir xml:id="j1ckoo8g" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="kvzvcxf" fontstyle="normal" fontweight="normal">rit.</rend>
+                     </dir>
+                  </measure>
+                  <measure xml:id="p3ccsib" n="41">
+                     <staff xml:id="yu5zo4f" n="1">
+                        <layer xml:id="zb73xv8" n="1">
+                           <note xml:id="b1u6yked" dur.ppq="256" dur="4" oct="4" pname="a" stem.dir="down"/>
+                           <note xml:id="c1afmw3r" dur.ppq="256" dur="4" oct="4" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="a1lk5np3" n="2">
+                        <layer xml:id="b1apgltn" n="1">
+                           <note xml:id="dzoon4h" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                           <note xml:id="f3ur91b" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="c180u2uj" n="3">
+                        <layer xml:id="d1ujx2qv" n="1">
+                           <note xml:id="fq4kep3" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                           <note xml:id="g1kqgwib" dur.ppq="256" dur="4" oct="4" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="svysliz" n="4">
+                        <layer xml:id="t14mcvwo" n="1">
+                           <note xml:id="v1sz9hhg" dur.ppq="256" dur="4" oct="2" pname="a" stem.dir="up"/>
+                           <note xml:id="wv0jtmp" dur.ppq="256" dur="4" oct="2" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <hairpin xml:id="ausxgn8" staff="1" tstamp="1" tstamp2="1m+2.9961" form="dim" vgrp="2000"/>
+                     <hairpin xml:id="c6xg8ik" staff="2" tstamp="1" tstamp2="1m+2.9961" form="dim" vgrp="2000"/>
+                     <tie xml:id="g1dja9xv" startid="#f3ur91b" endid="#s92rye5" curvedir="above"/>
+                     <hairpin xml:id="e109h83h" staff="3" tstamp="1" tstamp2="1m+2.9961" form="dim" vgrp="2000"/>
+                     <hairpin xml:id="u1ueyl1g" staff="4" tstamp="1" tstamp2="1m+2.9961" form="dim" vgrp="2000"/>
+                  </measure>
+                  <measure xml:id="dn5bw9" n="42">
+                     <staff xml:id="mm672qu" n="1">
+                        <layer xml:id="n2wadli" n="1">
+                           <note xml:id="oq77qp8" dur.ppq="256" dur="4" oct="5" pname="c" stem.dir="down"/>
+                           <note xml:id="p1ajnecg" dur.ppq="256" dur="4" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="q1l2ivwx" n="2">
+                        <layer xml:id="rqb9boa" n="1">
+                           <note xml:id="s92rye5" dur.ppq="256" dur="4" oct="4" pname="g" stem.dir="down"/>
+                           <note xml:id="teopx5g" dur.ppq="256" dur="4" oct="4" pname="f" stem.dir="down" accid.ges="s"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="q4v38x9" n="3">
+                        <layer xml:id="r1fpystu" n="1">
+                           <note xml:id="smo53u1" dur.ppq="256" dur="4" oct="3" pname="a" stem.dir="down"/>
+                           <note xml:id="t9wtord" dur.ppq="256" dur="4" oct="4" pname="c" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="g3ub7vn" n="4">
+                        <layer xml:id="hiwqw1p" n="1">
+                           <note xml:id="i1xrnk52" dur.ppq="256" dur="4" oct="3" pname="e" stem.dir="down"/>
+                           <note xml:id="j1dpr6v6" dur.ppq="256" dur="4" oct="3" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                  </measure>
+                  <measure xml:id="q11ul9af" right="dbl" n="43">
+                     <staff xml:id="zu2p52w" n="1">
+                        <layer xml:id="a1xu5p15" n="1">
+                           <note xml:id="e1owmju1" dur.ppq="512" dur="2" oct="5" pname="d" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="e1s6tmn2" n="2">
+                        <layer xml:id="f1ax9b8a" n="1">
+                           <note xml:id="ja1adff" dur.ppq="512" dur="2" oct="4" pname="g" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="danx2tb" n="3">
+                        <layer xml:id="e1cimhvv" n="1">
+                           <note xml:id="iw2o1lj" dur.ppq="512" dur="2" oct="3" pname="b" stem.dir="down"/>
+                        </layer>
+                     </staff>
+                     <staff xml:id="t46dwsx" n="4">
+                        <layer xml:id="us5hhp9" n="1">
+                           <note xml:id="y16duy2o" dur.ppq="512" dur="2" oct="2" pname="g" stem.dir="up"/>
+                        </layer>
+                     </staff>
+                     <dynam xml:id="b8el0m9" staff="1" tstamp="1" vgrp="2000">
+                        <rend xml:id="c1o85pio" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">pp</rend>
+                     </dynam>
+                     <dynam xml:id="g1apl9kh" staff="2" tstamp="1" vgrp="2000">
+                        <rend xml:id="hz3cxmr" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">pp</rend>
+                     </dynam>
+                     <dynam xml:id="f1w0nnu3" staff="3" tstamp="1" vgrp="2000">
+                        <rend xml:id="g1fagdoi" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">pp</rend>
+                     </dynam>
+                     <dynam xml:id="v1knf06e" staff="4" tstamp="1" vgrp="2000">
+                        <rend xml:id="w5q797t" fontfam="Helsinki Text Std" fontstyle="normal" fontweight="normal">pp</rend>
+                     </dynam>
+                  </measure>
+               </section>
+            </score>
+         </mdiv>
+      </body>
+   </music>
+</mei>

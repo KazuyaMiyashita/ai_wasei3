@@ -1,0 +1,8 @@
+package sheet.meicmn.mei.data.octave
+
+/** The amount of octave displacement; that is, '8' (as in '8va' for 1 octave), '15' (for 2 octaves), or rarely '22' (for 3 octaves).
+  *
+  * Ident: data.OCTAVE.DIS
+  * Module: MEI
+  */
+trait DIS {}

@@ -1,0 +1,8 @@
+package sheet.meicmn.mei.analytical.att.keysigdefault
+
+/** Used by staffDef and scoreDef to provide default values for attributes in the analytical domain that are related to key signatures.
+  *
+  * Ident: att.keySigDefault.anl
+  * Module: MEI.analytical
+  */
+trait Anl {}

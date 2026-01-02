@@ -1,0 +1,8 @@
+package sheet.meicmn.mei.data.finger
+
+/** In a guitar chord diagram, a label indicating which finger, if any, should be used to play an individual string. The index, middle, ring, and little fingers are represented by the values 1-4, while 't' is for the thumb. The values 'x' and 'o' indicate stopped and open strings, respectively.
+  *
+  * Ident: data.FINGER.FRET
+  * Module: MEI
+  */
+trait FRET {}

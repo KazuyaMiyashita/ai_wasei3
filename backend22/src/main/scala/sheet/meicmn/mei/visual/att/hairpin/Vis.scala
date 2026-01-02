@@ -1,0 +1,16 @@
+package sheet.meicmn.mei.visual.att.hairpin
+
+/** Visual domain attributes. The startho and startvo attributes record the horizontal and vertical offsets of the left end, endho and endvo record the horizontal and vertical offsets of the right end, and the opening attribute records the width of the opening in staff inter-line units. The x and y attributes give the absolute coordinates of the left end point, and x2 and y2 the right end point, of an imaginary line that defines the length of the hairpin and horizontally bifurcates it. The so-called "pitch" of hairpin may be controlled by use of the startho, endho, startvo, and endvo attributes, while the placement of the entire rendered mark may be controlled by use of the ho and vo attributes.
+  *
+  * Ident: att.hairpin.vis
+  * Module: MEI.visual
+  */
+trait Vis
+    extends _root_.sheet.meicmn.mei.shared.att.Color
+    with _root_.sheet.meicmn.mei.shared.att.linerend.Base
+    with _root_.sheet.meicmn.mei.shared.att.PlacementRelStaff
+    with _root_.sheet.meicmn.mei.shared.att.VerticalGroup
+    with _root_.sheet.meicmn.mei.shared.att.VisualOffset
+    with _root_.sheet.meicmn.mei.shared.att.VisualOffset2
+    with _root_.sheet.meicmn.mei.shared.att.Xy
+    with _root_.sheet.meicmn.mei.shared.att.Xy2 {}

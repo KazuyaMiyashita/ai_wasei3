@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- Semantic Color Palette --- */
+
+  /* Base Backgrounds */
+  --color-background: #ffffff; /* Score area */
+
+  /* Component Surfaces */
+  --color-surface-sidebar: #fafafa;
+  --color-surface-header: #fefefe;
+  --color-surface-footer: #f0f0f0;
+  --color-surface-tab: #fcfcfc;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f5f9;
+  --color-surface-hover: #e2e8f0;
+
+  /* Text Colors */
+  --color-text-main: #0f172a; /* Slate-900 */
+  --color-text-sub: #334155; /* Slate-700 */
+  --color-text-muted: #64748b; /* Slate-500 */
+  --color-text-on-brand: #ffffff;
+
+  /* Brand/Action Colors */
+  --color-brand: #3b82f6;
+  --color-brand-hover: #2563eb;
+  --color-brand-sub: #eff6ff;
+
+  /* Functional Colors */
+  --color-success: #10b981;
+  --color-success-bg: #ecfdf5;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-error: #ef4444;
+  --color-error-bg: #fef2f2;
+
+  /* Borders & Dividers */
+  --color-border-main: #cbd5e1; /* Slate-300 (slightly darker for contrast) */
+  --color-border-sub: #e2e8f0; /* Slate-200 */
+
+  /* Highlights & Selection */
+  --color-selection: rgba(59, 130, 246, 0.12);
+  --color-selection-border: rgba(59, 130, 246, 0.3);
+
+  /* Fonts */
+  --font-sans:
+    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: "JetBrains Mono", "Menlo", "Monaco", "Courier New", monospace;
+}
+
+/* Global Reset & Base Styles */
+:root {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-sidebar);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+  border: 2px solid var(--color-surface-sidebar);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* Semantic Utility Classes */
+.bg-sidebar {
+  background-color: var(--color-surface-sidebar);
+}
+.bg-header {
+  background-color: var(--color-surface-header);
+}
+.bg-footer {
+  background-color: var(--color-surface-footer);
+}
+.bg-tab {
+  background-color: var(--color-surface-tab);
+}
+
+/* Hide scrollbar utility */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
