@@ -41,6 +41,7 @@ function App() {
   const { lastLog } = useNotification();
   const { isConnected } = useApi();
   const [isInspectorMenuOpen, setIsInspectorMenuOpen] = useState(false);
+  const [editorSelectedIds, setEditorSelectedIds] = useState<string[]>([]);
 
   const handleScoreUpdate = (newMei: string) => {
     if (workspace.activeTabPath) {
@@ -92,7 +93,7 @@ function App() {
           {icon}
         </div>
         {isActive && (
-          <div className="bg-brand absolute top-0 bottom-0 left-0 w-[3px] rounded-r-sm" />
+          <div className="bg-brand absolute top-0 bottom-0 left-0 w-0.75 rounded-r-sm" />
         )}
       </button>
     );
@@ -271,6 +272,8 @@ function App() {
             meiXML={viewSettings.meiXML}
             annotations={annotations}
             onEdit={viewSettings.edit}
+            onEditorSelectionChange={setEditorSelectedIds}
+            editorSelectedIds={editorSelectedIds}
           />
         </SidebarPanel>
       }
@@ -290,6 +293,7 @@ function App() {
           selectedIds={interaction.selectedIds}
           onSelectionChange={interaction.handleSelectionChange}
           onContextMenu={interaction.handleContextMenu}
+          editorSelectedIds={editorSelectedIds}
         />
       }
       statusBar={

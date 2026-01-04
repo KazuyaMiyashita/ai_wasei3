@@ -22,13 +22,13 @@
 /* 選択時のヒットボックス */
 .hitbox.is-selected {
   fill: var(--color-selection);
-  opacity: 0.25;
+  opacity: 0.1;
 }
 
 /* 再生中のヒットボックス */
 .hitbox.is-playing {
   fill: var(--color-selection);
-  opacity: 0.25;
+  opacity: 0.1;
 }
 
 /* 音符自体のハイライト (Playback or Selection) */
@@ -55,4 +55,14 @@
 
 .is-hovered {
   filter: drop-shadow(0 0 2px var(--color-selection));
+}
+
+/* エディタ選択時のハイライト */
+.editor-highlight-rect {
+  fill: none;
+  /* biome-ignore lint/complexity/noImportantStyles: Verovio inline styles need override */
+  stroke: var(--color-editor-selection) !important;
+  stroke-width: 2px;
+  stroke-dasharray: 4 2; /* Optional: dashed line for clarity */
+  pointer-events: none;
 }

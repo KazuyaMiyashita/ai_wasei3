@@ -15,6 +15,7 @@ interface ScoreDisplayProps {
   svgData: UseScoreView["svgData"];
   meiXML: UseScoreView["meiXML"];
   selectedIds: string[];
+  editorSelectedIds?: string[];
   onSelectionChange: UseScoreInteraction["handleSelectionChange"];
   onContextMenu: UseScoreInteraction["handleContextMenu"];
 }
@@ -24,6 +25,7 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   svgData,
   meiXML,
   selectedIds,
+  editorSelectedIds = [],
   onSelectionChange,
   onContextMenu,
 }) => {
@@ -32,6 +34,81 @@ const ScoreDisplay: React.FC<ScoreDisplayProps> = ({
   const selectionMode = useRef<"none" | "note" | "staff">("none");
   const selectedIdsRef = useRef(selectedIds);
   const { injectHitboxes } = useScoreRenderer();
+
+  // Handle Editor Highlights (Visual only)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Re-apply highlights when SVG data changes
+  useEffect(() => {
+    const svg = containerRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    // Create or clear highlight group
+    let highlightGroup = svg.querySelector("#editor-highlights");
+    if (!highlightGroup) {
+      highlightGroup = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "g",
+      );
+      highlightGroup.setAttribute("id", "editor-highlights");
+      // pointer-events: none ensures it doesn't block hitboxes
+      highlightGroup.setAttribute("pointer-events", "none");
+
+      // Attempt to place it strategically?
+      // If we append to root, it's on top.
+      // To be "behind hitboxes" (which are in .staff), we can't easily do it globally
+      // without hitboxes being global.
+      // But pointer-events: none satisfies the interaction requirement.
+      svg.appendChild(highlightGroup);
+    } else {
+      highlightGroup.innerHTML = "";
+    }
+
+    // Apply new highlights
+    const svgMatrix = svg.getScreenCTM();
+    if (!svgMatrix) return;
+    const inverseMatrix = svgMatrix.inverse();
+
+    for (const id of editorSelectedIds) {
+      const el = svg.querySelector(
+        `[id="${CSS.escape(id)}"]`,
+      ) as SVGGraphicsElement;
+      if (!el) continue;
+
+      try {
+        // Use getBoundingClientRect to handle all transforms automatically
+        const bbox = el.getBoundingClientRect();
+
+        // Convert top-left and bottom-right to SVG coordinates
+        const pt1 = svg.createSVGPoint();
+        pt1.x = bbox.left;
+        pt1.y = bbox.top;
+        const svgPt1 = pt1.matrixTransform(inverseMatrix);
+
+        const pt2 = svg.createSVGPoint();
+        pt2.x = bbox.right;
+        pt2.y = bbox.bottom;
+        const svgPt2 = pt2.matrixTransform(inverseMatrix);
+
+        const width = Math.abs(svgPt2.x - svgPt1.x);
+        const height = Math.abs(svgPt2.y - svgPt1.y);
+        const x = Math.min(svgPt1.x, svgPt2.x);
+        const y = Math.min(svgPt1.y, svgPt2.y);
+
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        rect.setAttribute("x", (x - 4).toString()); // Add some padding
+        rect.setAttribute("y", (y - 4).toString());
+        rect.setAttribute("width", (width + 8).toString());
+        rect.setAttribute("height", (height + 8).toString());
+        rect.setAttribute("class", "editor-highlight-rect");
+
+        highlightGroup.appendChild(rect);
+      } catch (e) {
+        console.warn("Failed to calculate highlight bbox", e);
+      }
+    }
+  }, [editorSelectedIds, svgData]);
 
   useEffect(() => {
     selectedIdsRef.current = selectedIds;
