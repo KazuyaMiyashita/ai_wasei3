@@ -1,10 +1,14 @@
 /* ヒットボックス（通常は透明） */
 .hitbox {
-  fill: transparent;
+  /* 色は設定しておくが、opacityで隠す */
+  fill: var(--color-selection);
   /* biome-ignore lint/complexity/noImportantStyles: Verovio SVG styles need to be overridden */
   stroke: none !important;
   pointer-events: all;
-  transition: fill 0.2s ease;
+  opacity: 0; /* デフォルトで不可視 */
+  transition:
+    opacity 0.4s ease,
+    fill 0.4s ease;
   cursor: pointer;
 }
 
@@ -12,35 +16,43 @@
 .hitbox:hover,
 .hitbox.is-hovered {
   fill: var(--color-selection);
+  opacity: 0.1;
 }
 
 /* 選択時のヒットボックス */
 .hitbox.is-selected {
   fill: var(--color-selection);
+  opacity: 0.25;
+}
+
+/* 再生中のヒットボックス */
+.hitbox.is-playing {
+  fill: var(--color-selection);
+  opacity: 0.25;
 }
 
 /* 音符自体のハイライト (Playback or Selection) */
 .note.is-selected .notehead use,
 .note.is-selected .stem path {
   /* biome-ignore lint/complexity/noImportantStyles: Verovio inline styles need override */
-  fill: var(--color-brand) !important;
+  fill: var(--color-selection) !important;
   /* biome-ignore lint/complexity/noImportantStyles: Verovio inline styles need override */
-  stroke: var(--color-brand) !important;
+  stroke: var(--color-selection) !important;
 }
 
 /* biome-ignore lint/style/noDescendingSpecificity: Override Verovio default styles */
 .rest.is-selected use {
   /* biome-ignore lint/complexity/noImportantStyles: Verovio inline styles need override */
-  fill: var(--color-brand) !important;
+  fill: var(--color-selection) !important;
 }
 
 /* アニメーション用のクラス */
 .note,
 .rest,
 .staff {
-  transition: transform 0.1s ease;
+  transition: transform 0.4s ease;
 }
 
 .is-hovered {
-  filter: drop-shadow(0 0 2px var(--color-brand-hover));
+  filter: drop-shadow(0 0 2px var(--color-selection));
 }

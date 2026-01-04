@@ -24,8 +24,6 @@
 
   /* Brand/Action Colors */
   --color-brand: #3b82f6;
-  --color-brand-hover: #2563eb;
-  --color-brand-sub: #eff6ff;
 
   /* Functional Colors */
   --color-success: #10b981;
@@ -40,8 +38,7 @@
   --color-border-sub: #e2e8f0; /* Slate-200 */
 
   /* Highlights & Selection */
-  --color-selection: rgba(59, 130, 246, 0.12);
-  --color-selection-border: rgba(59, 130, 246, 0.3);
+  --color-selection: #3b82f6;
 
   /* Fonts */
   --font-sans:
@@ -107,13 +104,48 @@ body {
   background-color: var(--color-surface-tab);
 }
 
-/* Hide scrollbar utility */
+/* Scrollbar utility */
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  /* IE and Edge */
+  -ms-overflow-style: none;
+  /* Firefox */
+  scrollbar-width: none;
+}
+
+.inline-scrollbar {
+  /* Webkit系 (Chrome, Safari, Edge) */
+  &::-webkit-scrollbar {
+    display: block; /* 非表示を解除 */
+    width: 8px; /* 縦スクロールバーの幅 */
+    height: 8px; /* 横スクロールバーの高さ */
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2); /* つまみの色（薄いグレーなど） */
+    border-radius: 4px;
+    border: 2px solid transparent; /* 余白を作って綺麗に見せる */
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent; /* レールの色 */
+  }
+
+  /* 3. Firefox用 */
+  scrollbar-width: auto; /* thin にすると細くなる */
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+
+  /* 4. IE / 旧Edge用 */
+  -ms-overflow-style: scrollbar;
+}
+
+@font-face {
+  font-family: "Bravura";
+  src: url("/fonts/bravura.woff2") format("woff2");
+  font-display: block;
 }

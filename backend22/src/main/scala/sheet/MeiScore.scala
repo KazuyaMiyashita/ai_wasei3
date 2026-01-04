@@ -141,12 +141,12 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
         .orElse(
           n.children.collectFirst { case a: mei.shared.Accid => a }.map(_.attributes("accid")),
         ) match {
-        case None | Some("n") => InternationalPitch.Alter(0)
-        case Some("s")        => InternationalPitch.Alter(1)
-        case Some("x")        => InternationalPitch.Alter(2)
-        case Some("f")        => InternationalPitch.Alter(-1)
-        case Some("ff")       => InternationalPitch.Alter(-2)
-        case other            => throw new IllegalArgumentException(s"unknown accid: $other; $n")
+        case None | Some("n")       => InternationalPitch.Alter(0)
+        case Some("s")              => InternationalPitch.Alter(1)
+        case Some("x") | Some("ss") => InternationalPitch.Alter(2)
+        case Some("f")              => InternationalPitch.Alter(-1)
+        case Some("ff")             => InternationalPitch.Alter(-2)
+        case other                  => throw new IllegalArgumentException(s"unknown accid: $other; $n")
       }
       InternationalPitch(step, alter, octave).toPitch
     }
