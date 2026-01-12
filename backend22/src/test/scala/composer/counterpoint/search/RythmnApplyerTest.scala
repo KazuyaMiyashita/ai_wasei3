@@ -18,31 +18,38 @@ class RythmnApplyerTest extends AnyFunSuite {
     val expectedMelody = Melody(
       List(
         Note(
-          Some(IntervalStep(0)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(0)),
+            NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
+          ),
           Duration.of(1),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
         ),
         Note(
-          Some(IntervalStep(1)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(1)),
+            NoteAnnotation(isTiedStart = false, ToneType.PASSING_TONE),
+          ),
           Duration.of(1),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.PASSING_TONE),
         ),
         Note(
-          Some(IntervalStep(2)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(2)),
+            NoteAnnotation(isTiedStart = false, ToneType.PASSING_TONE),
+          ),
           Duration.of(1),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.PASSING_TONE),
         ),
         Note(
-          Some(IntervalStep(3)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(3)),
+            NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
+          ),
           Duration.of(1),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
         ),
       ),
-      NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE), // Dummy meta
     )
 
     assert(result.get == expectedMelody)
@@ -80,19 +87,22 @@ class RythmnApplyerTest extends AnyFunSuite {
     val expectedMelody = Melody(
       List(
         Note(
-          Some(IntervalStep(1)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(1)),
+            NoteAnnotation(isTiedStart = false, ToneType.SUSPENDED_TONE),
+          ),
           Duration.of(2),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.SUSPENDED_TONE),
         ),
         Note(
-          Some(IntervalStep(0)),
+          RythmnApplyer.AppliedIntervalStep(
+            Some(IntervalStep(0)),
+            NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
+          ),
           Duration.of(2),
           Part.Root,
-          NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
         ),
       ),
-      NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE),
     )
     assert(result1.get == expectedMelody)
 

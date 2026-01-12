@@ -22,8 +22,9 @@ export default defineConfig({
   server: {
     proxy: {
       "/score": "http://127.0.0.1:8080",
+      "/resources": "http://127.0.0.1:8080",
       "/perform": "http://127.0.0.1:8080",
-      "/partwise": "http://127.0.0.1:8080",
+      "/counterpoint": "http://127.0.0.1:8080",
     },
   },
 });

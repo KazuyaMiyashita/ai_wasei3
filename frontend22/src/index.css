@@ -1,150 +1,113 @@
 @import "tailwindcss";
+@import "./styles/main-content.css";
+@import "./styles/score-highlight.css";
 
 @theme {
-  /* --- Semantic Color Palette --- */
+  /* ブランドカラー */
+  --color-brand-primary: var(--color-blue-500);
+  --color-brand-text: var(--color-white);
 
-  /* Base Backgrounds */
-  --color-background: #ffffff; /* Score area */
+  /* UI要素の背景色 */
+  --color-ui-bg-base: var(--color-white);
+  --color-ui-bg-subtle: var(--color-gray-100);
+  --color-ui-bg-hover: var(--color-gray-200);
 
-  /* Component Surfaces */
-  --color-surface-sidebar: #fafafa;
-  --color-surface-header: #fefefe;
-  --color-surface-footer: #f0f0f0;
-  --color-surface-tab: #fcfcfc;
+  /* 境界線とテキスト */
+  --color-ui-border: var(--color-gray-200);
+  --color-ui-border-hover: var(--color-blue-300);
 
-  --color-surface: #ffffff;
-  --color-surface-muted: #f1f5f9;
-  --color-surface-hover: #e2e8f0;
+  --color-ui-text-main: var(--color-gray-800);
+  --color-ui-text-muted: var(--color-gray-500);
 
-  /* Text Colors */
-  --color-text-main: #0f172a; /* Slate-900 */
-  --color-text-sub: #334155; /* Slate-700 */
-  --color-text-muted: #64748b; /* Slate-500 */
-  --color-text-on-brand: #ffffff;
+  /* LeftPanel, RightPanel */
+  --color-ui-sidepanel-bg: var(--color-neutral-50);
+  --color-ui-leftrail-bg: color-mix(
+    in srgb,
+    var(--color-neutral-50),
+    white 50%
+  );
 
-  /* Brand/Action Colors */
-  --color-brand: #3b82f6;
+  --color-ui-tabs-bg: var(--color-white);
+  --color-ui-tabs-text: var(--color-neutral-500);
+
+  --color-ui-footer-bg: var(--color-neutral-100);
+  --color-ui-footer-text: var(--color-neutral-500);
 
   /* Functional Colors */
   --color-success: #10b981;
-  --color-success-bg: #ecfdf5;
-  --color-warning: #f59e0b;
-  --color-warning-bg: #fffbeb;
+  --color-warning: var(--color-amber-500);
   --color-error: #ef4444;
-  --color-error-bg: #fef2f2;
-
-  /* Borders & Dividers */
-  --color-border-main: #cbd5e1; /* Slate-300 (slightly darker for contrast) */
-  --color-border-sub: #e2e8f0; /* Slate-200 */
 
   /* Highlights & Selection */
   --color-selection: #3b82f6;
-
-  /* XML Editor Highlight */
   --color-editor-selection: #eab308;
-
-  /* Fonts */
-  --font-sans:
-    "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    sans-serif;
-  --font-mono: "JetBrains Mono", "Menlo", "Monaco", "Courier New", monospace;
 }
 
-/* Global Reset & Base Styles */
-:root {
-  font-family: var(--font-sans);
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  background-color: var(--color-background);
-  color: var(--color-text-main);
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-surface-sidebar);
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 20px;
-  border: 2px solid var(--color-surface-sidebar);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
-}
-
-/* Semantic Utility Classes */
-.bg-sidebar {
-  background-color: var(--color-surface-sidebar);
-}
-.bg-header {
-  background-color: var(--color-surface-header);
-}
-.bg-footer {
-  background-color: var(--color-surface-footer);
-}
-.bg-tab {
-  background-color: var(--color-surface-tab);
-}
-
-/* Scrollbar utility */
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  /* IE and Edge */
-  -ms-overflow-style: none;
-  /* Firefox */
-  scrollbar-width: none;
-}
-
-.inline-scrollbar {
-  /* Webkit系 (Chrome, Safari, Edge) */
-  &::-webkit-scrollbar {
-    display: block; /* 非表示を解除 */
-    width: 8px; /* 縦スクロールバーの幅 */
-    height: 8px; /* 横スクロールバーの高さ */
+@layer base {
+  html,
+  body {
+    /* 画面全体のバウンスを禁止 */
+    @apply overscroll-none;
+    /* 画面が勝手にスクロールするのを防ぐ */
+    @apply overflow-hidden;
+    /* アプリっぽくするために、画面の高さを固定 */
+    height: 100%;
   }
 
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2); /* つまみの色（薄いグレーなど） */
-    border-radius: 4px;
-    border: 2px solid transparent; /* 余白を作って綺麗に見せる */
-    background-clip: content-box;
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
-
-  &::-webkit-scrollbar-track {
-    background-color: transparent; /* レールの色 */
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
   }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100;
+  }
+}
 
-  /* 3. Firefox用 */
-  scrollbar-width: auto; /* thin にすると細くなる */
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+@utility ui-action-button {
+  @apply text-ui-text-muted hover:text-ui-text-main hover:bg-ui-bg-hover data-[state=on]:bg-ui-bg-subtle data-[state=on]:text-brand-primary cursor-pointer rounded transition-colors;
+}
 
-  /* 4. IE / 旧Edge用 */
-  -ms-overflow-style: scrollbar;
+@utility ui-header-base {
+  @apply border-ui-border bg-ui-bg-base;
+}
+
+@utility ui-footer-base {
+  @apply border-ui-border bg-ui-footer-bg text-ui-footer-text px-2 text-[10px];
+}
+
+@utility ui-panel {
+  @apply text-ui-text-main flex h-full flex-col gap-4 overflow-y-auto p-4 text-xs;
+}
+
+@utility ui-panel-section {
+  @apply flex flex-col gap-2;
+}
+
+@utility ui-panel-sub-section {
+  @apply flex flex-col gap-2;
+}
+
+@utility ui-panel-title {
+  @apply text-ui-text-muted mb-1 text-xs font-semibold tracking-wider uppercase;
+}
+
+@utility ui-panel-sub-title {
+  @apply text-ui-text-muted mb-1 text-xs font-medium tracking-wider uppercase;
+}
+
+@utility ui-input {
+  @apply border-ui-border bg-ui-bg-base text-ui-text-main focus:border-brand-primary w-full rounded border px-2 py-1.5 text-xs transition-colors focus:outline-none;
+}
+
+@utility ui-select {
+  @apply border-ui-border bg-ui-bg-base text-ui-text-main focus:border-brand-primary w-full appearance-none rounded border px-2 py-1.5 text-xs transition-colors focus:outline-none;
+}
+
+@utility ui-list-item {
+  @apply ui-action-button flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs;
 }
 
 @font-face {

@@ -10,6 +10,7 @@ import _root_.model.containers.{Melody, Note}
 import sheet._
 import composer.counterpoint.model.Species
 import composer.counterpoint.model.MeasureRythmnPattern
+import scala.collection.immutable.SeqMap
 
 /** 対位法生成器
   *
@@ -76,7 +77,7 @@ case class CounterpointGenerator(
               // logger.debug(f"Attempt {attemptCount}: Choose skeleton: ...")
               // logger.debug(f"Attempt {attemptCount}: Start Generate Measures.")
 
-              val initialStartPitch = skeleton.measures.head.elems.head.value
+              val initialStartPitch = skeleton.measures.head.elems.head.value.pitch
               currentBatch = generateRecursive(skeleton, Nil, 0, initialStartPitch, None)
               if (currentBatch.hasNext) return true
             } catch {
@@ -121,16 +122,15 @@ case class CounterpointGenerator(
 
     if (measureIndex == measureLength - 1) {
       // 最終小節の場合
-      val lastNote: Note[AnnotatedNote, Unit] = Note(
+      val lastNote: Note[AnnotatedNote] = Note(
         AnnotatedNote(
-          Some(skeleton.measures(measureIndex).elems.head.value),
+          Some(skeleton.measures(measureIndex).elems.head.value.pitch),
           NoteAnnotation(isTiedStart = false, toneType = ToneType.HARMONIC_TONE),
         ),
         Duration.of(4),
         Part.Root,
-        (),
       )
-      val lastMeasureCandidate = Melody(List(lastNote), ())
+      val lastMeasureCandidate = Melody(List(lastNote))
 
       if (Validator.validate(previousMeasure, lastMeasureCandidate, previousCf, currentCf)) {
         // logger.debug(f"{indent}Measure {mnForLog}: [SUCCEED] Last measure created and validated.")
@@ -153,10 +153,10 @@ case class CounterpointGenerator(
       // Need to extract harmonic note names from skeleton
       // Skeleton measures are Melody[Note[Pitch, ChordWithBass[NoteName]]].
       // We need to extract the chord NoteNames.
-      val chordNoteNames = skeleton.measures(measureIndex).elems.head.meta.chord.elements
+      val chordNoteNames = skeleton.measures(measureIndex).elems.head.value.bass.chord.elements
 
-      val startHarmonicPitch            = skeleton.measures(measureIndex).elems.head.value
-      val nextMeasureStartHarmonicPitch = skeleton.measures(measureIndex + 1).elems.head.value
+      val startHarmonicPitch            = skeleton.measures(measureIndex).elems.head.value.pitch
+      val nextMeasureStartHarmonicPitch = skeleton.measures(measureIndex + 1).elems.head.value.pitch
 
       val results = measureSearch.search(
         startPitch = currentStartPitch,
@@ -313,36 +313,39 @@ case class CounterpointGenerator(
           isTiedStart = note.value.annotation.isTiedStart,
           graces = Nil, // Grace notes not supported yet
         )
-        _root_.model.containers.Score.note(AttributedValue(value, Some(attrs)), note.duration, note.part)
+        Note(AttributedValue(value, Some(attrs)), note.duration, note.part)
       }
-      sheet.Measure(_root_.model.containers.Melody(newElems, ()))
+      sheet.Measure(Melody(newElems))
     }
 
     val partMeasures = completedMeasures.map(convertMeasure)
 
     val cfMeasures = cantusFirmus.map { pitch =>
-      val note = _root_.model.containers.Score.note[AttributedValue](
+      val note = Note(
         AttributedValue(pitch, Some(ScoreAttrs(false))),
         Duration.of(4),
         cfPart,
       )
-      sheet.Measure(_root_.model.containers.Melody(List(note), ()))
+      sheet.Measure(Melody(List(note)))
     }
 
     // 2/2 time signature as per Python code
     val timeSig = sheet.TimeSignature(2, Duration.of(2))
 
-    val parts = Map(
+    val parts = Seq(
       cfPart -> cfMeasures,
       part   -> partMeasures,
     )
+
+    val partOrdering = Part.ordering("Soprano", "Alto", "Tenor", "Bass")
 
     SheetMusic(
       key = key,
       timeSignature = timeSig,
       timeSignatureEvents = Nil,
       keySignatureEvents = Nil,
-      body = PartMapScore(parts),
+      body = PartMapScore(SeqMap.from(parts.sortBy(_._1)(using partOrdering))),
+      title = None,
     )
   }
 }

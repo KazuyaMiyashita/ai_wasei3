@@ -608,6 +608,41 @@ object Part {
 
     Part(commonHierarchy)
   }
+
+  /** 指定されたパート名の順番から、Ordering[Part]を作成
+    * 階層の1番目の要素は order の順序に従い、それ以降の要素は文字列としての順序（あるいは親子関係）に従う
+    */
+  def ordering(order: String*): Ordering[Part] = {
+    // 検索を高速化するために Map に変換 (見つからない場合は末尾にするため Int.MaxValue)
+    val orderMap = order.zipWithIndex.toMap.withDefaultValue(Int.MaxValue)
+
+    new Ordering[Part] {
+      def compare(x: Part, y: Part): Int = {
+        def compareLists(l1: List[String], l2: List[String], depth: Int): Int = {
+          (l1, l2) match {
+            // 両方に要素がある場合
+            case (h1 :: t1, h2 :: t2) =>
+              val res = if (depth == 0) {
+                // 第一階層：指定された order に基づいて比較
+                orderMap(h1).compare(orderMap(h2))
+              } else {
+                // 第二階層以降：通常の文字列比較
+                h1.compare(h2)
+              }
+
+              // 順序が決まればそれを返し、同じなら次の階層へ
+              if (res != 0) res else compareLists(t1, t2, depth + 1)
+
+            // 片方の階層が尽きた場合（短い方＝親を先にする）
+            case (Nil, _ :: _) => -1
+            case (_ :: _, Nil) => 1
+            case (Nil, Nil)    => 0
+          }
+        }
+        compareLists(x.hierarchy, y.hierarchy, 0)
+      }
+    }
+  }
 }
 
 /** 休符 */

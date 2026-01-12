@@ -24,7 +24,7 @@ case class PerformerEvent(
 
 object Performer {
 
-  def perform(partwizeScore: PartwiseScore[NoteInfo, Unit], tempo: Double): List[PerformerEvent] = {
+  def perform(partwizeScore: PartwiseScore[NoteInfo], tempo: Double): List[PerformerEvent] = {
     val events = ListBuffer[PerformerEvent]()
     // 1 beat (quarter note) = 60000 / tempo ms
     val msPerBeat = 60000.0 / tempo
@@ -35,10 +35,10 @@ object Performer {
     partwizeScore.elems.zipWithIndex.foreach { case (melody, index) =>
       val partId          = index + 1
       var currentTime     = 0.0
-      val phraseBuffer    = ListBuffer[Note[NoteInfo, Unit]]()
+      val phraseBuffer    = ListBuffer[Note[NoteInfo]]()
       var phraseStartTime = 0.0
 
-      val notes: List[Note[Option[NoteInfo], Unit]] = melody.elems
+      val notes: List[Note[Option[NoteInfo]]] = melody.elems
       notes.foreach { note =>
         val durationMs = note.duration.value.toDouble * msPerBeat
 
@@ -68,7 +68,7 @@ object Performer {
                 )
 
                 // Send next note's pitch with min intensity to prevent portamento interpolation on the receiver side
-                val nextPitchNote: Option[Note[NoteInfo, Unit]] =
+                val nextPitchNote: Option[Note[NoteInfo]] =
                   notes.dropWhile(_ != note).tail.collectFirst {
                     case n if n.value.isDefined && n.value.get.value.isInstanceOf[Pitch] => n.mapValue(_.get)
                   }
@@ -116,7 +116,7 @@ object Performer {
 
   private def generatePhraseEvents(
       startTime: Double,
-      notes: List[Note[NoteInfo, Unit]],
+      notes: List[Note[NoteInfo]],
       partId: Int,
       msPerBeat: Double,
       vibPhase: Double,

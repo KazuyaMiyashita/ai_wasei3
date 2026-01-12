@@ -1,11 +1,11 @@
 package sheet
 
-import model.containers.{Score, Melody, Chord}
-import model.containers.Score.note
+import model.containers.{Score, Melody, Chord, Note}
 import model.elements.Math.Rational
 import model.elements.{Duration, InternationalPitch, Pitch, Rest, Part}
 import sheet.meicmn.{Element, Text, mei}
-import scala.collection.immutable.SeqMap
+import scala.xml.Elem
+import model.elements.Key
 
 case class NoteInfo(
     value: Pitch | Rest,
@@ -81,7 +81,7 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
     }
   }
 
-  def toScore: Chord[NoteInfo, Unit, Score[NoteInfo, Unit]] = {
+  def toScore: Chord[NoteInfo, Score[NoteInfo]] = {
     val measures = meiStructure.collect { case e: mei.cmn.Measure => e }.toList
     val staffs   = measures.flatMap { _.collect { case s: mei.shared.Staff => s } }.toList
     val ties     = getTies(meiStructure)
@@ -97,12 +97,12 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
     val adjustedMelodies = melodies.map { m =>
       if (m.duration < maxDuration) {
         val paddingInfo = NoteInfo(Rest, java.util.UUID.randomUUID.toString, isTieStarted = false, isTieEnded = false)
-        val padding     = note(paddingInfo, maxDuration - m.duration, m.part)
-        Melody(List(m, padding), ())
+        val padding     = Note(paddingInfo, maxDuration - m.duration, m.part)
+        Melody(List(m, padding))
       } else m
     }.toSet
 
-    Chord(adjustedMelodies, ())
+    Chord(adjustedMelodies)
   }
 
   private def getTies(meiStructure: Element): TiesIndex = {
@@ -122,7 +122,7 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
       staffs: Seq[mei.shared.Staff],
       part: Part,
       ties: TiesIndex,
-  ): Score[NoteInfo, Unit] = {
+  ): Score[NoteInfo] = {
 
     def getPitch(n: mei.shared.Note): Pitch = {
       val octave = InternationalPitch.Octave(n.attributes.get("oct").flatMap(_.toIntOption).getOrElse(4))
@@ -156,14 +156,14 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
       .flatMap(_.elements.collect { case n: mei.shared.Note => n.attributes("xml:id") })
       .toSet
 
-    def parseSafe(container: Element, currentPart: Part): List[Score[NoteInfo, Unit]] = {
+    def parseSafe(container: Element, currentPart: Part): List[Score[NoteInfo]] = {
       container.children.flatMap { child =>
         child match {
           case l: mei.shared.Layer =>
             val n       = l.attributes.getOrElse("n", "1")
             val subPart = if (n == "1") currentPart else currentPart.spawn(n)
             val notes   = parseSafe(l, subPart)
-            if (notes.nonEmpty) Some(Melody(notes, ()))
+            if (notes.nonEmpty) Some(Melody(notes))
             else {
               val info = NoteInfo(
                 Rest,
@@ -171,7 +171,7 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
                 isTieStarted = false,
                 isTieEnded = false,
               )
-              Some(Melody(List(note(info, measureDuration, subPart)), ()))
+              Some(Melody(List(Note(info, measureDuration, subPart))))
             }
           case c: mei.shared.Chord =>
             val duration = getDuration(c.attributes)
@@ -182,10 +182,10 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
                 val isTieStarted = ties.getByStartId(id).isDefined
                 val isTieEnded   = ties.getByEndId(id).isDefined
                 val info         = NoteInfo(getPitch(n), id, isTieStarted = isTieStarted, isTieEnded = isTieEnded)
-                Some(note(info, duration, subPart))
+                Some(Note(info, duration, subPart))
               case _ => None
             }.toSet
-            if (notes.nonEmpty) Some(Chord(notes, ()))
+            if (notes.nonEmpty) Some(Chord(notes))
             else {
               val info = NoteInfo(
                 Rest,
@@ -193,14 +193,14 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
                 isTieStarted = false,
                 isTieEnded = false,
               )
-              Some(note(info, duration, currentPart))
+              Some(Note(info, duration, currentPart))
             }
           case n: mei.shared.Note if !chordNoteIds(n.attributes.getOrElse("xml:id", "")) =>
             val id           = n.attributes.getOrElse("xml:id", java.util.UUID.randomUUID.toString)
             val isTieStarted = ties.getByStartId(id).isDefined
             val isTieEnded   = ties.getByEndId(id).isDefined
             val info         = NoteInfo(getPitch(n), id, isTieStarted = isTieStarted, isTieEnded = isTieEnded)
-            Some(note(info, getDuration(n.attributes), currentPart))
+            Some(Note(info, getDuration(n.attributes), currentPart))
           case r: mei.shared.Rest =>
             val info = NoteInfo(
               Rest,
@@ -208,7 +208,7 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
               isTieStarted = false,
               isTieEnded = false,
             )
-            Some(note(info, getDuration(r.attributes), currentPart))
+            Some(Note(info, getDuration(r.attributes), currentPart))
           case mr: mei.cmn.MRest =>
             val info = NoteInfo(
               Rest,
@@ -216,7 +216,7 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
               isTieStarted = false,
               isTieEnded = false,
             )
-            Some(note(info, measureDuration, currentPart))
+            Some(Note(info, measureDuration, currentPart))
           case ms: mei.cmn.MSpace =>
             val info = NoteInfo(
               Rest,
@@ -224,12 +224,12 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
               isTieStarted = false,
               isTieEnded = false,
             )
-            Some(note(info, measureDuration, currentPart))
+            Some(Note(info, measureDuration, currentPart))
           case other =>
             val dur = calculateDuration(other)
             if (dur > Duration.of(0)) {
               val subNotes = parseSafe(other, currentPart)
-              if (subNotes.nonEmpty) Some(Melody(subNotes, ())) else None
+              if (subNotes.nonEmpty) Some(Melody(subNotes)) else None
             } else None
         }
       }
@@ -244,271 +244,15 @@ case class MeiScore(meiStructure: mei.shared.Mei) {
           isTieStarted = false,
           isTieEnded = false,
         )
-        List(note(info, measureDuration, part))
+        List(Note(info, measureDuration, part))
       } else if (staff.children.exists(_.isInstanceOf[mei.shared.Layer])) {
-        val layerMelodies = elems.collect { case s: Melody[_, _, _] => s.asInstanceOf[Score[NoteInfo, Unit]] }
-        if (layerMelodies.nonEmpty) List(Chord(layerMelodies.toSet, ())) else elems
+        val layerMelodies = elems.collect { case s: Melody[_, _] => s.asInstanceOf[Score[NoteInfo]] }
+        if (layerMelodies.nonEmpty) List(Chord(layerMelodies.toSet)) else elems
       } else {
         elems
       }
     }
-    Melody(scores.toList, ())
-  }
-
-  private def elementToScore(e: Element, part: Part): Option[Score[Element, Unit]] = {
-    e match {
-      case l: mei.shared.Layer =>
-        val childrenScores = l.children.flatMap(c => elementToScore(c, part))
-        if (childrenScores.nonEmpty) Some(Melody(childrenScores, ())) else None
-      case c: mei.shared.Chord =>
-        val dur        = getDuration(c.attributes)
-        val chordAttrs = c.attributes.filter { case (k, _) => k == "dur" || k == "dots" }
-        val notes      = c.children.zipWithIndex.flatMap {
-          case (n: mei.shared.Note, i) =>
-            val subPart = if (i == 0) part else part.spawn((i + 1).toString)
-            val newNote = n.copy(attributes = chordAttrs ++ n.attributes)
-            Some(note(newNote: Element, dur, subPart))
-          case _ => None
-        }
-        if (notes.nonEmpty) Some(Chord[Element, Unit, Score[Element, Unit]](notes.toSet, ()))
-        else Some(note(c: Element, dur, part))
-      case n: mei.shared.Note =>
-        val dur = getDuration(n.attributes)
-        if (dur > Duration.of(0)) Some(note(n: Element, dur, part)) else None
-      case r: mei.shared.Rest =>
-        val dur = getDuration(r.attributes)
-        if (dur > Duration.of(0)) Some(note(r: Element, dur, part)) else None
-      case mr: mei.cmn.MRest =>
-        Some(note(mr: Element, measureDuration, part))
-      case ms: mei.cmn.MSpace =>
-        Some(note(ms: Element, measureDuration, part))
-      case other =>
-        val dur = calculateDuration(other)
-        if (dur > Duration.of(0)) {
-          Some(note(other: Element, dur, part))
-        } else None
-    }
-  }
-
-  def partwise: mei.shared.Mei = {
-    val partToN: Map[Part, String] = partMap.map(_.swap)
-
-    def transformScore(score: mei.shared.Score): mei.shared.Score = {
-      val scoreDef = score.elements.collectFirst { case e: mei.shared.ScoreDef => e }.head
-      val section  = score.elements.collectFirst { case e: mei.shared.Section => e }.head
-      val measures = section.collect { case e: mei.cmn.Measure => e }.toList
-
-      if (measures.isEmpty) return score
-
-      // 1. Collect all used parts across all measures to build the new ScoreDef
-      //    We do this by simulating the partwise extraction for each measure.
-      val measureContents: Map[Int, Map[Part, List[Element]]] = measures.zipWithIndex.map { case (measure, mIdx) =>
-        val staffs      = measure.collect { case s: mei.shared.Staff => s }
-        val staffScores = staffs.flatMap { staff =>
-          val n    = staff.attributes("n")
-          val part = partMap.getOrElse(n, Part.of(n))
-
-          val layers      = staff.children.collect { case l: mei.shared.Layer => l }
-          val layerScores = layers.zipWithIndex.flatMap { case (layer, idx) =>
-            val layerN    = layer.attributes.getOrElse("n", (idx + 1).toString)
-            val layerPart = if (layerN == "1") part else part.spawn(layerN)
-            elementToScore(layer, layerPart)
-          }.toList
-
-          if (layerScores.nonEmpty) {
-
-            val maxDur         = layerScores.map(_.duration).max
-            val adjustedLayers = layerScores.map { ls =>
-              if (ls.duration < maxDur) {
-                val pad = note(mei.cmn.MSpace()(): Element, maxDur - ls.duration, ls.part)
-                Melody(List(ls, pad), ())
-              } else ls
-            }
-            Some(Chord[Element, Unit, Score[Element, Unit]](adjustedLayers.toSet, ()))
-          } else None
-        }.toList
-
-        val measureContent: Map[Part, List[Element]] = if (staffScores.nonEmpty) {
-          val maxDur         = staffScores.map(_.duration).max
-          val adjustedStaffs = staffScores.map { ss =>
-            if (ss.duration < maxDur) {
-              val pad = note(mei.cmn.MSpace()(): Element, maxDur - ss.duration, ss.part)
-              Melody[Element, Unit, Score[Element, Unit]](List(ss, pad), ())
-            } else ss
-          }
-
-          val measureScore = Chord[Element, Unit, Score[Element, Unit]](adjustedStaffs.toSet, ())
-
-          val pw = measureScore.partwise
-
-          pw.elems.map { melody =>
-            val part     = melody.part
-            val elements = melody.elems.flatMap { n =>
-              n.value match {
-                case Some(e) => List(e)
-                case None    => List(mei.cmn.MSpace()()) // Padding become MSpace
-              }
-            }
-            part -> elements
-          }.toMap
-        } else Map.empty
-
-        mIdx -> measureContent
-      }.toMap
-
-      val allParts = measureContents.values.flatMap(_.keys).toSet.toList.sortWith { (m1, m2) =>
-        val n1Str = partToN.find { case (p, _) => p.isSupersetOf(m1) || p == m1 }.map(_._2).getOrElse("999")
-        val n2Str = partToN.find { case (p, _) => p.isSupersetOf(m2) || p == m2 }.map(_._2).getOrElse("999")
-        val n1    = n1Str.toIntOption.getOrElse(Int.MaxValue)
-        val n2    = n2Str.toIntOption.getOrElse(Int.MaxValue)
-        if (n1 != n2) n1 < n2
-        else m1 < m2
-      }
-
-      val newPartToN = allParts.zipWithIndex.map { case (p, i) => p -> (i + 1).toString }.toMap
-
-      // --- Rebuild ScoreDef (Logic reused) ---
-      val originalStaffDefs    = scoreDef.collect { case s: mei.shared.StaffDef => s }.toList
-      val parentPartToStaffDef = originalStaffDefs.flatMap { s =>
-        s.attributes.get("n").map { n =>
-          val part = partMap.getOrElse(n, Part.of(n))
-          part -> s
-        }
-      }.toMap
-
-      val newPartToStaffDef = allParts.map { part =>
-        val parentPart  = parentPartToStaffDef.keys.find(p => p.isSupersetOf(part) || p == part).getOrElse(Part.Root)
-        val originalDef = parentPartToStaffDef.getOrElse(parentPart, mei.shared.StaffDef(n = "1", lines = "5")())
-
-        val originalId = originalDef.attributes.get("xml:id").orElse(originalDef.attributes.get("id"))
-        val newId      =
-          if (part == parentPart) originalId.getOrElse(java.util.UUID.randomUUID.toString)
-          else java.util.UUID.randomUUID.toString
-
-        val newAttrs = originalDef.attributes.map {
-          case ("n", _)      => ("n", newPartToN(part))
-          case ("xml:id", _) => ("xml:id", newId)
-          case ("id", _)     => ("id", newId)
-          case other         => other
-        } ++ (if (!originalDef.attributes.contains("xml:id") && !originalDef.attributes.contains("id"))
-                SeqMap("xml:id" -> newId)
-              else SeqMap.empty)
-
-        val newChildren = originalDef.children.map {
-          case l: mei.shared.Label =>
-            val labelWithSuffix = if (part.hierarchy.size > parentPart.hierarchy.size) {
-              val suffix = part.hierarchy.drop(parentPart.hierarchy.size).mkString(" ")
-              l.transform {
-                case t: Text => Text(t.value + " " + suffix)
-                case other   => other
-              }.asInstanceOf[mei.shared.Label]
-            } else l
-            if (part == parentPart) labelWithSuffix
-            else labelWithSuffix.copy(attributes = labelWithSuffix.attributes.removed("xml:id").removed("id"))
-          case c: mei.shared.Clef =>
-            if (part == parentPart) c
-            else c.copy(attributes = c.attributes.removed("xml:id").removed("id"))
-          case k: mei.shared.KeySig =>
-            if (part == parentPart) k
-            else k.copy(attributes = k.attributes.removed("xml:id").removed("id"))
-          case m: mei.cmn.MeterSig =>
-            if (part == parentPart) m
-            else m.copy(attributes = m.attributes.removed("xml:id").removed("id"))
-          case other => other
-        }
-        part -> originalDef.withChildren(newChildren).asInstanceOf[mei.shared.StaffDef].copy(attributes = newAttrs)
-      }.toMap
-
-      def transformScoreDefElements(elements: List[Element]): List[Element] = {
-        elements.flatMap {
-          case s: mei.shared.StaffGrp =>
-            List(s.withChildren(transformScoreDefElements(s.children)))
-          case s: mei.shared.StaffDef =>
-            val n    = s.attributes("n")
-            val part = partMap.getOrElse(n, Part.of(n))
-            allParts.filter(p => part.isSupersetOf(p) || p == part).map(newPartToStaffDef)
-          case other => List(other)
-        }
-      }
-
-      val newScoreDef = score.elements
-        .collectFirst { case e: mei.shared.ScoreDef => e }
-        .headOption
-        .getOrElse(mei.shared.ScoreDef()())
-        .copy(elements = transformScoreDefElements(scoreDef.elements))
-
-      // --- Rebuild Measures using the extracted content ---
-      val newMeasures = measures.zipWithIndex.map { case (originalMeasure, mIdx) =>
-        val partsContent  = measureContents.getOrElse(mIdx, Map.empty)
-        val otherElements = originalMeasure.children.filterNot(_.isInstanceOf[mei.shared.Staff])
-
-        val originalStaffs =
-          originalMeasure.collect { case s: mei.shared.Staff => s }.map(s => s.attributes.getOrElse("n", "") -> s).toMap
-
-        val newStaffs = allParts.map { part =>
-          val contentElements = partsContent.getOrElse(part, Nil)
-          val n               = newPartToN(part)
-
-          val originalN     = partToN.find { case (p, _) => p.isSupersetOf(part) || p == part }.map(_._2).getOrElse("1")
-          val originalStaff = originalStaffs.get(originalN)
-
-          val staffId =
-            if (part.hierarchy.size == 1 && originalStaff.isDefined)
-              originalStaff.get.attributes
-                .get("xml:id")
-                .orElse(originalStaff.get.attributes.get("id"))
-                .getOrElse(java.util.UUID.randomUUID.toString)
-            else java.util.UUID.randomUUID.toString
-
-          val baseAttrs  = originalStaff.map(_.attributes).getOrElse(SeqMap.empty)
-          val staffAttrs = baseAttrs.map {
-            case ("n", _)      => ("n", n)
-            case ("xml:id", _) => ("xml:id", staffId)
-            case ("id", _)     => ("id", staffId)
-            case other         => other
-          } ++ (if (!baseAttrs.contains("n")) SeqMap("n" -> n) else SeqMap.empty) ++
-            (if (!baseAttrs.contains("xml:id") && !baseAttrs.contains("id")) SeqMap("xml:id" -> staffId)
-             else SeqMap.empty)
-
-          val layerElements = if (contentElements.nonEmpty) contentElements else List(mei.cmn.MSpace()())
-
-          val originalLayer = originalStaff.flatMap(_.collect {
-            case l: mei.shared.Layer if l.attributes.getOrElse("n", "1") == "1" => l
-          }.nextOption())
-          val layerId =
-            if (part.hierarchy.size == 1 && originalLayer.isDefined)
-              originalLayer.get.attributes
-                .get("xml:id")
-                .orElse(originalLayer.get.attributes.get("id"))
-                .getOrElse(java.util.UUID.randomUUID.toString)
-            else java.util.UUID.randomUUID.toString
-
-          val baseLayerAttrs = originalLayer.map(_.attributes).getOrElse(SeqMap.empty)
-          val layerAttrs     = baseLayerAttrs.map {
-            case ("n", _)      => ("n", "1")
-            case ("xml:id", _) => ("xml:id", layerId)
-            case ("id", _)     => ("id", layerId)
-            case other         => other
-          } ++ (if (!baseLayerAttrs.contains("n")) SeqMap("n" -> "1") else SeqMap.empty) ++
-            (if (!baseLayerAttrs.contains("xml:id") && !baseLayerAttrs.contains("id")) SeqMap("xml:id" -> layerId)
-             else SeqMap.empty)
-
-          val layer = mei.shared.Layer(elements = layerElements, attributes = layerAttrs)
-          mei.shared.Staff(elements = List(layer), attributes = staffAttrs)
-        }
-        originalMeasure.withChildren(newStaffs ++ otherElements)
-      }.toList
-
-      val newSection = section.withChildren(newMeasures)
-      score.withChildren(List(newScoreDef, newSection)).asInstanceOf[mei.shared.Score]
-    }
-
-    meiStructure
-      .transform {
-        case s: mei.shared.Score => transformScore(s)
-        case other               => other
-      }
-      .asInstanceOf[mei.shared.Mei]
+    Melody(scores.toList)
   }
 
 }
@@ -521,4 +265,181 @@ object MeiScore {
     def getByStartId(id: String): Option[Tie] = byStart.get(id)
     def getByEndId(id: String): Option[Tie]   = byEnd.get(id)
   }
+
+  def assignPartClef(part: Part): Elem = {
+    val partTop = part.hierarchy.headOption
+    partTop match {
+      case Some(v) if v.contains("Soprano") => <clef shape="C" line="1"/>
+      case Some(v) if v.contains("Alto")    => <clef shape="C" line="3"/>
+      case Some(v) if v.contains("Tenor")   => <clef shape="C" line="4"/>
+      case Some(v) if v.contains("Bass")    => <clef shape="F" line="4"/>
+      case _                                => <clef shape="G" line="2"/>
+    }
+  }
+
+  def toKeySig(key: Key): Elem = {
+    val mode = key.mode match {
+      case Key.Mode.Major => "major"
+      case Key.Mode.Minor => "minor"
+    }
+    val sig = s"${key.signatureNum}" // 2f などの表記もあるが、-2などもOKらしい
+    <keySig mode={mode} sig={sig}/>
+  }
+
+  def toMeterSig(timeSignature: TimeSignature): Elem = {
+    val count = timeSignature.beats.toString
+    val unit  = if (timeSignature.beatType.value.d == 1) {
+      timeSignature.beatType.value.n.toString
+    } else {
+      throw new RuntimeException(s"cannot convert ${timeSignature} to meterSig. denominator of beatType is not 1.")
+    }
+    <meterSig count={count} unit={unit}/>
+  }
+
+  def toNote(note: Note[Pitch | Rest], key: Key, part: Part): Elem = {
+    // note.duration は 四分音符が1, 二分音符が2
+    // durは四分音符は4, 二分音符は2, ..., 付点は <note dots="1" ...>,  <note dots="2" ...>, ...
+    val (durStr, dots) = note.duration.value match {
+      case r @ Rational(num, den) =>
+        // 1. 分子から2のべき乗を追い出して奇数部分を取り出す
+        var oddPart    = num
+        var powerOfTwo = 0
+        while (oddPart > 0 && oddPart % 2 == 0) {
+          oddPart /= 2
+          powerOfTwo += 1
+        }
+
+        // 2. oddPart が 2^(k+1) - 1 の形かチェック
+        // 1 -> k=0 (点なし), 3 -> k=1 (点1), 7 -> k=2 (点2), 15 -> k=3 (点3)
+        val k = (Math.log(oddPart + 1) / Math.log(2)).toInt
+        if ((1L << k) - 1 != oddPart) {
+          throw new RuntimeException(s"Unsupported duration (not a standard dotted note): $r")
+        }
+
+        val numDots = k - 1
+
+        // 3. 基底となる音符の長さを計算 (付点分を取り除く)
+        // baseDuration = r / (1 + 1/2 + 1/4 + ...)
+        // 1.5倍なら 3/2 で割る、1.75倍なら 7/4 で割る
+        val dotMultiplier = Rational((1L << k) - 1, 1L << (k - 1))
+        val baseDuration  = r / dotMultiplier
+
+        // 4. MEIの文字列にマッピング
+        val typeStr = baseDuration match {
+          case Rational(16, 1) => "long"
+          case Rational(8, 1)  => "breve"
+          case Rational(n, 1)  => (4 / n).toString // 4 -> "1", 2 -> "2", 1 -> "4"
+          case Rational(1, d)  => (4 * d).toString // 1/2 -> "8", 1/4 -> "16", 1/512 -> "2048"
+          case other           => throw new RuntimeException(s"Illegal base duration: $other")
+        }
+
+        (typeStr, numDots)
+    }
+
+    note.value match {
+      case _: Rest  => <rest dur={durStr} dots={if (dots > 0) dots.toString else null}/> // mRestの可能性
+      case p: Pitch =>
+        val ip: InternationalPitch = p.internationalPitchNotation
+        val oct                    = ip.octave.value.toString
+        val pname                  = ip.step match {
+          case InternationalPitch.Step.C => "c"
+          case InternationalPitch.Step.D => "d"
+          case InternationalPitch.Step.E => "e"
+          case InternationalPitch.Step.F => "f"
+          case InternationalPitch.Step.G => "g"
+          case InternationalPitch.Step.A => "a"
+          case InternationalPitch.Step.B => "b"
+        }
+
+        val stemDir = "down" // TODO: partとclefから得る
+        <note dur={durStr} dots={if (dots > 0) dots.toString else null} oct={oct} pname={pname} stem.dir={stemDir}/>
+      // pnameには臨時記号の情報は一切ない
+      // 調号に応じて、実際なる音にシャープなどあれば accid.ges="s" を付与
+      // 臨時記号が必要な場合は
+      // <note ...>
+      //   <accid accid="s"/>
+      // </note>
+    }
+
+  }
+
+  def fromSheetMusic(
+      sheetMusic: SheetMusic,
+  ): Elem = {
+
+    val val_title = sheetMusic.title.getOrElse("Empty Title")
+
+    val staffDefs = sheetMusic.body.parts
+      .map(_._1)
+      .zipWithIndex
+      .map { case (part, _i) =>
+        val n     = (_i + 1).toString
+        val label = part.toString
+
+        <staffDef n={n} lines="5">
+        <label>{label}</label>
+        {assignPartClef(part)}
+        {toKeySig(sheetMusic.key)}
+        {toMeterSig(sheetMusic.timeSignature)}
+      </staffDef>
+      }
+      .toList
+
+    val sheetMeasures = sheetMusic.body.toMeasures
+    val measuresLen   = sheetMeasures.length
+
+    val measures = sheetMeasures.zipWithIndex.map { case (measure, _mn) =>
+      val isLastMeasure = measuresLen == _mn + 1
+      val measureNumber = (_mn + 1).toString
+      // 最後の小節は <measure right="dbl">
+      <measure n={measureNumber} right={if (isLastMeasure) "dbl" else null}>
+        {
+        measure.toSeq.zipWithIndex.map { case ((part, pMeasure), _pn) =>
+          val staffNumber = (_pn + 1).toString
+          <staff n={staffNumber}>
+            <layer n="1">
+              {
+            pMeasure.elements.map {
+              case n: Note[AttributedValue] => toNote(n.mapValue(_.value), sheetMusic.key, part)
+              case other => throw new RuntimeException(s"not supported chord or melody in measure: $other")
+            }
+          }
+            </layer>
+          </staff>
+        }
+      }
+      </measure>
+
+    }
+
+    val meiElem = <mei meiversion="5.1" xmlns="http://www.music-encoding.org/ns/mei">
+  <meiHead>
+    <titleStmt>
+      <title>{val_title}</title>
+    </titleStmt>
+  </meiHead>
+  <music>
+    <body>
+      <mdiv>
+        <score>
+          <scoreDef>
+            <staffGrp>
+              <staffGrp bar.thru="true">
+                <grpSym symbol="bracket"/>
+                {staffDefs}
+              </staffGrp>
+            </staffGrp>
+          </scoreDef>
+          <section>
+            {measures}
+          </section>
+        </score>
+      </mdiv>
+    </body>
+  </music>
+</mei>
+
+    MeiXmlUtil.assignIds(meiElem)
+  }
+
 }

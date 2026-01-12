@@ -10,8 +10,10 @@ import model.containers.{Melody, Note}
 import model.elements.Key.Mode
 import model.elements.Part
 
+case class PitchWithBass(pitch: Pitch, bass: ChordWithBass[NoteName])
+
 case class Skeleton(
-    measures: List[Melody[Pitch, ChordWithBass[NoteName], Note[Pitch, ChordWithBass[NoteName]]]],
+    measures: List[Melody[PitchWithBass, Note[PitchWithBass]]],
 )
 
 class SkeletonGenerator(
@@ -39,9 +41,9 @@ class SkeletonGenerator(
   }
 
   private def generateSkeletonImpl(): Skeleton = {
-    var measures: List[Melody[Pitch, ChordWithBass[NoteName], Note[Pitch, ChordWithBass[NoteName]]]] = Nil
-    val chordPalette                                                                                 = getChordPalette
-    val candidatePitchesPool = getAllPitchesInRange
+    var measures: List[Melody[PitchWithBass, Note[PitchWithBass]]] = Nil
+    val chordPalette                                               = getChordPalette
+    val candidatePitchesPool                                       = getAllPitchesInRange
 
     for ((cfPitch, measureIdx) <- cantusFirmus.zipWithIndex) {
       val cfDegree          = Degree.fromNoteNameKey(cfPitch.noteName, key)
@@ -123,7 +125,7 @@ class SkeletonGenerator(
                 if (isInversionValid) {
                   var isValidatorValid = true
                   if (measures.nonEmpty) {
-                    val previousPitch   = measures.head.elems.head.value
+                    val previousPitch   = measures.head.elems.head.value.pitch
                     val previousCfPitch = cantusFirmus(measureIdx - 1)
 
                     val prevMeasure = createAnnotatedMeasure(previousPitch)
@@ -159,7 +161,7 @@ class SkeletonGenerator(
 
     measures = measures.reverse
 
-    val allAnnotatedMeasures = measures.map(m => createAnnotatedMeasure(m.elems.head.value))
+    val allAnnotatedMeasures = measures.map(m => createAnnotatedMeasure(m.elems.head.value.pitch))
     if (!Validator.validateAll(allAnnotatedMeasures)) {
       throw new RuntimeException("Failed all measure validation (e.g. total range)")
     }
@@ -224,18 +226,17 @@ class SkeletonGenerator(
   private def createMeasure(
       pitch: Pitch,
       chord: ChordWithBass[NoteName],
-  ): Melody[Pitch, ChordWithBass[NoteName], Note[Pitch, ChordWithBass[NoteName]]] = {
-    val note = Note(pitch, Duration.of(4), Part.Root, chord)
-    Melody(List(note), chord)
+  ): Melody[PitchWithBass, Note[PitchWithBass]] = {
+    val note = Note(PitchWithBass(pitch, chord), Duration.of(4), Part.Root)
+    Melody(List(note))
   }
 
   private def createAnnotatedMeasure(pitch: Pitch): AnnotatedMeasure = {
-    val note = Note[AnnotatedNote, Unit](
+    val note = Note(
       AnnotatedNote(Some(pitch), NoteAnnotation(isTiedStart = false, toneType = ToneType.HARMONIC_TONE)),
       Duration.of(4),
       Part.Root,
-      (),
     )
-    Melody(List(note), ())
+    Melody(List(note))
   }
 }

@@ -167,7 +167,7 @@ object MeasureStepSequenceGenerator {
 
     // 3. 特殊なパターン (1r, 0srh, -1br, 0H)
     // TODO: -1r, -2?, -1?, 0H を含めるか？ ([A Minor, I, G#(d=1), F#(d=1/2), G#(d=1/2), A(d=2)])
-    if (state.melody.length <= maxMelodyLength - 3 && startNote.value == IntervalStep(1)) {
+    if (state.melody.length <= maxMelodyLength - 3 && startNote.value.value == IntervalStep(1)) {
       val newUsedStepsSpecial = state.usedHarmonicSteps + resolveStep
       if (allHarmonicPatterns.exists(p => newUsedStepsSpecial.subsetOf(p))) {
         val newMelody = state.melody ++ List(
@@ -194,12 +194,12 @@ object MeasureStepSequenceGenerator {
     var results: List[ExplorationState] = Nil
 
     val leapDegrees    = List(2, 3, 4, 5, 7, -2, -3, -4, -5, -7)
-    val candidateSteps = leapDegrees.map(d => lastNote.value + IntervalStep(d)).toSet.toList.sorted
+    val candidateSteps = leapDegrees.map(d => lastNote.value.value + IntervalStep(d)).toSet.toList.sorted
 
     val allHarmonicPatterns = HarmonicSteps.values.map(_.intervalSteps).toList
 
     for (step <- candidateSteps) {
-      if (step != lastNote.value) {
+      if (step != lastNote.value.value) {
         val newUsedSteps = state.usedHarmonicSteps + step.inversionNormalized
         if (allHarmonicPatterns.exists(p => newUsedSteps.subsetOf(p))) {
           val newMelody = state.melody :+ createStep(step, ToneType.HARMONIC_TONE)
@@ -222,10 +222,10 @@ object MeasureStepSequenceGenerator {
         // --- 経過音(群)とそれを解決する和声音を追加するパターン ---
         if (state.melody.length + numPassingTones < maxMelodyLength) {
           val passingNotes = (1 to numPassingTones).map { i =>
-            createStep(lastNote.value + IntervalStep(i * direction), ToneType.PASSING_TONE)
+            createStep(lastNote.value.value + IntervalStep(i * direction), ToneType.PASSING_TONE)
           }.toList
 
-          val targetStep   = lastNote.value + IntervalStep((numPassingTones + 1) * direction)
+          val targetStep   = lastNote.value.value + IntervalStep((numPassingTones + 1) * direction)
           val newUsedSteps = state.usedHarmonicSteps + targetStep.inversionNormalized
 
           if (allHarmonicPatterns.exists(p => newUsedSteps.subsetOf(p))) {
@@ -237,7 +237,7 @@ object MeasureStepSequenceGenerator {
         // --- 経過音(群)が小節の最後まで続くパターン ---
         if (state.melody.length + numPassingTones == maxMelodyLength) {
           val passingNotes = (1 to numPassingTones).map { i =>
-            createStep(lastNote.value + IntervalStep(i * direction), ToneType.PASSING_TONE)
+            createStep(lastNote.value.value + IntervalStep(i * direction), ToneType.PASSING_TONE)
           }.toList
           val newMelody = state.melody ++ passingNotes
           results ::= ExplorationState(newMelody, false, state.usedHarmonicSteps)
@@ -254,8 +254,8 @@ object MeasureStepSequenceGenerator {
     var results: List[ExplorationState] = Nil
 
     for (direction <- List(1, -1)) {
-      val brStep    = lastNote.value + IntervalStep(direction)
-      val hStep     = lastNote.value
+      val brStep    = lastNote.value.value + IntervalStep(direction)
+      val hStep     = lastNote.value.value
       val newMelody = state.melody ++ List(
         createStep(brStep, ToneType.NEIGHBOR_TONE),
         createStep(hStep, ToneType.HARMONIC_TONE),
@@ -275,7 +275,7 @@ object MeasureStepSequenceGenerator {
 
     var nextSteps: List[IntervalStep] = Nil
 
-    lastStep.meta match {
+    lastStep.value.meta match {
 
       case ToneType.HARMONIC_TONE =>
 
@@ -283,7 +283,7 @@ object MeasureStepSequenceGenerator {
 
         // タイありパターン
 
-        nextSteps ::= lastStep.value
+        nextSteps ::= lastStep.value.value
 
         // タイ無しパターン
 
@@ -295,7 +295,7 @@ object MeasureStepSequenceGenerator {
 
           for (degree <- leapDegrees) {
 
-            nextSteps ::= lastStep.value + IntervalStep.idx_1(degree)
+            nextSteps ::= lastStep.value.value + IntervalStep.idx_1(degree)
 
           }
 
@@ -305,13 +305,13 @@ object MeasureStepSequenceGenerator {
 
           val secondToLastStep = melody(melody.length - 2)
 
-          val diff = lastStep.value - secondToLastStep.value
+          val diff = lastStep.value.value - secondToLastStep.value.value
 
           val direction = if (diff.toIdx1 > 0) 1 else -1
 
           // 同方向に2度進行
 
-          nextSteps ::= lastStep.value + IntervalStep.idx_1(2 * direction)
+          nextSteps ::= lastStep.value.value + IntervalStep.idx_1(2 * direction)
 
           // 逆方向に2,3,4,5,6,8度進行
 
@@ -319,7 +319,7 @@ object MeasureStepSequenceGenerator {
 
           for (degree <- oppositeDegrees) {
 
-            nextSteps ::= lastStep.value + IntervalStep.idx_1(degree * -direction)
+            nextSteps ::= lastStep.value.value + IntervalStep.idx_1(degree * -direction)
 
           }
 
@@ -333,9 +333,9 @@ object MeasureStepSequenceGenerator {
 
         val secondToLastStep = melody(melody.length - 2)
 
-        val diff = lastStep.value - secondToLastStep.value
+        val diff = lastStep.value.value - secondToLastStep.value.value
 
-        nextSteps ::= lastStep.value + diff
+        nextSteps ::= lastStep.value.value + diff
 
       case ToneType.NEIGHBOR_TONE =>
 
@@ -345,15 +345,15 @@ object MeasureStepSequenceGenerator {
 
         val secondToLastStep = melody(melody.length - 2)
 
-        val diff = lastStep.value - secondToLastStep.value
+        val diff = lastStep.value.value - secondToLastStep.value.value
 
-        nextSteps ::= lastStep.value + (diff * -1)
+        nextSteps ::= lastStep.value.value + (diff * -1)
 
       case _ =>
 
         // 掛留音で終わる場合は例外。探索中に解決されるはず
 
-        throw new IllegalStateException(s"Unexpected tone type at end: ${lastStep.meta}")
+        throw new IllegalStateException(s"Unexpected tone type at end: ${lastStep.value.meta}")
 
     }
 
@@ -365,7 +365,7 @@ object MeasureStepSequenceGenerator {
 
     // 音域チェックなど、全てのパターンに共通するフィルタを適用する
 
-    val allSteps = p.measureNotes.map(_.value) :+ p.nextMeasureStep
+    val allSteps = p.measureNotes.map(_.value.value) :+ p.nextMeasureStep
 
     val minIdx = allSteps.minBy(_.value).value
 

@@ -7,18 +7,24 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "check": "biome check --write ."
+    "check": "prettier --write --log-level silent . && echo prettier completed. && biome check --write . && echo biome completed. && tsc && echo tsc completed."
   },
   "dependencies": {
     "@codemirror/lang-xml": "^6.1.0",
     "@codemirror/state": "^6.5.3",
     "@codemirror/view": "^6.39.8",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@uiw/react-codemirror": "^4.25.4",
+    "clsx": "^2.1.1",
     "idb": "^8.0.3",
+    "idb-keyval": "^6.2.2",
     "lucide-react": "^0.562.0",
+    "radix-ui": "^1.4.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-resizable-panels": "^4.3.0",
     "sax": "^1.4.3",
+    "tailwind-merge": "^3.4.0",
     "verovio": "^5.7.0"
   },
   "devDependencies": {
@@ -29,6 +35,8 @@
     "@types/sax": "^1.2.7",
     "@types/verovio": "5.1.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "prettier": "^3.7.4",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "4.1.18",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"

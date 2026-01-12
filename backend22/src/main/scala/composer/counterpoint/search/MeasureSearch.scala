@@ -146,19 +146,18 @@ class MeasureSearch(
     val durations = rythmn.durations
     val seqNotes  = seq.measure.elems
 
-    var notes: List[Note[AnnotatedNote, Unit]] = Nil
+    var notes: List[Note[AnnotatedNote]] = Nil
 
     if (rythmn.initRestDuration > Duration.of(0)) {
       notes ::= Note(
         AnnotatedNote(None, NoteAnnotation(isTiedStart = false, ToneType.HARMONIC_TONE)),
         rythmn.initRestDuration,
         Part.Root,
-        (),
       )
     }
 
     for (i <- seqNotes.indices) {
-      val note     = seqNotes(i) // Note[AnnotatedNote, Unit]
+      val note     = seqNotes(i) // Note[AnnotatedNote]
       val duration = durations(i)
 
       // isTiedToNextMeasureRequired logic
@@ -177,11 +176,10 @@ class MeasureSearch(
         AnnotatedNote(note.value.value, newAnnotation),
         duration,
         Part.Root,
-        (),
       )
     }
 
-    Melody(notes.reverse, ())
+    Melody(notes.reverse)
   }
 }
 

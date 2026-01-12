@@ -14,6 +14,9 @@ object PitchApplyer {
       nextMeasureStartPitch: Pitch,
   )
 
+  case class AnnotatedDegreeStep(value: DegreeStep, meta: ToneType)
+  case class AnnotatedDegree(value: Degree, meta: ToneType)
+
   /** 調・和音・開始音と、与えられた音列(IntervalStepとToneTypeを持つ)に応じて、短音階の変位音を考慮して音高列の候補を得る。
     *
     * 音列によって、結果は0~2個となる。
@@ -27,7 +30,7 @@ object PitchApplyer {
       measureStepSequence: MeasureStepSequence,
   ): List[PitchMeasureStepSequence] = {
 
-    val annotatedIntervalSteps = measureStepSequence.measureNotes.map(n => (n.value, n.meta))
+    val annotatedIntervalSteps = measureStepSequence.measureNotes.map(n => (n.value.value, n.value.meta))
 
     val allIntervalSteps   = annotatedIntervalSteps.map(_._1) :+ measureStepSequence.nextMeasureStep
     val allDiatonicPitches = applyPitchDiatonic(key, startPitch, allIntervalSteps)
@@ -45,27 +48,29 @@ object PitchApplyer {
         .intersect(Set(SIXTH, SEVENTH))
         .nonEmpty)
     ) {
-      var newMeasureNotes: List[Note[AnnotatedNote, Unit]] = Nil
-      var pitchIdx                                         = 0
+      var newMeasureNotes: List[Note[AnnotatedNote]] = Nil
+      var pitchIdx                                   = 0
       for (note <- measureStepSequence.measureNotes) {
         newMeasureNotes ::= Note(
-          AnnotatedNote(Some(diatonicPitches(pitchIdx)), NoteAnnotation(isTiedStart = false, toneType = note.meta)),
+          AnnotatedNote(
+            Some(diatonicPitches(pitchIdx)),
+            NoteAnnotation(isTiedStart = false, toneType = note.value.meta),
+          ),
           note.duration,
           Part.Root,
-          (),
         )
         pitchIdx += 1
       }
       return List(
         PitchMeasureStepSequence(
-          Melody(newMeasureNotes.reverse, ()),
+          Melody(newMeasureNotes.reverse),
           nextDiatonicPitch,
         ),
       )
     }
 
     val degreeNoteList = measureStepSequence.measureNotes.zip(degreeSteps).map { case (note, degStep) =>
-      Note(degStep, note.duration, Part.Root, note.meta)
+      Note(AnnotatedDegreeStep(degStep, note.value.meta), note.duration, Part.Root)
     }
 
     val possibleDegreeSequences = degreeCandidates(
@@ -78,7 +83,7 @@ object PitchApplyer {
       var pitches: List[Pitch] = Nil
       var pitchIdx             = 0
       for (dNote <- measureDegrees) {
-        val deg           = dNote.value
+        val deg           = dNote.value.value
         val basePitch     = diatonicPitches(pitchIdx)
         val adjustedPitch = basePitch + (Interval.A1 * deg.alter.value)
         pitches ::= adjustedPitch
@@ -88,20 +93,19 @@ object PitchApplyer {
 
       val nextPitchCandidate = nextDiatonicPitch + (Interval.A1 * nextDegree.alter.value)
 
-      var finalNotes: List[Note[AnnotatedNote, Unit]] = Nil
+      var finalNotes: List[Note[AnnotatedNote]] = Nil
       for (i <- measureStepSequence.measureNotes.indices) {
         val origNote = measureStepSequence.measureNotes(i)
         val pitch    = pitches(i)
         finalNotes ::= Note(
-          AnnotatedNote(Some(pitch), NoteAnnotation(isTiedStart = false, toneType = origNote.meta)),
+          AnnotatedNote(Some(pitch), NoteAnnotation(isTiedStart = false, toneType = origNote.value.meta)),
           origNote.duration,
           Part.Root,
-          (),
         )
       }
 
       PitchMeasureStepSequence(
-        Melody(finalNotes.reverse, ()),
+        Melody(finalNotes.reverse),
         nextPitchCandidate,
       )
     }
@@ -116,11 +120,11 @@ object PitchApplyer {
     */
   private def degreeCandidates(
       chordDegrees: Set[Degree],
-      measureDegreeNotes: List[Note[DegreeStep, ToneType]],
+      measureDegreeNotes: List[Note[AnnotatedDegreeStep]],
       nextMeasureDegreeStep: DegreeStep,
-  ): List[(List[Note[Degree, ToneType]], Degree)] = {
+  ): List[(List[Note[AnnotatedDegree]], Degree)] = {
 
-    val elems = measureDegreeNotes.map(n => (n.value, n.meta))
+    val elems = measureDegreeNotes.map(n => (n.value.value, n.value.meta))
 
     val SIXTH   = DegreeStep.idx1(6)
     val SEVENTH = DegreeStep.idx1(7)
@@ -191,7 +195,7 @@ object PitchApplyer {
 
     val allMeasureCandidates = sequenceCandidates(candidateLists)
 
-    var validSequences: List[(List[Note[Degree, ToneType]], Degree)] = Nil
+    var validSequences: List[(List[Note[AnnotatedDegree]], Degree)] = Nil
 
     for (degreesForMeasure <- allMeasureCandidates) {
       val possibleNextDegrees = getNextDegreeCandidates(nextMeasureDegreeStep, degreesForMeasure)
@@ -200,7 +204,7 @@ object PitchApplyer {
         val fullSeq = degreesForMeasure :+ nextDegree
         if (isValidAlterationCombination(fullSeq)) {
           val newMeasureNotes = measureDegreeNotes.zip(degreesForMeasure).map { case (orig, deg) =>
-            Note(deg, orig.duration, Part.Root, orig.meta)
+            Note(AnnotatedDegree(deg, orig.value.meta), orig.duration, Part.Root)
           }
           validSequences ::= (newMeasureNotes, nextDegree)
         }

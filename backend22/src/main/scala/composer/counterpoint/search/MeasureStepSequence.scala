@@ -5,16 +5,18 @@ import model.containers.Note
 import model.elements.{Duration, Part}
 import model.elements.Interval.IntervalStep
 
+case class AnnotatedIntervalStepValue(value: IntervalStep, meta: ToneType)
+
 /** 音価1のNoteをIntervalStepとToneTypeの組として利用する */
-type AnnotatedIntervalStep = Note[IntervalStep, ToneType]
+type AnnotatedIntervalStep = Note[AnnotatedIntervalStepValue]
 
 object AnnotatedIntervalStep {
   def apply(value: IntervalStep, duration: Duration, toneType: ToneType): AnnotatedIntervalStep =
-    Note(value, duration, Part.Root, toneType)
+    Note(AnnotatedIntervalStepValue(value, toneType), duration, Part.Root)
 }
 
 trait AbstractMeasureStepSequence[T] {
-  def measureNotes: List[Note[T, ToneType]]
+  def measureNotes: List[AnnotatedIntervalStep]
   def nextMeasureStep: T
 
   /** 小節内で利用した音数 */
@@ -22,7 +24,7 @@ trait AbstractMeasureStepSequence[T] {
 
   /** 小節の最後の音と次の小節の音をタイで繋げる必要があるか */
   def isTiedToNextMeasureRequired: Boolean = {
-    measureNotes.last.value == nextMeasureStep
+    measureNotes.last.value.value == nextMeasureStep
   }
 }
 
@@ -48,16 +50,16 @@ case class MeasureStepSequence(
 
   {
     val firstNote = measureNotes.head
-    val valVal    = firstNote.value.value
+    val valVal    = firstNote.value.value.value
     // In Python: first_note.value in {-1, 0, 1}
     require(Set(-1, 0, 1).contains(valVal))
     // In Python: first_note.attribute in {HARMONIC_TONE, SUSPENDED_TONE}
-    require(Set(ToneType.HARMONIC_TONE, ToneType.SUSPENDED_TONE).contains(firstNote.meta))
+    require(Set(ToneType.HARMONIC_TONE, ToneType.SUSPENDED_TONE).contains(firstNote.value.meta))
 
     // assert (first_note.attribute == ToneType.HARMONIC_TONE) == (first_note.value == IntervalStep(0))
-    require((firstNote.meta == ToneType.HARMONIC_TONE) == (valVal == 0))
+    require((firstNote.value.meta == ToneType.HARMONIC_TONE) == (valVal == 0))
     // assert (first_note.attribute == ToneType.SUSPENDED_TONE) == (first_note.value in {IntervalStep(-1), IntervalStep(1)})
-    require((firstNote.meta == ToneType.SUSPENDED_TONE) == (Set(-1, 1).contains(valVal)))
+    require((firstNote.value.meta == ToneType.SUSPENDED_TONE) == (Set(-1, 1).contains(valVal)))
 
     // assert IntervalStep(0) in self.used_harmonic_steps
     // usedHarmonicSteps is computed lazily, but let's check it if cheap.
@@ -70,9 +72,9 @@ case class MeasureStepSequence(
     // So 0 must be present.
   }
 
-  def firstNoteIntervalStepOfMeasure: IntervalStep = measureNotes.head.value
+  def firstNoteIntervalStepOfMeasure: IntervalStep = measureNotes.head.value.value
 
-  def firstNoteIntervalStep: IntervalStep = measureNotes.last.value // Wait, python says last.value?
+  def firstNoteIntervalStep: IntervalStep = measureNotes.last.value.value // Wait, python says last.value?
   // Python:
   // def first_note_interval_step_of_measure(self) -> IntervalStep:
   //      return self.measure.notes[0].value
@@ -105,19 +107,19 @@ case class MeasureStepSequence(
   lazy val usedHarmonicSteps: Set[IntervalStep] = {
     measureNotes
       .filter { note =>
-        Set(ToneType.HARMONIC_TONE, ToneType.SUSPENDED_RESOLVING_HARMONIC_TONE).contains(note.meta)
+        Set(ToneType.HARMONIC_TONE, ToneType.SUSPENDED_RESOLVING_HARMONIC_TONE).contains(note.value.meta)
       }
-      .map(_.value.inversionNormalized)
+      .map(_.value.value.inversionNormalized)
       .toSet
   }
 
   lazy val minStep: IntervalStep = {
-    val steps = measureNotes.map(_.value) :+ nextMeasureStep
+    val steps = measureNotes.map(_.value.value) :+ nextMeasureStep
     steps.minBy(_.value)
   }
 
   lazy val maxStep: IntervalStep = {
-    val steps = measureNotes.map(_.value) :+ nextMeasureStep
+    val steps = measureNotes.map(_.value.value) :+ nextMeasureStep
     steps.maxBy(_.value)
   }
 
@@ -133,7 +135,7 @@ case class MeasureStepSequence(
 
     val stepsStr = measureNotes
       .map { step =>
-        s"${step.value.value}${toneMap(step.meta)}"
+        s"${step.value.value.value}${toneMap(step.value.meta)}"
       }
       .mkString(",")
     val nextMeasureStepStr = nextMeasureStep.value.toString

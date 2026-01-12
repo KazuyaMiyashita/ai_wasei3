@@ -5,15 +5,16 @@ package sheet
 import model.containers.{Chord, Melody, Score}
 import model.elements.Math.Rational
 import model.elements.{Duration, Key, Part, Pitch, Rest}
+import scala.collection.immutable.SeqMap
 
-case class Measure(melody: Melody[AttributedValue, Unit, Score[AttributedValue, Unit]]) {
-  def duration: Duration                           = melody.duration
-  def elements: List[Score[AttributedValue, Unit]] = melody.elems
+case class Measure(melody: Melody[AttributedValue, Score[AttributedValue]]) {
+  def duration: Duration                     = melody.duration
+  def elements: List[Score[AttributedValue]] = melody.elems
 }
 
 object Measure {
-  def of(elements: Score[AttributedValue, Unit]*): Measure = Measure(
-    Melody(elements.toList, ()),
+  def of(elements: Score[AttributedValue]*): Measure = Measure(
+    Melody(elements.toList),
   )
 }
 
@@ -36,7 +37,7 @@ case class ScoreAttrs(isTiedStart: Boolean, graces: List[Pitch] = Nil) extends H
 /**  パートごとに小節のリストを持つ。全パートで小節数が一致している必要がある。
   */
 case class PartMapScore(
-    parts: Map[Part, List[Measure]],
+    parts: SeqMap[Part, List[Measure]],
 ) {
   require(parts.values.map(_.size).toSet.size <= 1, "The number of measures must be the same for all parts")
 
@@ -58,6 +59,12 @@ case class PartMapScore(
   def maxTotalDuration: Duration = {
     if (parts.isEmpty) Duration.of(0)
     else parts.keys.map(partTotalDuration).max
+  }
+
+  def toMeasures: List[SeqMap[Part, Measure]] = {
+    (0 until numMeasures).toList.map { i =>
+      SeqMap.from(parts.map { case (p, ms) => p -> ms(i) })
+    }
   }
 }
 
@@ -83,22 +90,22 @@ case class SheetMusic(
     timeSignatureEvents: List[TimeSignatureEvent],
     keySignatureEvents: List[KeySignatureEvent],
     body: PartMapScore,
+    title: Option[String],
 ) {
 
   def toChord: Chord[
     AttributedValue,
-    Unit,
-    Melody[AttributedValue, Unit, Melody[AttributedValue, Unit, Score[AttributedValue, Unit]]],
+    Melody[AttributedValue, Melody[AttributedValue, Score[AttributedValue]]],
   ] = {
     val maxDur       = body.maxTotalDuration
     val missingParts = scala.collection.mutable.ListBuffer[String]()
 
-    val partElems: Seq[Melody[AttributedValue, Unit, Melody[AttributedValue, Unit, Score[AttributedValue, Unit]]]] =
+    val partElems: Seq[Melody[AttributedValue, Melody[AttributedValue, Score[AttributedValue]]]] =
       body.parts.map { case (partId, measures) =>
-        val currentPartTotalDur = body.partTotalDuration(partId)
-        val measureMelodies: List[Melody[AttributedValue, Unit, Score[AttributedValue, Unit]]] = measures.map(_.melody)
+        val currentPartTotalDur                                                    = body.partTotalDuration(partId)
+        val measureMelodies: List[Melody[AttributedValue, Score[AttributedValue]]] = measures.map(_.melody)
 
-        val fullMelody = Melody(measureMelodies, ())
+        val fullMelody = Melody(measureMelodies)
 
         if (currentPartTotalDur < maxDur) {
           val missing = maxDur - currentPartTotalDur
@@ -113,7 +120,7 @@ case class SheetMusic(
       throw new IllegalStateException(s"Part duration mismatch detected:\n${missingParts.mkString("\n")}")
     }
 
-    Chord(partElems.toSet, ())
+    Chord(partElems.toSet)
   }
 
 }
@@ -123,7 +130,7 @@ object SheetMusic {
   def fromScore(
       key: Key,
       timeSignature: TimeSignature,
-      score: Score[AttributedValue, Unit],
+      score: Score[AttributedValue],
   ): SheetMusic = ??? // normalizeしてよしなに詰め替えればよさそうだが、Blankを含まないようにするのは一工夫必要そうだ
 
 }

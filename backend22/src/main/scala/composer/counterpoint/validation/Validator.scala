@@ -62,15 +62,14 @@ object Validator {
     // 簡単のため、小節と現在の小節を繋げた1小節を考え、Offset.of(4)以降のものに対して確認をする
     val cfMelody = Melody(
       List(
-        Note(prevCf, Duration.of(4), model.elements.Part.Root, ()),
-        Note(currentCf, Duration.of(4), model.elements.Part.Root, ()),
+        Note(prevCf, Duration.of(4), model.elements.Part.Root),
+        Note(currentCf, Duration.of(4), model.elements.Part.Root),
       ),
-      (),
     )
 
     // Combine measures
     val realizeNotes  = prevM.elems ++ currentMeasure.elems
-    val realizeMelody = Melody(realizeNotes, ())
+    val realizeMelody = Melody(realizeNotes)
 
     val realizeOffsetNotes = calculateOffsetNotes(realizeMelody)
 
@@ -203,7 +202,7 @@ object Validator {
       previousMeasure: Option[AnnotatedMeasure],
       currentMeasure: AnnotatedMeasure,
       num: Int,
-  ): List[Note[AnnotatedNote, ?]] = {
+  ): List[Note[AnnotatedNote]] = {
     val prevNotes = previousMeasure.map(_.elems.takeRight(num)).getOrElse(Nil)
     prevNotes ++ currentMeasure.elems
   }
@@ -324,7 +323,7 @@ object Validator {
     (pMax - pMin).step.value <= IntervalStep.idx_1(11).value
   }
 
-  private def calculateOffsetNotes[A, B, S <: model.containers.Score[A, B]](melody: Melody[A, B, S]): Map[Offset, S] = {
+  private def calculateOffsetNotes[A, S <: model.containers.Score[A]](melody: Melody[A, S]): Map[Offset, S] = {
     var curr = Offset.of(0)
     melody.elems.map { note =>
       val entry = curr -> note
@@ -333,8 +332,8 @@ object Validator {
     }.toMap
   }
 
-  private def getNoteAt[A, B, S <: model.containers.Score[A, B]](
-      melody: Melody[A, B, S],
+  private def getNoteAt[A, S <: model.containers.Score[A]](
+      melody: Melody[A, S],
       offset: Offset,
   ): (Offset, S) = {
     var curr      = Offset.of(0)

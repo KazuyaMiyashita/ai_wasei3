@@ -18,9 +18,8 @@ lazy val root = project
   .settings(
     name := "ai_wasei3",
     commonSettings,
-    libraryDependencies += "org.scala-lang.modules" %% "scala-xml"    % "2.4.0",
-    libraryDependencies += "com.illposed.osc"        % "javaosc-core" % "0.9",
-    libraryDependencies += "org.scalatest"          %% "scalatest"    % "3.2.19" % Test,
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "2.4.0",
+    libraryDependencies += "org.scalatest"          %% "scalatest" % "3.2.19" % Test,
   )
 
 lazy val server = project
@@ -29,7 +28,6 @@ lazy val server = project
     name := "ai_wasei3_server",
     commonSettings,
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml"         % "2.4.0",
-    libraryDependencies += "com.illposed.osc"        % "javaosc-core"      % "0.9",
     libraryDependencies += "dev.zio"                %% "zio"               % "2.1.24",
     libraryDependencies += "dev.zio"                %% "zio-test"          % "2.1.24" % Test,
     libraryDependencies += "dev.zio"                %% "zio-test-sbt"      % "2.1.24" % Test,

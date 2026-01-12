@@ -1,69 +1,33 @@
-import java.net.InetAddress
-
-import scala.xml.{PrettyPrinter, XML}
-
-import com.illposed.osc.transport.OSCPortOut
-import model.containers.{Score, PartwiseScore}
+import composer.counterpoint.CounterpointGenerator
+import composer.counterpoint.model.Species
+import _root_.model.elements.{Key, Pitch}
 import model.elements.Part
-import performer.{OscSender, Performer, PerformerEvent}
-import sheet.{MeiScore, NoteInfo}
-import sheet.meicmn.MeiXML
+import sheet.MeiScore
+import scala.xml.PrettyPrinter
 
 object Main {
 
-  val printer = new PrettyPrinter(120, 2)
-
   def main(args: Array[String]): Unit = {
-    val resourcePath = s"/data/mei/356.mei"
-    val resource     = getClass.getResource(resourcePath)
-
-    if (resource == null) {
-      System.err.println(s"Error: Resource not found: $resourcePath")
-      return
-    }
-
-    println(s"Loading MEI file from: $resource")
-    // Load from XML file
-    val xml          = XML.load(resource)
-    val meiStructure = MeiXML.load(xml)
-    val meiScore     = MeiScore(meiStructure)
-
-    val tempo = meiScore.tempo.getOrElse(80.0)
-
-    val score: Score[NoteInfo, Unit] = meiScore.toScore
-
-    val partwizeScore: PartwiseScore[NoteInfo, Unit] = score.partwise
-
-    val soprano = partwizeScore.elems.find(e => e.part == Part("Soprano" :: Nil))
-    println("Soprano:")
-    soprano.take(10).foreach(println)
-    println("...")
-
-    // イベント生成
-    val events = Performer.perform(partwizeScore, tempo)
-    println(s"生成されたイベント数: ${events.length}")
-    events.take(10).foreach(println)
-    println("...")
-    sendOsc(events)
+    genCounterPoint()
   }
 
-  def sendOsc(events: List[PerformerEvent]): Unit = {
-    val ip   = InetAddress.getByName("127.0.0.1")
-    val port = 8000
+  def genCounterPoint(): Unit = {
+    val gen = CounterpointGenerator(
+      cantusFirmus = "C4 A3 G3 E3 F3 A3 G3 E3 D3 C3".split(" ").map(Pitch.parse).toList,
+      cfPart = Part.of("Bass"),
+      key = Key.parse("C Major"),
+      species = Species.FIFTH_SPECIES,
+      part = Part.of("Tenor"),
+    )
 
-    val sender = new OSCPortOut(ip, port)
-
-    try {
-      println(s"[送信開始] $ip:$port へイベントを生成中...")
-
-      // 送信処理
-      OscSender.sendEvents(sender, events)
-
-      println("[完了]")
-    } catch {
-      case e: Exception => e.printStackTrace()
-    } finally {
-      sender.close()
+    val printer = new PrettyPrinter(Int.MaxValue, 2)
+    gen.generateScores.take(1).zipWithIndex.foreach { case (sheet, _i) =>
+      val index = _i + 1
+      println(s"試行: $index:")
+      val meiXml    = MeiScore.fromSheetMusic(sheet.copy(title = Some(s"generated $index")))
+      val resultStr = s"<?xml version='1.0' encoding='UTF-8'?>\n${printer.format(meiXml)}"
+      println(resultStr)
+      println("\n\n")
     }
   }
 

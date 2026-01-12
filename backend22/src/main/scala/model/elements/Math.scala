@@ -60,6 +60,12 @@ object Math {
 
   object Rational {
 
+    /** 約分済みの分子(n)と分母(d)を抽出する */
+    def unapply(r: Rational): Option[(Long, Long)] = {
+      if (r == null) None
+      else Some((r.n, r.d))
+    }
+
     /** Pational.parse("1+1/2") == Rational.of(3, 2) */
     def parse(s: String): Rational = {
       val trimmed   = s.trim

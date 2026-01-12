@@ -4,13 +4,14 @@ import model.containers.Note
 import model.elements.{Duration, Key, Math, Part, Pitch}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
+import scala.collection.immutable.SeqMap
 
 class SheetMusicSpec extends AnyFunSpec with Matchers {
 
   describe("SheetMusic Structures") {
     it("should create Measure with Melody") {
-      val note: Note[AttributedValue, Unit] =
-        Note(AttributedValue(Pitch.parse("C4"), None), Duration.of(1), Part.Root, ())
+      val note: Note[AttributedValue] =
+        Note(AttributedValue(Pitch.parse("C4"), None), Duration.of(1), Part.Root)
       val measure = Measure.of(note)
       measure.duration shouldBe Duration.of(1)
       measure.elements shouldBe List(note)
@@ -34,9 +35,11 @@ class SheetMusicSpec extends AnyFunSpec with Matchers {
       val Alto    = Part.of("Alto")
 
       val score = PartMapScore(
-        Map(
-          Soprano -> List(Measure.of(Note(AttributedValue(Pitch.parse("C4"), None), Duration.of(1), Soprano, ()))),
-          Alto    -> List(Measure.of(Note(AttributedValue(Pitch.parse("F3"), None), Duration.of(1), Alto, ()))),
+        SeqMap.from(
+          Seq(
+            Soprano -> List(Measure.of(Note(AttributedValue(Pitch.parse("C4"), None), Duration.of(1), Soprano))),
+            Alto    -> List(Measure.of(Note(AttributedValue(Pitch.parse("F3"), None), Duration.of(1), Alto))),
+          ),
         ),
       )
       score.numMeasures shouldBe 1
@@ -47,14 +50,15 @@ class SheetMusicSpec extends AnyFunSpec with Matchers {
         timeSignatureEvents = Nil,
         keySignatureEvents = Nil,
         score,
+        title = None,
       )
 
       // score.notes.head ではなく、elements の中身を見るように修正
       // elements は List[Score[AttributedValue]] なので、型チェックなどが必要
       val element = sheetMusic.body.parts(Soprano).head.elements.head
       element match {
-        case n: Note[AttributedValue, Unit] => n.value.value shouldBe Pitch.parse("C4")
-        case _                              => fail("First element should be a Note")
+        case n: Note[AttributedValue] => n.value.value shouldBe Pitch.parse("C4")
+        case _                        => fail("First element should be a Note")
       }
     }
   }

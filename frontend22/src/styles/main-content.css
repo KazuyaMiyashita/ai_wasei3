@@ -1,0 +1,125 @@
+/* xhtml5+mei の時のスタイル。横幅にフィットする */
+.main-container-x-fit {
+  overflow-x: hidden;
+
+  svg {
+    flex-shrink: 1;
+    width: 100%; /* 親の幅に合わせる */
+    height: auto;
+    min-width: 0;
+  }
+}
+
+/* format: mei の時のスタイル。SVGの幅を尊重して横スクロールする
+ * このスタイルを当てるためにはSVGのstyleにwidth, heightが適用されていなければならない。
+ * Verovioのオプションで svgViewBox: true を指定し、生成されたSVGのviewBoxの値をパースして
+ * styleに当てるというハックな方法でSVGにwidth, heightを適用している。
+ */
+.main-container-x-scrollable {
+  overflow-x: auto;
+  display: flex;
+  justify-content: safe center;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+/* Main Content Styles for xhtml5+mei Content */
+.main-content {
+  color: var(--color-ui-text-main);
+  line-height: 1.6;
+  font-size: 0.875rem; /* text-sm 相当 */
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--color-ui-border);
+    color: var(--color-gray-900);
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.6rem;
+    color: var(--color-gray-800);
+    line-height: 1.3;
+  }
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.4rem;
+    color: var(--color-gray-800);
+    line-height: 1.4;
+  }
+
+  p {
+    margin-bottom: 0.875rem;
+  }
+
+  ul,
+  ol {
+    margin-bottom: 0.875rem;
+    padding-left: 1.25rem;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  li {
+    margin-bottom: 0.2rem;
+  }
+
+  blockquote {
+    border-left: 3px solid var(--color-ui-border);
+    padding-left: 0.75rem;
+    margin: 0.875rem 0;
+    color: var(--color-ui-text-muted);
+    font-style: italic;
+  }
+
+  code {
+    background-color: var(--color-ui-bg-subtle);
+    padding: 0.15rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.85em;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+  }
+
+  pre {
+    background-color: var(--color-gray-900);
+    color: var(--color-gray-100);
+    padding: 0.6rem;
+    overflow-x: auto;
+    margin-bottom: 0.875rem;
+  }
+
+  pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+    font-size: 0.85rem;
+  }
+  section {
+    margin-bottom: 1.5rem;
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--color-ui-border);
+    margin: 1.5rem 0;
+  }
+}

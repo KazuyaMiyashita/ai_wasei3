@@ -7,7 +7,7 @@ import model.elements.Pitch
 
 case class AnnotatedNote(value: Option[Pitch], annotation: NoteAnnotation)
 
-type AnnotatedMeasure = Melody[AnnotatedNote, Unit, Note[AnnotatedNote, Unit]]
+type AnnotatedMeasure = Melody[AnnotatedNote, Note[AnnotatedNote]]
 
 enum ToneType {
 
