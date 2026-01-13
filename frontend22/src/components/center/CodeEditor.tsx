@@ -28,7 +28,7 @@ import {
   type IdRange,
 } from "../../lib/model/music/xml-navigation";
 
-interface CodeViewProps {
+interface CodeEditorProps {
   activeDocument: ActiveDocument;
 }
 
@@ -67,7 +67,7 @@ const selectionField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-export function CodeView({ activeDocument }: CodeViewProps) {
+export function CodeEditor({ activeDocument }: CodeEditorProps) {
   const application = useApplication();
   const selectedIds = useApplicationState(
     (state) => state.selection.selectedIds,

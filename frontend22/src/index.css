@@ -64,6 +64,16 @@
   ::-webkit-scrollbar-track {
     @apply bg-slate-100;
   }
+
+  /* ProseMirror Styles */
+  /* biome-ignore lint/complexity/noImportantStyles: Force override */
+  .ProseMirror {
+    outline: none !important;
+  }
+  /* biome-ignore lint/complexity/noImportantStyles: Force override */
+  .ProseMirror-focused {
+    outline: none !important;
+  }
 }
 
 @utility ui-action-button {

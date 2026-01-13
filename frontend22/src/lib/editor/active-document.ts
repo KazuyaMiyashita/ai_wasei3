@@ -28,7 +28,7 @@ type ActiveDocumentListener = (state: ActiveDocumentState) => void;
 
 export class ActiveDocument implements ISubscribable<ActiveDocumentState> {
   originalDocument: Document;
-  private adapter: ContentAdapter;
+  public adapter: ContentAdapter;
   currentMEIIndex: number | null = 0;
 
   private undoStack: HistoryEntry[] = [];

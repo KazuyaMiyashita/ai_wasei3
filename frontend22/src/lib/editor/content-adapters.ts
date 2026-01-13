@@ -1,11 +1,7 @@
 import type { EditorAction } from "verovio";
 import { MEI } from "../model/music/mei";
 import { editFromXml } from "../model/music/mei-edit.ts";
-import {
-  type IEditAction,
-  MeiElementReplaceAction,
-  ReplaceAction,
-} from "./actions";
+import { type IEditAction, MeiElementReplaceAction } from "./actions";
 
 export type UpdateHint =
   | { type: "full" } // Full re-render required (or non-MEI content changed)
@@ -157,50 +153,48 @@ export class MeiContentAdapter implements ContentAdapter {
   }
 }
 
-// ----------------------------------------------------------------------
-// Implementation: XHTML + MEI
-// ----------------------------------------------------------------------
+import { parseXmlToAst } from "./ast/parser";
+import type { AstNode } from "./ast/types";
+
+// ... (other imports)
+
 export class XhtmlMeiContentAdapter implements ContentAdapter {
   private _content = "";
+  private ast: AstNode | null = null;
   private meiInstances: MEI[] = [];
-  // Cache the ranges of MEI blocks in the current string
-  private meiRanges: { start: number; end: number; index: number }[] = [];
 
   get content() {
     return this._content;
   }
 
-  initialize(content: string) {
-    this._content = content;
-    this.parseRanges(content);
+  getAst(): AstNode | null {
+    return this.ast;
   }
 
-  private parseRanges(content: string) {
+  initialize(content: string) {
+    this._content = content;
+    const result = parseXmlToAst(content);
+    this.ast = result.root;
+    this.extractMeiInstances(this.ast);
+  }
+
+  private extractMeiInstances(node: AstNode) {
     this.meiInstances = [];
-    this.meiRanges = [];
-
-    // Simple parser to find <mei>...</mei> blocks
-    // Note: This is a regex-based approximation.
-    // Ideally we use a tokenizer, but given the constraints, regex is faster for now.
-    // Assuming <mei> tags are not nested inside other weird constructs (like comments/strings) too deeply.
-    const regex = /<mei[\s>]([\s\S]*?)<\/mei>/gi;
-    let match: RegExpExecArray | null;
-
-    let index = 0;
-    // biome-ignore lint/suspicious/noAssignInExpressions: loop
-    while ((match = regex.exec(content)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
-      this.meiRanges.push({ start, end, index });
-
-      try {
-        this.meiInstances.push(new MEI(match[0]));
-      } catch (e) {
-        console.warn(`Failed to parse MEI block ${index}`, e);
-        // Push null or dummy? Push null-like behavior handled by getMeiInstance
+    const walk = (n: AstNode) => {
+      if (n.type === "mei") {
+        try {
+          // Re-wrap content in tags for MEI class if it doesn't have them
+          const meiXml = n.content?.startsWith("<mei")
+            ? n.content
+            : `<mei xmlns="http://www.music-encoding.org/ns/mei">${n.content}</mei>`;
+          this.meiInstances.push(new MEI(meiXml));
+        } catch (e) {
+          console.warn("Failed to parse MEI from AST", e);
+        }
       }
-      index++;
-    }
+      n.children.forEach(walk);
+    };
+    walk(node);
   }
 
   getMeiInstance(index: number): MEI | null {
@@ -208,58 +202,16 @@ export class XhtmlMeiContentAdapter implements ContentAdapter {
   }
 
   apply(action: IEditAction): { newContent: string; hint: UpdateHint } {
-    if (action.type === "ReplaceString" && action instanceof ReplaceAction) {
-      // Check if replacement touches any MEI block
-      // Determine scope
-      const editStart = action.begin;
-      const editEnd = action.end;
+    // For now, continue using string-based apply for IEditAction
 
-      let affectedMeiIndex = -1;
-      let isStructureBroken = false;
-
-      for (const range of this.meiRanges) {
-        // Check overlap
-        if (editEnd > range.start && editStart < range.end) {
-          // Edit touches this MEI block
-          // If edit crosses boundaries, it might break structure
-          if (editStart < range.start || editEnd > range.end) {
-            isStructureBroken = true;
-          }
-          affectedMeiIndex = range.index;
-          break; // Assume only one MEI block is touched for simplicity
-        }
-      }
-
-      const newContent = action.applyTo(this._content);
-      this.initialize(newContent); // Re-parse everything to be safe
-
-      if (isStructureBroken || affectedMeiIndex === -1) {
-        // If outside MEI or broke boundary
-        return { newContent, hint: { type: "full" } };
-      }
-
-      return {
-        newContent,
-        hint: { type: "mei-content", index: affectedMeiIndex },
-      };
-    }
-
-    if (action instanceof MeiElementReplaceAction) {
-      // Currently structural edits on mixed content not fully supported via UI
-      // But if we did:
-      // We need to know WHICH MEI instance we are targeting.
-      // The action doesn't specify index?
-      // ActiveDocument usually knows the "currentMEIIndex".
-      // But adapter doesn't know context.
-      // The action should probably carry context or we assume current.
-      // For now, return full reload to be safe.
-      const newContent = action.applyTo(this._content);
-      this.initialize(newContent);
-      return { newContent, hint: { type: "full" } };
-    }
+    // but update AST afterwards.
 
     const newContent = action.applyTo(this._content);
+
     this.initialize(newContent);
+
+    // Simple hint logic for now
+
     return { newContent, hint: { type: "full" } };
   }
 }
