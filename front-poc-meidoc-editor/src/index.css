@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./styles/main-content.css";
 
+@import "prosemirror-view/style/prosemirror.css";
+
 @theme {
   /* ブランドカラー */
   --color-brand-primary: var(--color-blue-500);

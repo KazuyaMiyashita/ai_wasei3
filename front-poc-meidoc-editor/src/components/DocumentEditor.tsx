@@ -6,69 +6,69 @@ import { schema as basicSchema } from "prosemirror-schema-basic";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { useEffect, useRef } from "react";
-import type { EditorController } from "../controllers/EditorController";
-import type { XHTML5MEIDocument } from "../lib/XHTML5MEIDocument";
+import type { EditorController } from "../hooks/useEditorController";
 
 export function DocumentEditor({
-  xhtml5meiDocument,
-  controller,
+  editorController,
 }: {
-  xhtml5meiDocument: XHTML5MEIDocument;
-  controller: EditorController;
+  editorController: EditorController;
 }) {
   const proseMirrorRef = useRef<HTMLDivElement>(null);
-  const proseMirrorEditorViewRef = useRef<EditorView | null>(null);
 
+  // ハンドラとViewRefをRef経由で最新化
+  const handleTransactionRef = useRef(
+    editorController.handleProseMirrorTransaction,
+  );
+  handleTransactionRef.current = editorController.handleProseMirrorTransaction;
+
+  const controllerViewRef = useRef(editorController.proseMirrorViewRef);
+  controllerViewRef.current = editorController.proseMirrorViewRef;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Initial content only
   useEffect(() => {
     if (!proseMirrorRef.current) return;
+
+    console.log("Initializing ProseMirror...");
 
     // XMLパース処理
     const domParser = new window.DOMParser();
     const xmlDoc = domParser.parseFromString(
-      xhtml5meiDocument.rawContent,
+      editorController.document.rawContent,
       "text/html",
     );
 
-    // 2. XML文字列をひとつのテキストノードとして読み込む
     const state = EditorState.create({
-      doc: DOMParser.fromSchema(basicSchema).parse(xmlDoc), // TODO: basicSchema to custom schema?
+      doc: DOMParser.fromSchema(basicSchema).parse(xmlDoc),
       schema: basicSchema,
       plugins: exampleSetup({ schema: basicSchema }),
     });
 
-    // 3. ビューの生成
     const view = new EditorView(proseMirrorRef.current, {
       state,
       dispatchTransaction(tr) {
-        // 2. 状態を更新（これを行わないと画面に反映されない）
         const newState = view.state.apply(tr);
         view.updateState(newState);
 
-        // コントローラーに通知
-        controller.handleProseMirrorTransaction(tr, newState);
-
-        // 1. Transactionの中身をのぞき見る
-        // console.log("--- New Transaction ---");
-
-        // 3. 変更があったかどうかを判定
         if (tr.docChanged) {
-          // console.log("Document changed!");
-          // const newText = newState.doc.textContent;
-          // console.debug(newText);
+          handleTransactionRef.current(tr, newState);
         }
-
-        // 4. カーソル位置（Selection）の情報も取れる
-        // console.log("Selection from/to:", tr.selection.from, tr.selection.to);
       },
     });
 
-    proseMirrorEditorViewRef.current = view;
+    // コントローラーにViewの参照を渡す
+    if (controllerViewRef.current) {
+      controllerViewRef.current.current = view;
+    }
 
     return () => {
+      console.log("Destroying ProseMirror...");
+      if (controllerViewRef.current) {
+        controllerViewRef.current.current = null;
+      }
       view.destroy();
-      proseMirrorEditorViewRef.current = null;
     };
-  }, [xhtml5meiDocument, controller]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <div ref={proseMirrorRef}></div>;
 }
