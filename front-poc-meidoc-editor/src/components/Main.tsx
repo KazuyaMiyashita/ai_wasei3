@@ -1,64 +1,52 @@
 import { Edit, Eye } from "lucide-react";
 import { Toolbar } from "radix-ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { EditorController } from "../controllers/EditorController";
 import { SAMPLE_XML } from "../lib/sampeContent";
+import type { XHTML5MEIDocument } from "../lib/XHTML5MEIDocument";
 import { CodeEditor } from "./CodeEditor";
 import { DocumentEditor } from "./DocumentEditor";
 import { DocumentViewer } from "./DocumentViewer";
-
-/** XHTML5の文章中にMEIのXMLを含むドキュメント。
- */
-export class XHTML5MEIDocument {
-  // 正常な状態であれば内容はXMLであるためXMLDocument型として扱いたいところだが、
-  // シンタックスが壊れた状態で読み込み・保存を可能にするため、string型で扱う
-  rawContent: string;
-
-  constructor(rawContent: string) {
-    this.rawContent = rawContent;
-  }
-
-  isValidXML(): boolean {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(this.rawContent, "text/xml");
-      const parseErrors = xmlDoc.getElementsByTagName("parsererror");
-      return parseErrors.length === 0;
-    } catch (_e) {
-      return false;
-    }
-  }
-
-  toXMLDocument(): XMLDocument | null {
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(this.rawContent, "text/xml");
-      const parseErrors = xmlDoc.getElementsByTagName("parsererror");
-      return parseErrors.length === 0 ? xmlDoc : null;
-    } catch (_e) {
-      return null;
-    }
-  }
-}
 
 export type EditMode = "view" | "edit";
 
 export function Main() {
   const [editMode, setEditMode] = useState<EditMode>("view");
 
-  const [xhtml5meiDocument] = useState(new XHTML5MEIDocument(SAMPLE_XML));
+  // コントローラーの初期化（一度だけ実行）
+  const [controller] = useState(() => new EditorController(SAMPLE_XML));
+
+  // 表示用のドキュメント状態
+  const [xhtml5meiDocument, setXhtml5meiDocument] = useState<XHTML5MEIDocument>(
+    controller.getDocument(),
+  );
+
+  // コントローラーからの変更通知を受け取る
+  // useEffect(() => {
+  //   const unsubscribe = controller.subscribe((newDoc) => {
+  //     setXhtml5meiDocument(newDoc);
+  //   });
+  //   return unsubscribe;
+  // }, [controller]);
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex flex-row w-full h-2/3">
-        <div className="w-1/2 h-full bg-amber-100 overflow-scroll">
+    <div className="flex h-screen flex-col">
+      <div className="flex h-2/3 w-full flex-row">
+        <div className="h-full w-1/2 overflow-scroll bg-amber-100">
           {editMode === "view" ? (
             <DocumentViewer xhtml5meiDocument={xhtml5meiDocument} />
           ) : (
-            <DocumentEditor xhtml5meiDocument={xhtml5meiDocument} />
+            <DocumentEditor
+              xhtml5meiDocument={xhtml5meiDocument}
+              controller={controller}
+            />
           )}
         </div>
-        <div className="w-1/2 h-full overflow-hidden">
-          <CodeEditor xhtml5meiDocument={xhtml5meiDocument} />
+        <div className="h-full w-1/2 overflow-hidden">
+          <CodeEditor
+            xhtml5meiDocument={xhtml5meiDocument}
+            controller={controller}
+          />
         </div>
       </div>
       <div className="h-1/3 bg-gray-100">
@@ -67,7 +55,7 @@ export function Main() {
             <Toolbar.ToggleGroup
               type="single"
               value={editMode}
-              className="flex shrink-0 gap-1 "
+              className="flex shrink-0 gap-1"
               onValueChange={(value) => {
                 if (value) setEditMode(value as EditMode);
               }}
