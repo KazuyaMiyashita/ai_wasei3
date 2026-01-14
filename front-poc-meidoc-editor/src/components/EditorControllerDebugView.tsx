@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
 import type { EditorController } from "../lib/EditorController";
 
-export function EditorControllerViewer({
+export function EditorControllerDebugView({
   controller,
 }: {
   controller: EditorController;
