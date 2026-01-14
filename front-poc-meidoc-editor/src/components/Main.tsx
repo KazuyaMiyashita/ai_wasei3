@@ -1,7 +1,7 @@
 import { Edit, Eye } from "lucide-react";
 import { Toolbar } from "radix-ui";
-import { useState } from "react";
-import { useEditorController } from "../hooks/useEditorController";
+import { useMemo, useState } from "react";
+import { EditorController } from "../lib/EditorController";
 import { SAMPLE_XML } from "../lib/sampeContent";
 import { XHTML5MEIDocument } from "../lib/XHTML5MEIDocument";
 import { CodeEditor } from "./CodeEditor";
@@ -14,16 +14,16 @@ export type EditMode = "view" | "edit";
 export function Main() {
   const [editMode, setEditMode] = useState<EditMode>("view");
 
-  const editorController = useEditorController(
-    new XHTML5MEIDocument(SAMPLE_XML),
-  );
+  const editorController = useMemo(() => {
+    return new EditorController(new XHTML5MEIDocument(SAMPLE_XML));
+  }, []);
 
   return (
     <div className="flex h-screen flex-col">
       <div className="flex h-2/3 w-full flex-row">
         <div className="h-full w-1/2 overflow-scroll">
           {editMode === "view" ? (
-            <DocumentViewer xhtml5meiDocument={editorController.document} />
+            <DocumentViewer controller={editorController} />
           ) : (
             <DocumentEditor editorController={editorController} />
           )}

@@ -1,17 +1,23 @@
-import type { XHTML5MEIDocument } from "../lib/XHTML5MEIDocument";
+import { useSyncExternalStore } from "react";
+import type { EditorController } from "../lib/EditorController";
 
 export function DocumentViewer({
-  xhtml5meiDocument,
+  controller,
 }: {
-  xhtml5meiDocument: XHTML5MEIDocument;
+  controller: EditorController;
 }) {
+  useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.version,
+  );
+
   return (
     <div
       className="main-content h-full"
       // biome-ignore lint/security/noDangerouslySetInnerHtml: This is a preview component
       dangerouslySetInnerHTML={{
-        __html: xhtml5meiDocument.rawContent,
+        __html: controller.document.rawContent,
       }}
-    ></div>
+    />
   );
 }

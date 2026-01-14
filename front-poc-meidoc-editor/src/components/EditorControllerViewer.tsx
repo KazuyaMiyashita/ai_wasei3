@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { EditorController } from "../hooks/useEditorController";
+import { useState, useSyncExternalStore } from "react";
+import type { EditorController } from "../lib/EditorController";
 
 export function EditorControllerViewer({
   controller,
@@ -7,6 +7,11 @@ export function EditorControllerViewer({
   controller: EditorController;
 }) {
   const [pmTab, setPmTab] = useState<"transactions" | "xml">("transactions");
+
+  useSyncExternalStore(
+    (callback) => controller.subscribe(callback),
+    () => controller.version,
+  );
 
   return (
     <div className="flex h-full w-full flex-row gap-2 bg-gray-50 p-2 font-mono text-[10px]">
