@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@import "./styles/main-content.css";
+
+@theme {
+  /* ブランドカラー */
+  --color-brand-primary: var(--color-blue-500);
+  --color-brand-text: var(--color-white);
+
+  /* UI要素の背景色 */
+  --color-ui-bg-base: var(--color-white);
+  --color-ui-bg-subtle: var(--color-gray-100);
+  --color-ui-bg-hover: var(--color-gray-200);
+
+  /* 境界線とテキスト */
+  --color-ui-border: var(--color-gray-200);
+  --color-ui-border-hover: var(--color-blue-300);
+
+  --color-ui-text-main: var(--color-gray-800);
+  --color-ui-text-muted: var(--color-gray-500);
+
+  /* LeftPanel, RightPanel */
+  --color-ui-sidepanel-bg: var(--color-neutral-50);
+  --color-ui-leftrail-bg: color-mix(
+    in srgb,
+    var(--color-neutral-50),
+    white 50%
+  );
+
+  --color-ui-tabs-bg: var(--color-white);
+  --color-ui-tabs-text: var(--color-neutral-500);
+
+  --color-ui-footer-bg: var(--color-neutral-100);
+  --color-ui-footer-text: var(--color-neutral-500);
+
+  /* Functional Colors */
+  --color-success: #10b981;
+  --color-warning: var(--color-amber-500);
+  --color-error: #ef4444;
+
+  /* Highlights & Selection */
+  --color-selection: #3b82f6;
+  --color-editor-selection: #eab308;
+}
+
+@layer base {
+  /* ProseMirror Styles */
+  .ProseMirror {
+    /* biome-ignore lint/complexity/noImportantStyles: Force override */
+    outline: none !important;
+  }
+  .ProseMirror-focused {
+    /* biome-ignore lint/complexity/noImportantStyles: Force override */
+    outline: none !important;
+  }
+}
+
+@utility ui-action-button {
+  @apply text-ui-text-muted hover:text-ui-text-main hover:bg-ui-bg-hover data-[state=on]:bg-ui-bg-subtle data-[state=on]:text-brand-primary cursor-pointer rounded transition-colors;
+}
+
+@utility ui-header-base {
+  @apply border-ui-border bg-ui-bg-base;
+}
+
+@utility ui-footer-base {
+  @apply border-ui-border bg-ui-footer-bg text-ui-footer-text px-2 text-[10px];
+}
+
+@utility ui-panel {
+  @apply text-ui-text-main flex h-full flex-col gap-4 overflow-y-auto p-4 text-xs;
+}
+
+@utility ui-panel-section {
+  @apply flex flex-col gap-2;
+}
+
+@utility ui-panel-sub-section {
+  @apply flex flex-col gap-2;
+}
+
+@utility ui-panel-title {
+  @apply text-ui-text-muted mb-1 text-xs font-semibold tracking-wider uppercase;
+}
+
+@utility ui-panel-sub-title {
+  @apply text-ui-text-muted mb-1 text-xs font-medium tracking-wider uppercase;
+}
+
+@utility ui-input {
+  @apply border-ui-border bg-ui-bg-base text-ui-text-main focus:border-brand-primary w-full rounded border px-2 py-1.5 text-xs transition-colors focus:outline-none;
+}
+
+@utility ui-select {
+  @apply border-ui-border bg-ui-bg-base text-ui-text-main focus:border-brand-primary w-full appearance-none rounded border px-2 py-1.5 text-xs transition-colors focus:outline-none;
+}
+
+@utility ui-list-item {
+  @apply ui-action-button flex w-full items-center gap-2 px-2 py-1.5 text-left text-xs;
+}
