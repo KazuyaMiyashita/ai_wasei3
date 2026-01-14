@@ -45,6 +45,10 @@ export class EditorController {
     };
   }
 
+  /**
+   * Notifies subscribers (React components) to re-render.
+   * Call this whenever any member variables are updated.
+   */
   private notify() {
     this.version++;
     for (const listener of this.listeners) {
@@ -74,15 +78,7 @@ export class EditorController {
   handleProseMirrorTransaction = (tr: PTransaction, newState: EditorState) => {
     if (tr.docChanged) {
       this.proseMirrorTransactions.push(tr);
-
-      // Serialize to XML
-      const serializer = DOMSerializer.fromSchema(mySchema);
-      const fragment = serializer.serializeFragment(newState.doc.content);
-
-      const tempDiv = window.document.createElement("div");
-      tempDiv.appendChild(fragment);
-      this.proseMirrorXML = tempDiv.innerHTML;
-
+      this.updateProseMirrorXML(newState);
       this.notify();
     }
   };
@@ -97,10 +93,25 @@ export class EditorController {
 
     const docNode = DOMParser.fromSchema(mySchema).parse(bodyContent);
 
-    return EditorState.create({
+    const state = EditorState.create({
       doc: docNode,
       schema: mySchema,
       plugins: exampleSetup({ schema: mySchema }),
     });
+
+    this.updateProseMirrorXML(state);
+    this.notify();
+
+    return state;
+  };
+
+  private _serializer = DOMSerializer.fromSchema(mySchema);
+  updateProseMirrorXML = (state: EditorState) => {
+    // Serialize to XML
+    const fragment = this._serializer.serializeFragment(state.doc.content);
+
+    const tempDiv = window.document.createElement("div");
+    tempDiv.appendChild(fragment);
+    this.proseMirrorXML = tempDiv.innerHTML;
   };
 }
