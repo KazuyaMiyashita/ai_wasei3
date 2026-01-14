@@ -21,7 +21,7 @@ export function Main() {
   return (
     <div className="flex h-screen flex-col">
       <div className="flex h-2/3 w-full flex-row">
-        <div className="h-full w-1/2 overflow-scroll bg-amber-100">
+        <div className="h-full w-1/2 overflow-scroll">
           {editMode === "view" ? (
             <DocumentViewer xhtml5meiDocument={editorController.document} />
           ) : (
