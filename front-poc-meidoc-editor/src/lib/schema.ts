@@ -41,6 +41,7 @@ const xmlBlock: NodeSpec = {
   content: "block+",
   group: "block",
   toDOM(node) {
+    // biome-ignore lint/suspicious/noExplicitAny: Attributes are dynamic key-value pairs
     const attrs: any = { ...node.attrs.attributes, class: "xml-block" };
     if (node.attrs.id) attrs["data-rst-id"] = node.attrs.id;
     attrs["data-tagname"] = node.attrs.tagName;
@@ -59,6 +60,7 @@ const xmlTextBlock: NodeSpec = {
   content: "inline*",
   group: "block",
   toDOM(node) {
+    // biome-ignore lint/suspicious/noExplicitAny: Attributes are dynamic key-value pairs
     const attrs: any = { ...node.attrs.attributes, class: "xml-textblock" };
     if (node.attrs.id) attrs["data-rst-id"] = node.attrs.id;
     attrs["data-tagname"] = node.attrs.tagName;
@@ -87,6 +89,27 @@ const errorNode: NodeSpec = {
   },
 };
 
+const meiNode: NodeSpec = {
+  attrs: {
+    rawContent: { default: "" },
+    id: { default: null },
+  },
+  group: "block",
+  atom: true,
+  toDOM(node) {
+    return [
+      "pre",
+      {
+        class: "mei-content",
+        "data-rst-id": node.attrs.id,
+        style:
+          "overflow: auto; max-height: 300px; background: #f8f8f8; padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 12px;",
+      },
+      node.attrs.rawContent,
+    ];
+  },
+};
+
 let nodes = basicSchema.spec.nodes;
 const p = nodes.get("paragraph");
 const h = nodes.get("heading");
@@ -97,7 +120,8 @@ if (h) nodes = nodes.update("heading", addId(h));
 nodes = nodes
   .addToEnd("xml_block", xmlBlock)
   .addToEnd("xml_textblock", xmlTextBlock)
-  .addToEnd("error_node", errorNode);
+  .addToEnd("error_node", errorNode)
+  .addToEnd("mei_node", meiNode);
 
 export const mySchema = new Schema({
   nodes: nodes,

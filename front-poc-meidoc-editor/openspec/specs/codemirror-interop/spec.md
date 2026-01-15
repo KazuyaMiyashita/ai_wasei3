@@ -1,8 +1,11 @@
 # codemirror-interop Specification
 
 ## Purpose
+
 TBD - created by archiving change finalize-resilient-syntax-tree-spec. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: 厳格な増分更新 (Strict Incremental Updates)
 
 RST は、CodeMirror の変更セットに対し、全文再パースやフォールバックを行うことなく、高速なアルゴリズムで差分のみを更新しなければならない (MUST)。
@@ -33,4 +36,3 @@ RST は、編集後もすべてのノードについて正しい座標を維持�
 前提: テキストの中間地点（インデックス 500）にカーソルがある
 もし: `findNodeAt(500)` を呼び出したとき
 ならば: その位置をカバーする最も深いノード（例: Textノード）が返される (MUST)。
-

@@ -156,10 +156,12 @@ export class ResilientSyntaxTree {
           while (stack.length > matchIndex + 1) {
             stack.pop();
           }
-          const matchedNode = stack.pop()!;
-          matchedNode.closingContent = token.content;
-          matchedNode.length += token.content.length;
-          this.updateLengthUpwards(matchedNode, token.content.length);
+          const matchedNode = stack.pop();
+          if (matchedNode) {
+            matchedNode.closingContent = token.content;
+            matchedNode.length += token.content.length;
+            this.updateLengthUpwards(matchedNode, token.content.length);
+          }
         } else {
           const errorNode = new ResilientNode("Error", token.content.length);
           errorNode.textContent = token.content;
@@ -239,7 +241,10 @@ export class ResilientSyntaxTree {
         return;
       }
 
-      const parent = lca.parent!;
+      const parent = lca.parent;
+      if (!parent)
+        throw new RSTIntegrityError("LCA parent is null but not root");
+
       const index = parent.children.indexOf(lca);
       if (index === -1) throw new RSTIntegrityError("LCA not found in parent");
 
@@ -453,6 +458,16 @@ export class ResilientSyntaxTree {
           id: node.id,
         });
       }
+
+      const tagName = node.tagName || "div";
+
+      if (tagName === "mei") {
+        return schema.nodes.mei_node.create({
+          rawContent: node.toString(),
+          id: node.id,
+        });
+      }
+
       if (node.type === "Foreign") {
         const contentNodes: Node[] = [];
         for (const child of node.children) {
@@ -468,7 +483,12 @@ export class ResilientSyntaxTree {
         );
       }
 
-      const tagName = node.tagName || "div";
+      if (tagName === "mei") {
+        return schema.nodes.mei_node.create({
+          rawContent: node.toString(),
+          id: node.id,
+        });
+      }
 
       if (tagName === "p") {
         const contentNodes: Node[] = [];
@@ -546,13 +566,6 @@ export class ResilientSyntaxTree {
       }
     };
 
-    const rootChildren: Node[] = [];
-    for (const child of this.root.children) {
-      const res = convert(child);
-      if (res)
-        Array.isArray(res) ? rootChildren.push(...res) : rootChildren.push(res);
-    }
-
     const finalDocChildren: Node[] = [];
     let buffer: Node[] = [];
     const flush = () => {
@@ -562,12 +575,18 @@ export class ResilientSyntaxTree {
       }
     };
 
-    for (const n of rootChildren) {
-      if (n.isInline) {
-        buffer.push(n);
-      } else {
-        flush();
-        finalDocChildren.push(n);
+    for (const child of this.root.children) {
+      const res = convert(child);
+      if (res) {
+        const nodes = Array.isArray(res) ? res : [res];
+        for (const n of nodes) {
+          if (n.isInline) {
+            buffer.push(n);
+          } else {
+            flush();
+            finalDocChildren.push(n);
+          }
+        }
       }
     }
     flush();
@@ -579,3 +598,76 @@ export class ResilientSyntaxTree {
 function newLength(nodes: ResilientNode[]): number {
   return nodes.reduce((acc, n) => acc + n.length, 0);
 }
+
+export const defaultSyntaxDefinition: SyntaxDefinition = {
+  isDefinedTag: (tagName) => {
+    const defined = new Set([
+      "html",
+      "head",
+      "title",
+      "body",
+      "section",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "div",
+      "mei",
+      "meiHead",
+      "fileDesc",
+      "titleStmt",
+      "respStmt",
+      "persName",
+      "pubStmt",
+      "date",
+      "encodingDesc",
+      "appInfo",
+      "application",
+      "name",
+      "music",
+      "mdiv",
+      "score",
+      "scoreDef",
+      "pgFoot",
+      "rend",
+      "staffGrp",
+      "grpSym",
+      "label",
+      "labelAbbr",
+      "staffDef",
+      "clef",
+      "keySig",
+      "meterSig",
+      "pb",
+      "measure",
+      "staff",
+      "layer",
+      "rest",
+      "beam",
+      "note",
+      "mordent",
+      "tie",
+      "sb",
+      "mRest",
+      "space",
+      "accid",
+      "ul",
+      "li",
+    ]);
+    return defined.has(tagName);
+  },
+  isVoidTag: (tagName) => {
+    return new Set(["br", "img", "hr", "pb", "sb", "mRest", "space"]).has(
+      tagName,
+    );
+  },
+  shouldAutoClose: (current, next) => {
+    if (current === "li" && next === "li") return true;
+    if (current === "p" && ["div", "p", "section", "h1"].includes(next))
+      return true;
+    return false;
+  },
+};
