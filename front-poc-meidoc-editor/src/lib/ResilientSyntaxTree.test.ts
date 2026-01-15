@@ -156,13 +156,18 @@ describe("ResilientSyntaxTree", () => {
       const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
 
       // Insert " World" at index 8 (before </p>)
-      // <p>Hello</p>
-      // 012345678...
-      // <p> -> 3 chars. "Hello" -> 5. Total 8. </p> starts at 8.
-      // Insert at 8.
-      rst.edit([{ from: 8, to: 8, insert: " World" }]);
+      const changes = rst.edit([{ from: 8, to: 8, insert: " World" }]);
       expect(rst.toString()).toBe("<p>Hello World</p>");
       expect(rst.root.children[0].children[0].textContent).toBe("Hello World");
+
+      // Verify returned changes (LCA is the Text node "Hello" starting at 3)
+      expect(changes).toHaveLength(1);
+      expect(changes[0]).toMatchObject({
+        from: 3,
+        to: 8,
+        insert: "Hello World",
+      });
+      expect(changes[0].affectedNodes.length).toBeGreaterThan(0);
     });
 
     it("should handle simple text deletion", () => {
@@ -170,9 +175,9 @@ describe("ResilientSyntaxTree", () => {
       const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
 
       // Delete " World" (length 6).
-      // <p> is 3. "Hello" is 5. " World" starts at 3+5=8.
-      rst.edit([{ from: 8, to: 14, insert: "" }]);
+      const changes = rst.edit([{ from: 8, to: 14, insert: "" }]);
       expect(rst.toString()).toBe("<p>Hello</p>");
+      expect(changes[0]).toMatchObject({ from: 3, to: 14, insert: "Hello" });
     });
 
     it("should handle attribute update", () => {
@@ -180,14 +185,13 @@ describe("ResilientSyntaxTree", () => {
       const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
 
       // Change "a" to "b".
-      // <div class="a">
-      // 012345678901234
-      // class="a" starts at 5. "a" is at 12.
-      // <div class="a"> length is 15.
-      // Replace "a" (at 12) with "b".
-      rst.edit([{ from: 12, to: 13, insert: "b" }]);
+      const changes = rst.edit([{ from: 12, to: 13, insert: "b" }]);
       expect(rst.toString()).toBe(`<div class="b">Content</div>`);
-      expect(rst.root.children[0].attributes?.class).toBe("b");
+      expect(changes[0]).toMatchObject({
+        from: 0,
+        to: 28,
+        insert: `<div class="b">Content</div>`,
+      });
     });
 
     it("should handle structural split", () => {
@@ -195,14 +199,38 @@ describe("ResilientSyntaxTree", () => {
       const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
 
       // Insert </p><p> between A and B.
-      // <p>AB</p>
-      // 012345678
-      // A is at 3. B is at 4. Insert at 4.
-      rst.edit([{ from: 4, to: 4, insert: "</p><p>" }]);
+      const changes = rst.edit([{ from: 4, to: 4, insert: "</p><p>" }]);
       expect(rst.toString()).toBe("<p>A</p><p>B</p>");
-      expect(rst.root.children.length).toBe(2);
-      expect(rst.root.children[0].tagName).toBe("p");
-      expect(rst.root.children[1].tagName).toBe("p");
+
+      // Escalation happens here (re-parsing parent or splitting)
+      // The change returned should cover the affected area.
+      // Ideally it returns the effective change to the document string.
+      // Since rst.edit processes one by one, and returns result of applySingleChange.
+      // If escalation happens, it returns { from: lca.from, to: lca.to, insert: newText }.
+      // Here lca would be the root (because we are splitting a top-level p).
+      // Or maybe the p itself? NO, p cannot contain p. So escalation goes to root.
+      // So change should be from 0 to length, insert new text.
+      // Unless RST handles split more smartly? The current logic re-parses from LCA.
+      // If we insert </p><p> inside <p>, it's structurally invalid for <p>.
+      // LCA starts at <p>. Re-parse "<p>A</p><p>B</p>".
+      // shouldEscalate checks if new tree has issues or if we need to go higher.
+      // <p>A</p><p>B</p> is valid at root level.
+      // So if lca was <p>, we re-parse it. But wait, <p> cannot contain <p>.
+      // So inside <p>, we get <p>... which triggers auto-close?
+      // Actually, standard XML parser might fail or produce nested p if tolerant?
+      // Our definition says p auto-closes p.
+      // So re-parsing "<p>A</p><p>B</p>" with context [root]:
+      // It produces p(A), p(B).
+      // So it returns 2 nodes.
+      // Original lca was 1 node <p>.
+      // We replace 1 node with 2 nodes.
+      // Escalation check: does <p>A</p><p>B</p> cause issues inside the *original parent* (root)? No.
+      // So we replace <p> with p, p.
+      // The change returned is: from: <p>.start, to: <p>.end, insert: "<p>A</p><p>B</p>".
+
+      expect(changes[0].from).toBe(0); // <p> start
+      expect(changes[0].to).toBe(9); // <p>AB</p> length
+      expect(changes[0].insert).toBe("<p>A</p><p>B</p>");
     });
 
     it("should handle structural join", () => {

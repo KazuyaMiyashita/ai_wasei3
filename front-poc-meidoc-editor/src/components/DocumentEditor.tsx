@@ -1,4 +1,3 @@
-import "prosemirror-example-setup/style/style.css";
 import "prosemirror-menu/style/menu.css";
 import { EditorView } from "prosemirror-view";
 import { useEffect, useRef } from "react";
@@ -21,6 +20,23 @@ export function DocumentEditor({
 
     const view = new EditorView(proseMirrorRef.current, {
       state,
+      nodeViews: {
+        mei_node(node) {
+          const dom = document.createElement("pre");
+          dom.className = "mei-content";
+          dom.textContent = node.attrs.rawContent;
+          return {
+            dom,
+            update(newNode) {
+              if (newNode.type.name !== "mei_node") return false;
+              if (newNode.attrs.rawContent !== node.attrs.rawContent) {
+                dom.textContent = newNode.attrs.rawContent;
+              }
+              return true;
+            },
+          };
+        },
+      },
       dispatchTransaction(tr) {
         const newState = view.state.apply(tr);
         view.updateState(newState);

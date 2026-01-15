@@ -3,7 +3,9 @@
 ## Purpose
 
 TBD - created by archiving change finalize-resilient-syntax-tree-spec. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: スキーマベースの変換
 
 RST は、提供されたスキーマに基づいて自身のノードを ProseMirror ノードに変換しなければならない (MUST)。
@@ -56,4 +58,3 @@ ProseMirror ビューは、`EditorController` がロック状態にあるとき�
 前提: 裏で CodeMirror からの同期処理が走っている
 もし: ユーザーが ProseMirror にマウスを合わせたとき
 ならば: マウスカーソルが `wait` または `not-allowed` になる (MUST)。
-

@@ -100,11 +100,22 @@
   }
 
   pre {
-    background-color: var(--color-gray-900);
-    color: var(--color-gray-100);
-    padding: 0.6rem;
-    overflow-x: auto;
-    margin-bottom: 0.875rem;
+    background-color: var(--color-gray-100);
+    color: var(--color-gray-800);
+    padding: 0.75rem;
+    overflow: auto;
+    margin-bottom: 1rem;
+    border: 1px solid var(--color-ui-border);
+    border-radius: 0.25rem;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .mei-content {
+    max-height: 300px;
   }
 
   pre code {

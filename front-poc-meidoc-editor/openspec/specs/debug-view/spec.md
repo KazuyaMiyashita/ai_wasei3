@@ -1,8 +1,11 @@
 # debug-view Specification
 
 ## Purpose
+
 TBD - created by archiving change integrate-rst-editor-controller. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: 編集イベントログ
 
 `EditorControllerDebugView` は、双方のエディタ間の相互作用の履歴を表示しなければならない (MUST)。
@@ -19,4 +22,3 @@ TBD - created by archiving change integrate-rst-editor-controller. Update Purpos
 
 `EditorControllerDebugView` は、`ResilientSyntaxTree` の視覚的表現を提供しなければならない (MUST)。
 RST タブにおいて、ノードの種類、タグ名、ID、内容をツリー形式で表示する。
-

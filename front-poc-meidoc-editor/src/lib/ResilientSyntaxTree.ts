@@ -71,6 +71,13 @@ export class ResilientNode {
   }
 }
 
+export interface RSTChange {
+  from: number;
+  to: number;
+  insert: string;
+  affectedNodes: string[];
+}
+
 export class ResilientSyntaxTree {
   public root: ResilientNode;
   private rawContent: string;
@@ -184,14 +191,25 @@ export class ResilientSyntaxTree {
     }
   }
 
-  edit(changes: { from: number; to: number; insert: string }[]): void {
+  edit(changes: { from: number; to: number; insert: string }[]): RSTChange[] {
+    const appliedChanges: RSTChange[] = [];
     for (const change of changes) {
-      this.applySingleChange(change.from, change.to, change.insert);
+      const result = this.applySingleChange(
+        change.from,
+        change.to,
+        change.insert,
+      );
+      appliedChanges.push(result);
     }
     this.checkIntegrity();
+    return appliedChanges;
   }
 
-  private applySingleChange(from: number, to: number, insert: string): void {
+  private applySingleChange(
+    from: number,
+    to: number,
+    insert: string,
+  ): RSTChange {
     let lca = this.findNodeCovering(from, to);
     if (!lca) throw new RSTIntegrityError("Change range out of bounds");
 
@@ -232,13 +250,20 @@ export class ResilientSyntaxTree {
 
       this.traverseSubTree(subTree.root, (n) => this.idMap.set(n.id, n));
 
+      const change: RSTChange = {
+        from: lca.from,
+        to: lca.from + lca.length, // Capture old length/end
+        insert: newText,
+        affectedNodes: [lca.id], // The node that was replaced/updated
+      };
+
       if (lca === this.root) {
         this.root.children = subTree.root.children;
         for (const child of this.root.children) {
           child.parent = this.root;
         }
         this.root.length = newText.length;
-        return;
+        return change;
       }
 
       const parent = lca.parent;
@@ -261,8 +286,19 @@ export class ResilientSyntaxTree {
         ptr.length += delta;
         ptr = ptr.parent;
       }
-      return;
+      return change;
     }
+  }
+
+  getBodyNode(): ResilientNode | null {
+    const q = [this.root];
+    while (q.length > 0) {
+      const node = q.shift();
+      if (!node) continue;
+      if (node.tagName === "body") return node;
+      q.push(...node.children);
+    }
+    return null;
   }
 
   private traverseSubTree(node: ResilientNode, cb: (n: ResilientNode) => void) {
@@ -446,126 +482,8 @@ export class ResilientSyntaxTree {
     return out;
   }
 
-  toProseMirrorDoc(schema: Schema): Node {
-    const convert = (node: ResilientNode): Node | Node[] | null => {
-      if (node.type === "Text") {
-        return schema.text(node.textContent || "");
-      }
-      if (node.type === "Error") {
-        return schema.nodes.error_node.create({
-          errorMessage: node.errorMessage,
-          rawContent: node.toString(),
-          id: node.id,
-        });
-      }
-
-      const tagName = node.tagName || "div";
-
-      if (tagName === "mei") {
-        return schema.nodes.mei_node.create({
-          rawContent: node.toString(),
-          id: node.id,
-        });
-      }
-
-      if (node.type === "Foreign") {
-        const contentNodes: Node[] = [];
-        for (const child of node.children) {
-          const res = convert(child);
-          if (res)
-            Array.isArray(res)
-              ? contentNodes.push(...res)
-              : contentNodes.push(res);
-        }
-        return schema.nodes.xml_textblock.create(
-          { tagName: node.tagName, attributes: node.attributes, id: node.id },
-          contentNodes,
-        );
-      }
-
-      if (tagName === "mei") {
-        return schema.nodes.mei_node.create({
-          rawContent: node.toString(),
-          id: node.id,
-        });
-      }
-
-      if (tagName === "p") {
-        const contentNodes: Node[] = [];
-        for (const child of node.children) {
-          const res = convert(child);
-          if (res)
-            Array.isArray(res)
-              ? contentNodes.push(...res)
-              : contentNodes.push(res);
-        }
-        return schema.nodes.paragraph.create(
-          { id: node.id, ...node.attributes },
-          contentNodes,
-        );
-      }
-      if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
-        const level = parseInt(tagName.substring(1), 10);
-        const contentNodes: Node[] = [];
-        for (const child of node.children) {
-          const res = convert(child);
-          if (res)
-            Array.isArray(res)
-              ? contentNodes.push(...res)
-              : contentNodes.push(res);
-        }
-        return schema.nodes.heading.create(
-          { level, id: node.id, ...node.attributes },
-          contentNodes,
-        );
-      }
-
-      const childrenNodes: Node[] = [];
-      let hasBlock = false;
-      for (const child of node.children) {
-        const res = convert(child);
-        if (res) {
-          const list = Array.isArray(res) ? res : [res];
-          childrenNodes.push(...list);
-          for (const n of list) {
-            if (n.type.isBlock) {
-              hasBlock = true;
-            }
-          }
-        }
-      }
-
-      if (hasBlock) {
-        const finalChildren: Node[] = [];
-        let buffer: Node[] = [];
-        const flush = () => {
-          if (buffer.length > 0) {
-            finalChildren.push(schema.nodes.xml_textblock.create({}, buffer));
-            buffer = [];
-          }
-        };
-
-        for (const n of childrenNodes) {
-          if (n.isInline) {
-            buffer.push(n);
-          } else {
-            flush();
-            finalChildren.push(n);
-          }
-        }
-        flush();
-        return schema.nodes.xml_block.create(
-          { tagName, attributes: node.attributes, id: node.id },
-          finalChildren,
-        );
-      } else {
-        return schema.nodes.xml_textblock.create(
-          { tagName, attributes: node.attributes, id: node.id },
-          childrenNodes,
-        );
-      }
-    };
-
+  toProseMirrorDoc(schema: Schema, rootNode?: ResilientNode): Node {
+    const targetNode = rootNode || this.root;
     const finalDocChildren: Node[] = [];
     let buffer: Node[] = [];
     const flush = () => {
@@ -575,8 +493,8 @@ export class ResilientSyntaxTree {
       }
     };
 
-    for (const child of this.root.children) {
-      const res = convert(child);
+    for (const child of targetNode.children) {
+      const res = this.toProseMirrorNode(schema, child);
       if (res) {
         const nodes = Array.isArray(res) ? res : [res];
         for (const n of nodes) {
@@ -592,6 +510,135 @@ export class ResilientSyntaxTree {
     flush();
 
     return schema.nodes.doc.create({}, finalDocChildren);
+  }
+
+  toProseMirrorNode(schema: Schema, node: ResilientNode): Node | Node[] | null {
+    if (node.type === "Text") {
+      // If text is purely whitespace, check context.
+      // Ideally, we should check CSS white-space property or parent tag.
+      // For now, if parent is a block-level element like body, section, div, etc., we ignore pure whitespace.
+      // But inside a paragraph, whitespace is significant (e.g. space between words).
+      // However, RST tends to create separate Text nodes for indentation between tags.
+
+      const text = node.textContent || "";
+      if (!text.trim()) {
+        // It's just whitespace.
+        // If parent is likely a layout container, ignore it.
+        const parentTag = node.parent?.tagName || "";
+        if (
+          ["body", "section", "div", "html", "head", "root"].includes(parentTag)
+        ) {
+          return null;
+        }
+      }
+      return schema.text(text);
+    }
+    if (node.type === "Error") {
+      return schema.nodes.error_node.create({
+        errorMessage: node.errorMessage,
+        rawContent: node.toString(),
+        id: node.id,
+      });
+    }
+
+    const tagName = node.tagName || "div";
+
+    if (tagName === "mei") {
+      return schema.nodes.mei_node.create({
+        rawContent: node.toString(),
+        id: node.id,
+      });
+    }
+
+    if (node.type === "Foreign") {
+      const contentNodes: Node[] = [];
+      for (const child of node.children) {
+        const res = this.toProseMirrorNode(schema, child);
+        if (res)
+          Array.isArray(res)
+            ? contentNodes.push(...res)
+            : contentNodes.push(res);
+      }
+      return schema.nodes.xml_textblock.create(
+        { tagName: node.tagName, attributes: node.attributes, id: node.id },
+        contentNodes,
+      );
+    }
+
+    if (tagName === "p") {
+      const contentNodes: Node[] = [];
+      for (const child of node.children) {
+        const res = this.toProseMirrorNode(schema, child);
+        if (res)
+          Array.isArray(res)
+            ? contentNodes.push(...res)
+            : contentNodes.push(res);
+      }
+      return schema.nodes.paragraph.create(
+        { id: node.id, ...node.attributes },
+        contentNodes,
+      );
+    }
+    if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
+      const level = parseInt(tagName.substring(1), 10);
+      const contentNodes: Node[] = [];
+      for (const child of node.children) {
+        const res = this.toProseMirrorNode(schema, child);
+        if (res)
+          Array.isArray(res)
+            ? contentNodes.push(...res)
+            : contentNodes.push(res);
+      }
+      return schema.nodes.heading.create(
+        { level, id: node.id, ...node.attributes },
+        contentNodes,
+      );
+    }
+
+    const childrenNodes: Node[] = [];
+    let hasBlock = false;
+    for (const child of node.children) {
+      const res = this.toProseMirrorNode(schema, child);
+      if (res) {
+        const list = Array.isArray(res) ? res : [res];
+        childrenNodes.push(...list);
+        for (const n of list) {
+          if (n.type.isBlock) {
+            hasBlock = true;
+          }
+        }
+      }
+    }
+
+    if (hasBlock) {
+      const finalChildren: Node[] = [];
+      let buffer: Node[] = [];
+      const flush = () => {
+        if (buffer.length > 0) {
+          finalChildren.push(schema.nodes.xml_textblock.create({}, buffer));
+          buffer = [];
+        }
+      };
+
+      for (const n of childrenNodes) {
+        if (n.isInline) {
+          buffer.push(n);
+        } else {
+          flush();
+          finalChildren.push(n);
+        }
+      }
+      flush();
+      return schema.nodes.xml_block.create(
+        { tagName, attributes: node.attributes, id: node.id },
+        finalChildren,
+      );
+    } else {
+      return schema.nodes.xml_textblock.create(
+        { tagName, attributes: node.attributes, id: node.id },
+        childrenNodes,
+      );
+    }
   }
 }
 

@@ -47,8 +47,13 @@
 @layer base {
   /* ProseMirror Styles */
   .ProseMirror {
-    /* biome-ignore lint/complexity/noImportantStyles: Force override */
+    /* biome-ignore lint/complexity/noImportantStyles: Force override ProseMirror default styles to maintain consistency with DocumentViewer */
     outline: none !important;
+    white-space: pre-wrap; /* Preserve whitespace from CodeEditor */
+    /* biome-ignore lint/complexity/noImportantStyles: Neutralize default padding to rely on main-content.css */
+    padding: 0 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: Ensure line-height matches the rest of the document */
+    line-height: inherit !important;
   }
   .ProseMirror-focused {
     /* biome-ignore lint/complexity/noImportantStyles: Force override */

@@ -3,7 +3,9 @@
 ## Purpose
 
 TBD - created by archiving change finalize-resilient-syntax-tree-spec. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: 任意のスキーマとXML構造への対応
 
 RST は、XHTML や MEI などを含む任意の XML ベースの構造を、注入されたスキーマ定義に従って扱わなければならない (MUST)。
@@ -87,4 +89,3 @@ RST は、そのノードから元の入力文字列を正確に再構築でき�
 もし: ProseMirror でレンダリングされたとき
 ならば: XML のソースコードが `<pre>` タグ内に表示される (MUST)
 かつ: その内容はスクロール可能である (SHOULD)。
-

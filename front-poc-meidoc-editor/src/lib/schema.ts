@@ -113,9 +113,17 @@ const meiNode: NodeSpec = {
 let nodes = basicSchema.spec.nodes;
 const p = nodes.get("paragraph");
 const h = nodes.get("heading");
+const bl = nodes.get("bullet_list");
+const ol = nodes.get("ordered_list");
+const li = nodes.get("list_item");
+const hr = nodes.get("horizontal_rule");
 
 if (p) nodes = nodes.update("paragraph", addId(p));
 if (h) nodes = nodes.update("heading", addId(h));
+if (bl) nodes = nodes.update("bullet_list", addId(bl));
+if (ol) nodes = nodes.update("ordered_list", addId(ol));
+if (li) nodes = nodes.update("list_item", addId(li));
+if (hr) nodes = nodes.update("horizontal_rule", addId(hr));
 
 nodes = nodes
   .addToEnd("xml_block", xmlBlock)
