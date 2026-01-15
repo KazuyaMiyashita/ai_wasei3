@@ -4,6 +4,7 @@ import {
   type SyntaxDefinition,
 } from "./ResilientSyntaxTree";
 import { SAMPLE_XML } from "./sampeContent";
+import { mySchema } from "./schema";
 
 const defaultDefinition: SyntaxDefinition = {
   isDefinedTag: (tagName) => {
@@ -261,6 +262,95 @@ describe("ResilientSyntaxTree", () => {
       const ul = div.children[0];
       expect(ul.tagName).toBe("ul");
       expect(ul.children[0].tagName).toBe("li");
+    });
+  });
+
+  describe("Whitespace Filtering in toProseMirrorNode", () => {
+    // Basic Case 1: Simple indentation in container
+    it("should filter simple indentation in container (Basic 1)", () => {
+      const input = `<div>
+  <p>Text</p>
+</div>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const divNode = doc.child(0);
+      expect(divNode.childCount).toBe(1);
+      expect(divNode.child(0).type.name).toBe("paragraph");
+    });
+
+    // Basic Case 2: Nested indentation
+    it("should filter nested indentation (Basic 2)", () => {
+      const input = `<div>
+  <div>
+    <p>Text</p>
+  </div>
+</div>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const outerDiv = doc.child(0);
+      expect(outerDiv.childCount).toBe(1);
+      const innerDiv = outerDiv.child(0);
+      expect(innerDiv.childCount).toBe(1);
+    });
+
+    // Basic Case 3: Whitespace between block elements
+    it("should filter whitespace between block elements (Basic 3)", () => {
+      const input = `<div><p>A</p>   <p>B</p></div>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const divNode = doc.child(0);
+      expect(divNode.childCount).toBe(2);
+      expect(divNode.child(0).type.name).toBe("paragraph");
+      expect(divNode.child(1).type.name).toBe("paragraph");
+    });
+
+    // Complex Case 1: Text block normalization (Requirement: Normalize indentation inside p)
+    it("should normalize indentation inside text blocks (Complex 1)", () => {
+      const input = `<p>
+        test1
+        test2
+      </p>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const pNode = doc.child(0);
+      // Expected: "test1 test2" (or normalized spaces)
+      // Note: Leading/trailing whitespace trimmed, internal newlines+spaces collapsed to single space
+      expect(pNode.textContent).toBe("test1 test2");
+    });
+
+    // Complex Case 2: Mixed significant and insignificant whitespace
+    it("should preserve significant space while filtering indentation (Complex 2)", () => {
+      const input = `<div>
+  <p>Word 1 <span>Word 2</span> Word 3</p>
+</div>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const pNode = doc.child(0).child(0);
+      expect(pNode.textContent).toBe("Word 1 Word 2 Word 3");
+    });
+
+    // Complex Case 3: Whitespace around void tags and special nodes
+    it("should handle whitespace around void tags (Complex 3)", () => {
+      const input = `<div>
+  <p>Line 1<br/>
+  Line 2</p>
+</div>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const pNode = doc.child(0).child(0);
+      // Expected: "Line 1 Line 2" (br is handled by schema, whitespace around it normalized)
+      expect(pNode.textContent).toBe("Line 1 Line 2");
+    });
+
+    it("should preserve whitespace in MEI nodes (atom)", () => {
+      const input = `<mei>
+  <note/>
+</mei>`;
+      const rst = ResilientSyntaxTree.parse(input, defaultDefinition);
+      const doc = rst.toProseMirrorDoc(mySchema);
+      const meiNode = doc.child(0);
+      expect(meiNode.type.name).toBe("mei_node");
+      expect(meiNode.attrs.rawContent).toContain("\n  <note/>");
     });
   });
 });

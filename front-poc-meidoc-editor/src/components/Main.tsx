@@ -4,7 +4,6 @@ import { SAMPLE_XML } from "../lib/sampeContent";
 import { XHTML5MEIDocument } from "../lib/XHTML5MEIDocument";
 import { CodeEditor } from "./CodeEditor";
 import { DocumentEditor } from "./DocumentEditor";
-import { DocumentViewer } from "./DocumentViewer";
 import { EditorControllerDebugView } from "./EditorControllerDebugView";
 
 export function Main() {
@@ -16,7 +15,7 @@ export function Main() {
     <div className="flex h-screen flex-col">
       <div className="border-ui-border flex h-2/3 w-full flex-row border-b">
         <div className="border-ui-border h-full w-1/3 overflow-scroll border-r">
-          <DocumentViewer controller={editorController} />
+          {/* <DocumentViewer controller={editorController} /> */}
         </div>
         <div className="border-ui-border h-full w-1/3 overflow-scroll border-r">
           <DocumentEditor editorController={editorController} />

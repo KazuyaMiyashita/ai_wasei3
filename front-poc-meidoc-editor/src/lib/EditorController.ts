@@ -13,8 +13,8 @@ import {
   type Transaction as PTransaction,
 } from "prosemirror-state";
 import type { EditorView as PEditorView } from "prosemirror-view";
-import { CodeMirrorAdapter } from "./adapters/CodeMirrorAdapter";
-import { ProseMirrorAdapter } from "./adapters/ProseMirrorAdapter";
+import { CodeMirrorAdapter } from "./CodeMirrorAdapter";
+import { ProseMirrorAdapter } from "./ProseMirrorAdapter";
 import {
   defaultSyntaxDefinition,
   ResilientSyntaxTree,
@@ -143,8 +143,8 @@ export class EditorController {
 
         // Apply to RST
         const rstChanges = this.rst.edit(changes);
-        this.document.rawContent = this.rst.toString();
         this.log("CM", "Apply", "RST updated incrementally");
+        console.log(`rstChanges: ${rstChanges}`);
 
         // Sync to PM
         this.syncProseMirrorFromRST(rstChanges);
@@ -189,6 +189,7 @@ export class EditorController {
       const allRstChanges: RSTChange[] = [];
 
       try {
+        console.log(`tr: ${JSON.stringify(tr.steps)}`);
         const pmChanges = this.pmAdapter.getChangesFromTransaction(
           tr,
           newState,
@@ -267,4 +268,8 @@ export class EditorController {
     tempDiv.appendChild(fragment);
     this.proseMirrorXML = tempDiv.innerHTML;
   };
+
+  getRST(): ResilientSyntaxTree {
+    return this.rst;
+  }
 }

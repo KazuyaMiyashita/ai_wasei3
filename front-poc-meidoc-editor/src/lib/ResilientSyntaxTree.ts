@@ -514,23 +514,46 @@ export class ResilientSyntaxTree {
 
   toProseMirrorNode(schema: Schema, node: ResilientNode): Node | Node[] | null {
     if (node.type === "Text") {
-      // If text is purely whitespace, check context.
-      // Ideally, we should check CSS white-space property or parent tag.
-      // For now, if parent is a block-level element like body, section, div, etc., we ignore pure whitespace.
-      // But inside a paragraph, whitespace is significant (e.g. space between words).
-      // However, RST tends to create separate Text nodes for indentation between tags.
+      let text = node.textContent || "";
 
-      const text = node.textContent || "";
+      // Check if parent is a code-like or atom node where whitespace is significant
+      const parentTag = node.parent?.tagName || "";
+      if (["mei", "pre", "code"].includes(parentTag)) {
+        return schema.text(text);
+      }
+
+      // Heuristic: If it's just whitespace and parent is a structural container, skip it.
       if (!text.trim()) {
-        // It's just whitespace.
-        // If parent is likely a layout container, ignore it.
-        const parentTag = node.parent?.tagName || "";
         if (
-          ["body", "section", "div", "html", "head", "root"].includes(parentTag)
+          [
+            "body",
+            "section",
+            "div",
+            "html",
+            "head",
+            "root",
+            "ul",
+            "ol",
+          ].includes(parentTag)
         ) {
           return null;
         }
       }
+
+      // For content blocks like p, h1, li, etc., normalize whitespace.
+      // Collapse multiple whitespaces/newlines into a single space and trim.
+      if (["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"].includes(parentTag)) {
+        text = text.replace(/\s+/g, " ");
+        // Special case: if this text node is the first/last child of the paragraph, trim it.
+        if (node.parent?.children[0] === node) {
+          text = text.trimStart();
+        }
+        if (node.parent?.children[node.parent.children.length - 1] === node) {
+          text = text.trimEnd();
+        }
+        if (!text) return null;
+      }
+
       return schema.text(text);
     }
     if (node.type === "Error") {
@@ -579,6 +602,37 @@ export class ResilientSyntaxTree {
         contentNodes,
       );
     }
+
+    // Support for inline marks (strong, em, etc.)
+    const markMap: Record<string, string> = {
+      b: "strong",
+      strong: "strong",
+      i: "em",
+      em: "em",
+      u: "u", // if defined in schema
+      s: "strikethrough", // if defined
+    };
+
+    if (markMap[tagName] && schema.marks[markMap[tagName]]) {
+      const markType = schema.marks[markMap[tagName]];
+      const mark = markType.create(node.attributes);
+      const contentNodes: Node[] = [];
+      for (const child of node.children) {
+        const res = this.toProseMirrorNode(schema, child);
+        if (res) {
+          const list = Array.isArray(res) ? res : [res];
+          for (const n of list) {
+            if (n.isText) {
+              contentNodes.push(n.mark([mark, ...n.marks]));
+            } else {
+              contentNodes.push(n);
+            }
+          }
+        }
+      }
+      return contentNodes;
+    }
+
     if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(tagName)) {
       const level = parseInt(tagName.substring(1), 10);
       const contentNodes: Node[] = [];
@@ -703,6 +757,12 @@ export const defaultSyntaxDefinition: SyntaxDefinition = {
       "accid",
       "ul",
       "li",
+      "strong",
+      "b",
+      "em",
+      "i",
+      "u",
+      "s",
     ]);
     return defined.has(tagName);
   },

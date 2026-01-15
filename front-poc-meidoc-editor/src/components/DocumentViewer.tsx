@@ -10,7 +10,7 @@ const RSTNodeView = memo(({ node }: { node: ResilientNode }) => {
   if (node.type === "Error") {
     return (
       <div
-        className="parse-error border-1 border-red-500 bg-red-50 p-1 text-red-700"
+        className="parse-error border border-red-500 bg-red-50 p-1 text-red-700"
         data-error={node.errorMessage}
       >
         {node.textContent}

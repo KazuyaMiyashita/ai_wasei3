@@ -55,4 +55,32 @@ describe("EditorController - Integration", () => {
       expect(controller.canEdit("PM")).toBe(false);
     });
   });
+
+  describe("End-to-End Sync (Phase 3)", () => {
+    it("should sync marks from ProseMirror to RST", () => {
+      const { controller, view } = setup("<p>Hello</p>");
+      const { schema } = view.state;
+      const tr = view.state.tr.addMark(2, 6, schema.marks.strong.create());
+      view.dispatch(tr);
+      expect(controller.getRST().toString()).toContain("<strong>el</strong>");
+    });
+
+    it("should sync heading level changes from ProseMirror to RST", () => {
+      const { controller, view } = setup("<h1>Title</h1>");
+      const { schema } = view.state;
+      const tr = view.state.tr.setNodeMarkup(0, schema.nodes.heading, {
+        level: 2,
+      });
+      view.dispatch(tr);
+      expect(controller.getRST().toString()).toContain("<h2>Title</h2>");
+    });
+
+    it("should handle structural changes (split paragraph)", () => {
+      const { controller, view } = setup("<p>AB</p>");
+      const tr = view.state.tr.split(2);
+      view.dispatch(tr);
+      expect(controller.getRST().toString()).toContain("<p>A</p>");
+      expect(controller.getRST().toString()).toContain("<p>B</p>");
+    });
+  });
 });
