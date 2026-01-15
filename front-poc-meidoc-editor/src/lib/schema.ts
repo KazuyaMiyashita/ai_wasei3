@@ -1,16 +1,103 @@
-import { Schema } from "prosemirror-model";
+import { type DOMOutputSpec, type NodeSpec, Schema } from "prosemirror-model";
 import { schema as basicSchema } from "prosemirror-schema-basic";
 
-// 基本スキーマに section を追加
-// section はブロック要素を含み、自身もブロック要素となる
-const nodes = basicSchema.spec.nodes.addToEnd("section", {
+function addId(spec: NodeSpec): NodeSpec {
+  return {
+    ...spec,
+    attrs: { ...spec.attrs, id: { default: null } },
+    toDOM(node) {
+      const output = spec.toDOM
+        ? spec.toDOM(node)
+        : ([spec.parseDOM?.[0]?.tag || "div", 0] as DOMOutputSpec);
+      if (Array.isArray(output) && node.attrs.id) {
+        const tag = output[0] as string;
+        const second = output[1];
+        if (second && typeof second === "object" && !Array.isArray(second)) {
+          return [
+            tag,
+            { ...second, "data-rst-id": node.attrs.id },
+            ...output.slice(2),
+          ] as DOMOutputSpec;
+        } else {
+          return [
+            tag,
+            { "data-rst-id": node.attrs.id },
+            ...output.slice(1),
+          ] as DOMOutputSpec;
+        }
+      }
+      return output;
+    },
+  };
+}
+
+// Generic XML Block (Container)
+const xmlBlock: NodeSpec = {
+  attrs: {
+    tagName: { default: "div" },
+    attributes: { default: {} },
+    id: { default: null },
+  },
   content: "block+",
   group: "block",
-  parseDOM: [{ tag: "section" }],
-  toDOM() {
-    return ["section", 0];
+  toDOM(node) {
+    const attrs: any = { ...node.attrs.attributes, class: "xml-block" };
+    if (node.attrs.id) attrs["data-rst-id"] = node.attrs.id;
+    attrs["data-tagname"] = node.attrs.tagName;
+    return [node.attrs.tagName, attrs, 0];
   },
-});
+  parseDOM: [{ tag: "div" }],
+};
+
+// Generic XML TextBlock
+const xmlTextBlock: NodeSpec = {
+  attrs: {
+    tagName: { default: "span" },
+    attributes: { default: {} },
+    id: { default: null },
+  },
+  content: "inline*",
+  group: "block",
+  toDOM(node) {
+    const attrs: any = { ...node.attrs.attributes, class: "xml-textblock" };
+    if (node.attrs.id) attrs["data-rst-id"] = node.attrs.id;
+    attrs["data-tagname"] = node.attrs.tagName;
+    return [node.attrs.tagName, attrs, 0];
+  },
+};
+
+const errorNode: NodeSpec = {
+  attrs: {
+    errorMessage: { default: "" },
+    rawContent: { default: "" },
+    id: { default: null },
+  },
+  group: "block",
+  atom: true,
+  toDOM(node) {
+    return [
+      "div",
+      {
+        class: "parse-error",
+        "data-error": node.attrs.errorMessage,
+        "data-rst-id": node.attrs.id,
+      },
+      node.attrs.rawContent,
+    ];
+  },
+};
+
+let nodes = basicSchema.spec.nodes;
+const p = nodes.get("paragraph");
+const h = nodes.get("heading");
+
+if (p) nodes = nodes.update("paragraph", addId(p));
+if (h) nodes = nodes.update("heading", addId(h));
+
+nodes = nodes
+  .addToEnd("xml_block", xmlBlock)
+  .addToEnd("xml_textblock", xmlTextBlock)
+  .addToEnd("error_node", errorNode);
 
 export const mySchema = new Schema({
   nodes: nodes,
