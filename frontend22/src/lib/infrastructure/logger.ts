@@ -18,6 +18,8 @@ export class Logger extends Subscribable<{ lastLog: LogEntry | null }> {
   }
 
   notify(message: string, level: LogLevel, sender = "System") {
+    const msg = `[${level}] ${sender}: ${message}`;
+    console.trace(msg);
     const entry: LogEntry = {
       message,
       level,

@@ -1,6 +1,4 @@
-// Review Comment:
-// backend22のモデルを移植する場所です。
-// 音楽理論的なプリミティブはUIや編集ロジックから独立しているべきです。
+// TODO: backend22のモデルを正しく移植すること。NoteNameの定義は全く異なる。
 // cf: backend22/src/main/scala/model/elements/Elements.scala
 
 export type Key = {

@@ -1,4 +1,9 @@
+import { findElementById } from "../model/music/xml-navigation";
 import type { PartData } from "./performer";
+
+// このファイルに音楽の要素のロジックを定義しないこと。
+// frontend22/src/lib/model/music/elements.ts に記述しなければならない。
+// また現在のロジックはbackend22のものと異なるものである。
 
 function noteToMidi(pname: string, oct: number): number {
   const noteMap: Record<string, number> = {
@@ -30,32 +35,20 @@ export function generateAudioForNote(
   meiXML: Document,
   noteId: string,
 ): PartData[] {
-  // Simple XPath lookup for the note
-  const nsResolver = (prefix: string | null) => {
-    if (prefix === "mei") return "http://www.music-encoding.org/ns/mei";
-    return null;
-  };
-
-  const result = meiXML.evaluate(
-    `//*[@xml:id='${noteId}']`,
-    meiXML,
-    nsResolver,
-    XPathResult.FIRST_ORDERED_NODE_TYPE,
-    null,
-  );
-
-  const element = result.singleNodeValue as Element;
+  const element = findElementById(meiXML, noteId);
 
   if (!element || element.tagName !== "note") {
     return [];
   }
 
+  // FIXME: 調号や臨時記号を取得していない。
   const pname = element.getAttribute("pname") || "c";
   const oct = parseInt(element.getAttribute("oct") || "4", 10);
 
   const freq = midiToFreq(noteToMidi(pname, oct));
   const durationMs = 500; // Fixed duration for preview
 
+  // FIXME: 音の立ち上がりがプツプツする。
   return [
     {
       id: 1,
@@ -64,10 +57,11 @@ export function generateAudioForNote(
         { time: durationMs, value: freq },
       ],
       intensity: [
-        { time: 0, value: -10 },
-        { time: 50, value: -2 }, // Attack
-        { time: durationMs - 50, value: -2 }, // Sustain
-        { time: durationMs, value: -60 }, // Release
+        { time: 0, value: -9999 },
+        { time: 100 + 0, value: -96 },
+        { time: 100 + 50, value: -2 }, // Attack
+        { time: 100 + durationMs - 50, value: -2 }, // Sustain
+        { time: 100 + durationMs, value: -96 }, // Release
       ],
       metadata: [
         { time: 0, type: "noteon", elementId: noteId },

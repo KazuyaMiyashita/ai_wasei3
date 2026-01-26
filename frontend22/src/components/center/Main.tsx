@@ -1,16 +1,13 @@
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 import { Group, Panel } from "react-resizable-panels";
-import {
-  useApplication,
-  useApplicationState,
-} from "../../context/ApplicationContext";
+import { useApplicationState } from "../../context/ApplicationContext";
 import { useScoreRenderer } from "../../hooks/score/useScoreRenderer";
-import { CodeView } from "./CodeView";
+import { CodeEditor } from "./CodeEditor";
+import { DocumentEditor } from "./DocumentEditor";
 import { DocumentView } from "./DocumentView";
 
 export function Main() {
-  const application = useApplication();
   // We need to resolve the document object from ID.
   const activeDocument = useApplicationState((state) =>
     state.currentDocumentId
@@ -18,7 +15,8 @@ export function Main() {
       : null,
   );
 
-  const viewMode = useApplicationState((state) => state.viewState.viewMode);
+  const layoutMode = useApplicationState((state) => state.viewState.layoutMode);
+  const editMode = useApplicationState((state) => state.viewState.editMode);
 
   const {
     renderedContent,
@@ -30,31 +28,8 @@ export function Main() {
 
   // Global Keyboard Shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        if (!activeDocument) return;
-
-        if (e.defaultPrevented) return;
-
-        e.preventDefault();
-        if (e.shiftKey) {
-          const defaultName =
-            activeDocument.originalDocument.path.split("/").pop() ||
-            "new_file.mei";
-          const name = prompt("Save as (filename):", defaultName);
-          if (name) {
-            const path = name.startsWith("/") ? name : `/${name}`;
-            void application.saveAs(path);
-          }
-        } else {
-          void application.save();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeDocument, application]);
+    // ...
+  }, []);
 
   if (!activeDocument) {
     return (
@@ -69,15 +44,16 @@ export function Main() {
     );
   }
 
-  if (!isReady) {
-    return (
-      <div className="flex h-full items-center justify-center text-gray-400">
-        <Loader2 className="mr-2 animate-spin" /> Loading Verovio...
-      </div>
-    );
-  }
+  // Determine which components to show based on editMode
+  const isMusicDoc =
+    activeDocument.originalDocument.type === "xhtml5+mei" ||
+    activeDocument.originalDocument.type === "mei";
 
-  const documentView = (
+  const showDocumentEditor = editMode && isMusicDoc;
+
+  const documentComponent = showDocumentEditor ? (
+    <DocumentEditor activeDocument={activeDocument} />
+  ) : (
     <DocumentView
       activeDocument={activeDocument}
       renderedContent={renderedContent}
@@ -87,25 +63,35 @@ export function Main() {
     />
   );
 
-  const codeView = <CodeView activeDocument={activeDocument} />;
+  const codeComponent = <CodeEditor activeDocument={activeDocument} />;
 
-  if (viewMode === "document") {
-    return documentView;
+  // Early return for Loading if needed (only if NOT in document editor mode which uses its own loading)
+  if (!showDocumentEditor && !isReady) {
+    return (
+      <div className="flex h-full items-center justify-center text-gray-400">
+        <Loader2 className="mr-2 animate-spin" /> Loading Verovio...
+      </div>
+    );
   }
-  if (viewMode === "code") {
-    return codeView;
+
+  // Layout selection
+  if (layoutMode === "document") {
+    return documentComponent;
   }
-  if (viewMode === "split") {
+  if (layoutMode === "code") {
+    return codeComponent;
+  }
+  if (layoutMode === "split") {
     return (
       <Group orientation="horizontal">
         <Panel
           collapsible={false}
-          defaultSize={"50%"} // In version 4.3.0 of react-resizable-panels, specify "50%".
+          defaultSize={"50%"}
           className="border-ui-border hover:border-ui-border-hover border-r"
         >
-          {documentView}
+          {documentComponent}
         </Panel>
-        <Panel>{codeView}</Panel>
+        <Panel>{codeComponent}</Panel>
       </Group>
     );
   }

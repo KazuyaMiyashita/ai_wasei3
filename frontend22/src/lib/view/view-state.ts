@@ -1,15 +1,17 @@
 import { Subscribable } from "../shared/subscribable";
 
-export type ViewMode = "document" | "code" | "split";
+export type LayoutMode = "document" | "code" | "split";
 
 export interface ViewStateData {
   scale: number;
-  viewMode: ViewMode;
+  layoutMode: LayoutMode;
+  editMode: boolean;
 }
 
 export class ViewState extends Subscribable<ViewStateData> {
   private _scale = 100;
-  private _viewMode: ViewMode = "document";
+  private _layoutMode: LayoutMode = "document";
+  private _editMode = false;
 
   constructor() {
     super();
@@ -20,8 +22,12 @@ export class ViewState extends Subscribable<ViewStateData> {
     return this._scale;
   }
 
-  get viewMode() {
-    return this._viewMode;
+  get layoutMode() {
+    return this._layoutMode;
+  }
+
+  get editMode() {
+    return this._editMode;
   }
 
   setScale(scale: number | ((prev: number) => number)) {
@@ -33,11 +39,20 @@ export class ViewState extends Subscribable<ViewStateData> {
     this.updateState();
   }
 
-  setViewMode(viewMode: ViewMode | ((prev: ViewMode) => ViewMode)) {
-    if (typeof viewMode === "function") {
-      this._viewMode = viewMode(this._viewMode);
+  setLayoutMode(layoutMode: LayoutMode | ((prev: LayoutMode) => LayoutMode)) {
+    if (typeof layoutMode === "function") {
+      this._layoutMode = layoutMode(this._layoutMode);
     } else {
-      this._viewMode = viewMode;
+      this._layoutMode = layoutMode;
+    }
+    this.updateState();
+  }
+
+  setEditMode(editMode: boolean | ((prev: boolean) => boolean)) {
+    if (typeof editMode === "function") {
+      this._editMode = editMode(this._editMode);
+    } else {
+      this._editMode = editMode;
     }
     this.updateState();
   }
@@ -45,7 +60,8 @@ export class ViewState extends Subscribable<ViewStateData> {
   private updateState() {
     this.emit({
       scale: this._scale,
-      viewMode: this._viewMode,
+      layoutMode: this._layoutMode,
+      editMode: this._editMode,
     });
   }
 }

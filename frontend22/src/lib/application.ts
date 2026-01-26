@@ -26,7 +26,7 @@ import type { MEI } from "./model/music/mei";
 import { Subscribable } from "./shared/subscribable";
 import { ScoreRenderer, type ScoreState } from "./view/score-renderer";
 import {
-  type ViewMode,
+  type LayoutMode,
   ViewState,
   type ViewStateData,
 } from "./view/view-state";
@@ -228,8 +228,12 @@ export class Application extends Subscribable<ApplicationState> {
     this.viewState.setScale(scale);
   }
 
-  setViewMode(mode: ViewMode) {
-    this.viewState.setViewMode(mode);
+  setLayoutMode(mode: LayoutMode) {
+    this.viewState.setLayoutMode(mode);
+  }
+
+  setEditMode(editMode: boolean) {
+    this.viewState.setEditMode(editMode);
   }
 
   renderScorePage(page: number) {
